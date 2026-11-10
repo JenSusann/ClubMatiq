@@ -11,14 +11,23 @@ type Variante = {
 };
 
 // ========================================
-// GET: Alle Inventarartikel laden
+// GET: Inventarartikel des Vereins laden
 // ========================================
 
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ locals }) => {
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  const vereinId = locals.benutzer.vereinId;
+
   try {
     const artikel = await db
       .collection('artikel')
-      .find()
+      .find({ vereinId })
       .sort({ name: 1 })
       .toArray();
 
@@ -32,7 +41,9 @@ export const GET: RequestHandler = async () => {
     console.error('Fehler beim Laden:', error);
 
     return json(
-      { fehler: 'Inventarartikel konnten nicht geladen werden.' },
+      {
+        fehler: 'Inventarartikel konnten nicht geladen werden.'
+      },
       { status: 500 }
     );
   }
@@ -42,7 +53,19 @@ export const GET: RequestHandler = async () => {
 // POST: Neuen Inventarartikel speichern
 // ========================================
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({
+  request,
+  locals
+}) => {
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  const vereinId = locals.benutzer.vereinId;
+
   const daten = await request.json().catch(() => null);
 
   if (!daten || typeof daten !== 'object' || Array.isArray(daten)) {
@@ -81,7 +104,10 @@ export const POST: RequestHandler = async ({ request }) => {
     !ObjectId.isValid(lagerortId)
   ) {
     return json(
-      { fehler: 'Bitte eine gültige Kategorie und einen Lagerort wählen.' },
+      {
+        fehler:
+          'Bitte eine gültige Kategorie und einen Lagerort wählen.'
+      },
       { status: 400 }
     );
   }
@@ -142,7 +168,10 @@ export const POST: RequestHandler = async ({ request }) => {
         variante.einzelwert < 0
       ) {
         return json(
-          { fehler: 'Ungültige Grössenbestände oder Einzelwerte.' },
+          {
+            fehler:
+              'Ungültige Grössenbestände oder Einzelwerte.'
+          },
           { status: 400 }
         );
       }
@@ -154,7 +183,9 @@ export const POST: RequestHandler = async ({ request }) => {
       (variante) => variante.groesseId
     );
 
-    if (new Set(groessenIds).size !== groessenIds.length) {
+    if (
+      new Set(groessenIds).size !== groessenIds.length
+    ) {
       return json(
         { fehler: 'Eine Grösse wurde mehrfach angegeben.' },
         { status: 400 }
@@ -185,24 +216,29 @@ export const POST: RequestHandler = async ({ request }) => {
   // ========================================
 
   try {
-    // Kategorie und Lagerort überprüfen
+    // Kategorie und Lagerort des Vereins prüfen
     const [kategorie, lagerort] = await Promise.all([
       db.collection('kategorien').findOne({
-        _id: new ObjectId(kategorieId)
+        _id: new ObjectId(kategorieId),
+        vereinId
       }),
       db.collection('lagerorte').findOne({
-        _id: new ObjectId(lagerortId)
+        _id: new ObjectId(lagerortId),
+        vereinId
       })
     ]);
 
     if (!kategorie || !lagerort) {
       return json(
-        { fehler: 'Kategorie oder Lagerort existiert nicht.' },
+        {
+          fehler:
+            'Kategorie oder Lagerort existiert nicht in deinem Verein.'
+        },
         { status: 400 }
       );
     }
 
-    // Grössen überprüfen
+    // Grössen des Vereins überprüfen
     if (hatGroessen) {
       const groessenIds = gepruefteVarianten.map(
         (variante) => new ObjectId(variante.groesseId)
@@ -211,12 +247,16 @@ export const POST: RequestHandler = async ({ request }) => {
       const anzahlGroessen = await db
         .collection('groessen')
         .countDocuments({
-          _id: { $in: groessenIds }
+          _id: { $in: groessenIds },
+          vereinId
         });
 
       if (anzahlGroessen !== groessenIds.length) {
         return json(
-          { fehler: 'Mindestens eine Grösse existiert nicht.' },
+          {
+            fehler:
+              'Mindestens eine Grösse existiert nicht in deinem Verein.'
+          },
           { status: 400 }
         );
       }
@@ -227,13 +267,14 @@ export const POST: RequestHandler = async ({ request }) => {
     // ========================================
 
     const ergebnis = await db.collection('artikel').insertOne({
+      vereinId,
       name: name.trim(),
       kategorieId,
       lagerortId,
       menge: gesamtmenge,
 
-      // Bei Artikeln mit Grössen gelten die
-      // Einzelwerte der einzelnen Varianten.
+      // Bei Artikeln mit Grössen gelten
+      // die Einzelwerte der Varianten.
       einzelwert: hatGroessen ? 0 : einzelwert,
 
       beschreibung: (beschreibung ?? '').trim(),
@@ -249,6 +290,7 @@ export const POST: RequestHandler = async ({ request }) => {
       try {
         await db.collection('artikelvarianten').insertMany(
           gepruefteVarianten.map((variante) => ({
+            vereinId,
             artikelId: ergebnis.insertedId.toString(),
             groesseId: variante.groesseId,
             menge: variante.menge,
@@ -258,11 +300,13 @@ export const POST: RequestHandler = async ({ request }) => {
       } catch (error) {
         // Fehlgeschlagene Erfassung zurücknehmen
         await db.collection('artikelvarianten').deleteMany({
-          artikelId: ergebnis.insertedId.toString()
+          artikelId: ergebnis.insertedId.toString(),
+          vereinId
         });
 
         await db.collection('artikel').deleteOne({
-          _id: ergebnis.insertedId
+          _id: ergebnis.insertedId,
+          vereinId
         });
 
         throw error;
@@ -285,7 +329,9 @@ export const POST: RequestHandler = async ({ request }) => {
     console.error('Fehler beim Speichern:', error);
 
     return json(
-      { fehler: 'Inventarartikel konnte nicht gespeichert werden.' },
+      {
+        fehler: 'Inventarartikel konnte nicht gespeichert werden.'
+      },
       { status: 500 }
     );
   }

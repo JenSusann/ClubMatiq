@@ -1,13 +1,28 @@
 
 import { json } from '@sveltejs/kit';
 import { db } from '../../../lib/server/mongodb';
+import type { RequestHandler } from './$types';
 
-// Alle Kategorien aus MongoDB abrufen
-export async function GET() {
+// ========================================
+// GET: Kategorien des Vereins laden
+// ========================================
+
+export const GET: RequestHandler = async ({ locals }) => {
+  // Prüfen, ob Benutzer angemeldet ist
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  // Vereins-ID aus der Session übernehmen
+  const vereinId = locals.benutzer.vereinId;
+
   try {
     const kategorien = await db
       .collection('kategorien')
-      .find()
+      .find({ vereinId })
       .sort({ name: 1 })
       .toArray();
 
@@ -21,16 +36,47 @@ export async function GET() {
     console.error('Fehler beim Laden:', error);
 
     return json(
-      { fehler: 'Kategorien konnten nicht geladen werden.' },
+      {
+        fehler: 'Kategorien konnten nicht geladen werden.'
+      },
       { status: 500 }
     );
   }
-}
+};
 
-// Neue Kategorie in MongoDB speichern
-export async function POST({ request }: { request: Request }) {
+// ========================================
+// POST: Neue Kategorie für Verein speichern
+// ========================================
+
+export const POST: RequestHandler = async ({
+  request,
+  locals
+}) => {
+  // Prüfen, ob Benutzer angemeldet ist
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  // Vereins-ID aus der Session übernehmen
+  const vereinId = locals.benutzer.vereinId;
+
   try {
     const daten = await request.json();
+
+    if (
+      !daten ||
+      typeof daten !== 'object' ||
+      Array.isArray(daten)
+    ) {
+      return json(
+        { fehler: 'Ungültige Kategoriedaten.' },
+        { status: 400 }
+      );
+    }
+
     const name = daten.name;
 
     if (typeof name !== 'string' || !name.trim()) {
@@ -40,9 +86,13 @@ export async function POST({ request }: { request: Request }) {
       );
     }
 
-    const ergebnis = await db.collection('kategorien').insertOne({
-      name: name.trim()
-    });
+    // Kategorie mit Vereins-ID speichern
+    const ergebnis = await db
+      .collection('kategorien')
+      .insertOne({
+        vereinId,
+        name: name.trim()
+      });
 
     return json(
       {
@@ -55,8 +105,10 @@ export async function POST({ request }: { request: Request }) {
     console.error('Fehler beim Speichern:', error);
 
     return json(
-      { fehler: 'Kategorie konnte nicht gespeichert werden.' },
+      {
+        fehler: 'Kategorie konnte nicht gespeichert werden.'
+      },
       { status: 500 }
     );
   }
-}
+};

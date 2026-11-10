@@ -14,19 +14,31 @@ type Variante = {
 // GET: Einzelnen Inventarartikel laden
 // ========================================
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({
+  params,
+  locals
+}) => {
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  const vereinId = locals.benutzer.vereinId;
+  const artikelId = params.id;
+
+  if (!ObjectId.isValid(artikelId)) {
+    return json(
+      { fehler: 'Ungültige Artikel-ID.' },
+      { status: 400 }
+    );
+  }
+
   try {
-    const artikelId = params.id;
-
-    if (!ObjectId.isValid(artikelId)) {
-      return json(
-        { fehler: 'Ungültige Artikel-ID.' },
-        { status: 400 }
-      );
-    }
-
     const artikel = await db.collection('artikel').findOne({
-      _id: new ObjectId(artikelId)
+      _id: new ObjectId(artikelId),
+      vereinId
     });
 
     if (!artikel) {
@@ -38,7 +50,10 @@ export const GET: RequestHandler = async ({ params }) => {
 
     const varianten = artikel.hatGroessen
       ? await db.collection('artikelvarianten')
-          .find({ artikelId })
+          .find({
+            artikelId,
+            vereinId
+          })
           .toArray()
       : [];
 
@@ -67,7 +82,19 @@ export const GET: RequestHandler = async ({ params }) => {
 // PATCH: Inventarartikel bearbeiten
 // ========================================
 
-export const PATCH: RequestHandler = async ({ params, request }) => {
+export const PATCH: RequestHandler = async ({
+  params,
+  request,
+  locals
+}) => {
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  const vereinId = locals.benutzer.vereinId;
   const artikelId = params.id;
 
   if (!ObjectId.isValid(artikelId)) {
@@ -79,7 +106,11 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
   const daten = await request.json().catch(() => null);
 
-  if (!daten || typeof daten !== 'object' || Array.isArray(daten)) {
+  if (
+    !daten ||
+    typeof daten !== 'object' ||
+    Array.isArray(daten)
+  ) {
     return json(
       { fehler: 'Ungültige Artikeldaten.' },
       { status: 400 }
@@ -143,7 +174,10 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
   let gepruefteVarianten: Variante[] = [];
 
   if (hatGroessen) {
-    if (!Array.isArray(varianten) || varianten.length === 0) {
+    if (
+      !Array.isArray(varianten) ||
+      varianten.length === 0
+    ) {
       return json(
         { fehler: 'Bitte Grössenvarianten angeben.' },
         { status: 400 }
@@ -163,7 +197,10 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
         variante.einzelwert < 0
       ) {
         return json(
-          { fehler: 'Ungültige Grössenbestände oder Einzelwerte.' },
+          {
+            fehler:
+              'Ungültige Grössenbestände oder Einzelwerte.'
+          },
           { status: 400 }
         );
       }
@@ -171,7 +208,9 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
     gepruefteVarianten = varianten as Variante[];
 
-    const ids = gepruefteVarianten.map((v) => v.groesseId);
+    const ids = gepruefteVarianten.map(
+      (v) => v.groesseId
+    );
 
     if (new Set(ids).size !== ids.length) {
       return json(
@@ -202,9 +241,13 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
   try {
     const objektId = new ObjectId(artikelId);
 
+    // Artikel muss zum angemeldeten Verein gehören
     const bestehenderArtikel = await db
       .collection('artikel')
-      .findOne({ _id: objektId });
+      .findOne({
+        _id: objektId,
+        vereinId
+      });
 
     if (!bestehenderArtikel) {
       return json(
@@ -214,8 +257,10 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
     }
 
     // Wechsel zwischen Artikel mit/ohne Grössen
-    // vorerst nicht erlauben
-    if (bestehenderArtikel.hatGroessen !== hatGroessen) {
+    // weiterhin nicht erlauben
+    if (
+      bestehenderArtikel.hatGroessen !== hatGroessen
+    ) {
       return json(
         {
           fehler:
@@ -225,24 +270,30 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
       );
     }
 
-    // Kategorie und Lagerort überprüfen
+    // Kategorie und Lagerort müssen
+    // zum gleichen Verein gehören
     const [kategorie, lagerort] = await Promise.all([
       db.collection('kategorien').findOne({
-        _id: new ObjectId(kategorieId)
+        _id: new ObjectId(kategorieId),
+        vereinId
       }),
       db.collection('lagerorte').findOne({
-        _id: new ObjectId(lagerortId)
+        _id: new ObjectId(lagerortId),
+        vereinId
       })
     ]);
 
     if (!kategorie || !lagerort) {
       return json(
-        { fehler: 'Kategorie oder Lagerort existiert nicht.' },
+        {
+          fehler:
+            'Kategorie oder Lagerort existiert nicht in deinem Verein.'
+        },
         { status: 400 }
       );
     }
 
-    // Grössen überprüfen
+    // Grössen müssen ebenfalls zum Verein gehören
     if (hatGroessen) {
       const groessenIds = gepruefteVarianten.map(
         (v) => new ObjectId(v.groesseId)
@@ -251,53 +302,73 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
       const anzahlGroessen = await db
         .collection('groessen')
         .countDocuments({
-          _id: { $in: groessenIds }
+          _id: { $in: groessenIds },
+          vereinId
         });
 
       if (anzahlGroessen !== groessenIds.length) {
         return json(
-          { fehler: 'Mindestens eine Grösse existiert nicht.' },
+          {
+            fehler:
+              'Mindestens eine Grösse existiert nicht in deinem Verein.'
+          },
           { status: 400 }
         );
       }
     }
 
     // Hauptartikel aktualisieren
-    await db.collection('artikel').updateOne(
-      { _id: objektId },
-      {
-        $set: {
-          name: name.trim(),
-          kategorieId,
-          lagerortId,
-          menge: gesamtmenge,
-          einzelwert: hatGroessen ? 0 : einzelwert,
-          beschreibung: (beschreibung ?? '').trim(),
-          aktualisiertAm: new Date()
+    const aktualisierung = await db
+      .collection('artikel')
+      .updateOne(
+        {
+          _id: objektId,
+          vereinId
+        },
+        {
+          $set: {
+            name: name.trim(),
+            kategorieId,
+            lagerortId,
+            menge: gesamtmenge,
+            einzelwert: hatGroessen ? 0 : einzelwert,
+            beschreibung: (beschreibung ?? '').trim(),
+            aktualisiertAm: new Date()
+          }
         }
-      }
-    );
+      );
+
+    if (aktualisierung.matchedCount !== 1) {
+      return json(
+        { fehler: 'Artikel nicht gefunden.' },
+        { status: 404 }
+      );
+    }
 
     // Grössenvarianten aktualisieren
     if (hatGroessen) {
       for (const variante of gepruefteVarianten) {
-        await db.collection('artikelvarianten').updateOne(
-          {
-            artikelId,
-            groesseId: variante.groesseId
-          },
-          {
-            $set: {
-              menge: variante.menge,
-              einzelwert: variante.einzelwert
-            },
-            $setOnInsert: {
+        await db
+          .collection('artikelvarianten')
+          .updateOne(
+            {
               artikelId,
-              groesseId: variante.groesseId
-            }
-          },
-          { upsert: true }
-        );
+              groesseId: variante.groesseId,
+              vereinId
+            },
+            {
+              $set: {
+                menge: variante.menge,
+                einzelwert: variante.einzelwert
+              },
+              $setOnInsert: {
+                artikelId,
+                groesseId: variante.groesseId,
+                vereinId
+              }
+            },
+            { upsert: true }
+          );
       }
     }
 
@@ -307,24 +378,38 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
       gesamtmenge
     });
   } catch (error) {
-    console.error('Fehler beim Aktualisieren:', error);
+    console.error(
+      'Fehler beim Aktualisieren:',
+      error
+    );
 
     return json(
-      { fehler: 'Artikel konnte nicht aktualisiert werden.' },
+      {
+        fehler: 'Artikel konnte nicht aktualisiert werden.'
+      },
       { status: 500 }
     );
   }
 };
 
-
 // ========================================
 // DELETE: Inventarartikel löschen
 // ========================================
 
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async ({
+  params,
+  locals
+}) => {
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  const vereinId = locals.benutzer.vereinId;
   const artikelId = params.id;
 
-  // Artikel-ID überprüfen
   if (!ObjectId.isValid(artikelId)) {
     return json(
       { fehler: 'Ungültige Artikel-ID.' },
@@ -335,22 +420,34 @@ export const DELETE: RequestHandler = async ({ params }) => {
   try {
     const objektId = new ObjectId(artikelId);
 
-    // Prüfen, ob der Artikel existiert
-    const artikel = await db.collection('artikel').findOne({
-      _id: objektId
-    });
+    // Nur Artikel des eigenen Vereins finden
+    const artikel = await db
+      .collection('artikel')
+      .findOne({
+        _id: objektId,
+        vereinId
+      });
 
     if (!artikel) {
       return json(
-        { fehler: 'Inventarartikel nicht gefunden.' },
+        {
+          fehler: 'Inventarartikel nicht gefunden.'
+        },
         { status: 404 }
       );
     }
 
-    // Prüfen, ob der Artikel bereits verwendet wird
+    // Prüfen, ob Ausleihen oder Meldungen
+    // für diesen Artikel existieren
     const [ausleihe, meldung] = await Promise.all([
-      db.collection('ausleihen').findOne({ artikelId }),
-      db.collection('meldungen').findOne({ artikelId })
+      db.collection('ausleihen').findOne({
+        artikelId,
+        vereinId
+      }),
+      db.collection('meldungen').findOne({
+        artikelId,
+        vereinId
+      })
     ]);
 
     if (ausleihe || meldung) {
@@ -363,23 +460,35 @@ export const DELETE: RequestHandler = async ({ params }) => {
       );
     }
 
-    // Artikel und Grössenvarianten gemeinsam löschen
+    // Artikel und Varianten gemeinsam löschen
     const session = client.startSession();
 
     try {
       await session.withTransaction(async () => {
-        await db.collection('artikelvarianten').deleteMany(
-          { artikelId },
-          { session }
-        );
+        await db
+          .collection('artikelvarianten')
+          .deleteMany(
+            {
+              artikelId,
+              vereinId
+            },
+            { session }
+          );
 
-        const ergebnis = await db.collection('artikel').deleteOne(
-          { _id: objektId },
-          { session }
-        );
+        const ergebnis = await db
+          .collection('artikel')
+          .deleteOne(
+            {
+              _id: objektId,
+              vereinId
+            },
+            { session }
+          );
 
         if (ergebnis.deletedCount !== 1) {
-          throw new Error('Artikel konnte nicht gelöscht werden.');
+          throw new Error(
+            'Artikel konnte nicht gelöscht werden.'
+          );
         }
       });
     } finally {
@@ -394,7 +503,10 @@ export const DELETE: RequestHandler = async ({ params }) => {
     console.error('Fehler beim Löschen:', error);
 
     return json(
-      { fehler: 'Inventarartikel konnte nicht gelöscht werden.' },
+      {
+        fehler:
+          'Inventarartikel konnte nicht gelöscht werden.'
+      },
       { status: 500 }
     );
   }

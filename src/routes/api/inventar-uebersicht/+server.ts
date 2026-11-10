@@ -3,24 +3,73 @@ import { json } from '@sveltejs/kit';
 import { db } from '../../../lib/server/mongodb';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async () => {
+// ========================================
+// GET: Inventarübersicht des Vereins laden
+// ========================================
+
+export const GET: RequestHandler = async ({ locals }) => {
+  // Anmeldung überprüfen
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  // Vereins-ID aus der Session übernehmen
+  const vereinId = locals.benutzer.vereinId;
+
   try {
+    // Nur Daten des angemeldeten Vereins laden
     const [artikel, kategorien, lagerorte, groessen, varianten] =
       await Promise.all([
-        db.collection('artikel').find().sort({ name: 1 }).toArray(),
-        db.collection('kategorien').find().toArray(),
-        db.collection('lagerorte').find().toArray(),
-        db.collection('groessen').find().toArray(),
-        db.collection('artikelvarianten').find().toArray()
+        db.collection('artikel')
+          .find({ vereinId })
+          .sort({ name: 1 })
+          .toArray(),
+
+        db.collection('kategorien')
+          .find({ vereinId })
+          .toArray(),
+
+        db.collection('lagerorte')
+          .find({ vereinId })
+          .toArray(),
+
+        db.collection('groessen')
+          .find({ vereinId })
+          .toArray(),
+
+        db.collection('artikelvarianten')
+          .find({ vereinId })
+          .toArray()
       ]);
 
+    // ========================================
+    // Kategorien zuordnen
+    // ========================================
+
     const kategorieNamen = new Map(
-      kategorien.map((k) => [k._id.toString(), k.name])
+      kategorien.map((k) => [
+        k._id.toString(),
+        k.name
+      ])
     );
 
+    // ========================================
+    // Lagerorte zuordnen
+    // ========================================
+
     const lagerortNamen = new Map(
-      lagerorte.map((l) => [l._id.toString(), l.name])
+      lagerorte.map((l) => [
+        l._id.toString(),
+        l.name
+      ])
     );
+
+    // ========================================
+    // Grössen zuordnen
+    // ========================================
 
     const groessenNamen = new Map(
       groessen.map((g) => [
@@ -32,9 +81,14 @@ export const GET: RequestHandler = async () => {
       ])
     );
 
+    // ========================================
+    // Inventardaten zusammenstellen
+    // ========================================
+
     const daten = artikel.map((eintrag) => {
       const artikelId = eintrag._id.toString();
 
+      // Varianten des jeweiligen Artikels
       const artikelVarianten = varianten
         .filter((v) => v.artikelId === artikelId)
         .map((v) => ({
@@ -43,11 +97,16 @@ export const GET: RequestHandler = async () => {
             groessenNamen.get(v.groesseId)?.bezeichnung ??
             'Unbekannt',
           sortierung:
-            groessenNamen.get(v.groesseId)?.sortierung ?? 9999,
+            groessenNamen.get(v.groesseId)?.sortierung ??
+            9999,
           menge: v.menge,
           einzelwert: v.einzelwert ?? 0
         }))
         .sort((a, b) => a.sortierung - b.sortierung);
+
+      // ========================================
+      // Gesamtbestand berechnen
+      // ========================================
 
       const gesamtmenge = eintrag.hatGroessen
         ? artikelVarianten.reduce(
@@ -56,12 +115,21 @@ export const GET: RequestHandler = async () => {
           )
         : eintrag.menge;
 
+      // ========================================
+      // Inventarwert berechnen
+      // ========================================
+
       const inventarwert = eintrag.hatGroessen
         ? artikelVarianten.reduce(
-            (summe, v) => summe + v.menge * v.einzelwert,
+            (summe, v) =>
+              summe + v.menge * v.einzelwert,
             0
           )
         : eintrag.menge * eintrag.einzelwert;
+
+      // ========================================
+      // Artikel für Übersicht aufbereiten
+      // ========================================
 
       return {
         _id: artikelId,
@@ -88,7 +156,10 @@ export const GET: RequestHandler = async () => {
     console.error('Inventarübersicht:', error);
 
     return json(
-      { fehler: 'Inventarübersicht konnte nicht geladen werden.' },
+      {
+        fehler:
+          'Inventarübersicht konnte nicht geladen werden.'
+      },
       { status: 500 }
     );
   }

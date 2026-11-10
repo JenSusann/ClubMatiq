@@ -5,14 +5,23 @@ import { db, client } from '../../../lib/server/mongodb';
 import type { RequestHandler } from './$types';
 
 // ========================================
-// GET: Alle Materialausleihen laden
+// GET: Materialausleihen des Vereins laden
 // ========================================
 
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ locals }) => {
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  const vereinId = locals.benutzer.vereinId;
+
   try {
     const ausleihen = await db
       .collection('ausleihen')
-      .find()
+      .find({ vereinId })
       .sort({ erstelltAm: -1 })
       .toArray();
 
@@ -26,7 +35,9 @@ export const GET: RequestHandler = async () => {
     console.error('Ausleihen laden:', error);
 
     return json(
-      { fehler: 'Ausleihen konnten nicht geladen werden.' },
+      {
+        fehler: 'Ausleihen konnten nicht geladen werden.'
+      },
       { status: 500 }
     );
   }
@@ -36,10 +47,26 @@ export const GET: RequestHandler = async () => {
 // POST: Neue Materialausleihe erfassen
 // ========================================
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({
+  request,
+  locals
+}) => {
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  const vereinId = locals.benutzer.vereinId;
+
   const daten = await request.json().catch(() => null);
 
-  if (!daten || typeof daten !== 'object' || Array.isArray(daten)) {
+  if (
+    !daten ||
+    typeof daten !== 'object' ||
+    Array.isArray(daten)
+  ) {
     return json(
       { fehler: 'Ungültige Ausleihdaten.' },
       { status: 400 }
@@ -56,7 +83,10 @@ export const POST: RequestHandler = async ({ request }) => {
     bemerkung
   } = daten;
 
+  // ========================================
   // Eingaben überprüfen
+  // ========================================
+
   if (
     typeof artikelId !== 'string' ||
     !ObjectId.isValid(artikelId)
@@ -67,9 +97,14 @@ export const POST: RequestHandler = async ({ request }) => {
     );
   }
 
-  if (typeof person !== 'string' || !person.trim()) {
+  if (
+    typeof person !== 'string' ||
+    !person.trim()
+  ) {
     return json(
-      { fehler: 'Bitte eine ausleihende Person angeben.' },
+      {
+        fehler: 'Bitte eine ausleihende Person angeben.'
+      },
       { status: 400 }
     );
   }
@@ -80,7 +115,10 @@ export const POST: RequestHandler = async ({ request }) => {
     menge <= 0
   ) {
     return json(
-      { fehler: 'Die Ausleihmenge muss grösser als 0 sein.' },
+      {
+        fehler:
+          'Die Ausleihmenge muss grösser als 0 sein.'
+      },
       { status: 400 }
     );
   }
@@ -97,7 +135,10 @@ export const POST: RequestHandler = async ({ request }) => {
     rueckgabedatum < ausleihdatum
   ) {
     return json(
-      { fehler: 'Bitte gültige Ausleih- und Rückgabedaten angeben.' },
+      {
+        fehler:
+          'Bitte gültige Ausleih- und Rückgabedaten angeben.'
+      },
       { status: 400 }
     );
   }
@@ -112,6 +153,10 @@ export const POST: RequestHandler = async ({ request }) => {
     );
   }
 
+  // ========================================
+  // Ausleihe als Transaktion speichern
+  // ========================================
+
   try {
     const session = client.startSession();
 
@@ -119,47 +164,75 @@ export const POST: RequestHandler = async ({ request }) => {
       let neueAusleiheId = '';
 
       await session.withTransaction(async () => {
-        const artikel = await db.collection('artikel').findOne(
-          { _id: new ObjectId(artikelId) },
-          { session }
-        );
+        // Artikel muss zum Verein gehören
+        const artikel = await db
+          .collection('artikel')
+          .findOne(
+            {
+              _id: new ObjectId(artikelId),
+              vereinId
+            },
+            { session }
+          );
 
         if (!artikel) {
-          throw new Error('Artikel nicht gefunden.');
+          throw new Error(
+            'Artikel nicht gefunden oder nicht verfügbar.'
+          );
         }
 
-        const hatGroessen = artikel.hatGroessen === true;
+        const hatGroessen =
+          artikel.hatGroessen === true;
 
-        if (hatGroessen && (
-          typeof groesseId !== 'string' ||
-          !ObjectId.isValid(groesseId)
-        )) {
-          throw new Error('Bitte eine gültige Grösse auswählen.');
+        // Grössenangaben überprüfen
+        if (
+          hatGroessen &&
+          (
+            typeof groesseId !== 'string' ||
+            !ObjectId.isValid(groesseId)
+          )
+        ) {
+          throw new Error(
+            'Bitte eine gültige Grösse auswählen.'
+          );
         }
 
         if (!hatGroessen && groesseId) {
-          throw new Error('Dieser Artikel hat keine Grössen.');
+          throw new Error(
+            'Dieser Artikel hat keine Grössen.'
+          );
         }
 
+        // ========================================
+        // Bestand des Vereins reduzieren
+        // ========================================
+
         const bestandFilter = hatGroessen
-          ? { artikelId, groesseId }
-          : { _id: new ObjectId(artikelId) };
+          ? {
+              artikelId,
+              groesseId,
+              vereinId
+            }
+          : {
+              _id: new ObjectId(artikelId),
+              vereinId
+            };
 
         const bestandCollection = hatGroessen
           ? db.collection('artikelvarianten')
           : db.collection('artikel');
 
-        // Bestand nur reduzieren, wenn genügend vorhanden ist
-        const aktualisierung = await bestandCollection.updateOne(
-          {
-            ...bestandFilter,
-            menge: { $gte: menge }
-          },
-          {
-            $inc: { menge: -menge }
-          },
-          { session }
-        );
+        const aktualisierung =
+          await bestandCollection.updateOne(
+            {
+              ...bestandFilter,
+              menge: { $gte: menge }
+            },
+            {
+              $inc: { menge: -menge }
+            },
+            { session }
+          );
 
         if (aktualisierung.modifiedCount !== 1) {
           throw new Error(
@@ -167,40 +240,66 @@ export const POST: RequestHandler = async ({ request }) => {
           );
         }
 
-        // Gesamtbestand bei Artikeln mit Grössen synchronisieren
+        // Gesamtbestand synchronisieren
         if (hatGroessen) {
-          await db.collection('artikel').updateOne(
-            { _id: new ObjectId(artikelId) },
-            { $inc: { menge: -menge } },
-            { session }
-          );
+          const gesamtAktualisierung = await db
+            .collection('artikel')
+            .updateOne(
+              {
+                _id: new ObjectId(artikelId),
+                vereinId,
+                menge: { $gte: menge }
+              },
+              {
+                $inc: { menge: -menge }
+              },
+              { session }
+            );
+
+          if (
+            gesamtAktualisierung.modifiedCount !== 1
+          ) {
+            throw new Error(
+              'Gesamtbestand konnte nicht aktualisiert werden.'
+            );
+          }
         }
 
-        // Ausleihe speichern
-        const ergebnis = await db.collection('ausleihen').insertOne(
-          {
-            artikelId,
-            groesseId: hatGroessen ? groesseId : null,
-            person: person.trim(),
-            menge,
-            ausleihdatum,
-            rueckgabedatum,
-            bemerkung: (bemerkung ?? '').trim(),
-            status: 'offen',
-            zurueckgegeben: 0,
-            erstelltAm: new Date()
-          },
-          { session }
-        );
+        // ========================================
+        // Ausleihe mit Vereins-ID speichern
+        // ========================================
 
-        neueAusleiheId = ergebnis.insertedId.toString();
+        const ergebnis = await db
+          .collection('ausleihen')
+          .insertOne(
+            {
+              vereinId,
+              artikelId,
+              groesseId: hatGroessen
+                ? groesseId
+                : null,
+              person: person.trim(),
+              menge,
+              ausleihdatum,
+              rueckgabedatum,
+              bemerkung: (bemerkung ?? '').trim(),
+              status: 'offen',
+              zurueckgegeben: 0,
+              erstelltAm: new Date()
+            },
+            { session }
+          );
+
+        neueAusleiheId =
+          ergebnis.insertedId.toString();
       });
 
       return json(
         {
           erfolg: true,
           ausleiheId: neueAusleiheId,
-          meldung: 'Materialausleihe erfolgreich erfasst.'
+          meldung:
+            'Materialausleihe erfolgreich erfasst.'
         },
         { status: 201 }
       );

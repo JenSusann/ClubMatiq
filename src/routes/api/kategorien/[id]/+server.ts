@@ -4,8 +4,24 @@ import { ObjectId } from 'mongodb';
 import { db } from '../../../../lib/server/mongodb';
 import type { RequestHandler } from './$types';
 
-// Kategorie bearbeiten
-export const PATCH: RequestHandler = async ({ params, request }) => {
+// ========================================
+// PATCH: Kategorie des Vereins bearbeiten
+// ========================================
+
+export const PATCH: RequestHandler = async ({
+  params,
+  request,
+  locals
+}) => {
+  // Anmeldung überprüfen
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  const vereinId = locals.benutzer.vereinId;
   const { id } = params;
 
   if (!ObjectId.isValid(id)) {
@@ -26,10 +42,22 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
   }
 
   try {
-    const ergebnis = await db.collection('kategorien').updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { name: name.trim() } }
-    );
+    const objektId = new ObjectId(id);
+
+    // Nur Kategorie des eigenen Vereins bearbeiten
+    const ergebnis = await db
+      .collection('kategorien')
+      .updateOne(
+        {
+          _id: objektId,
+          vereinId
+        },
+        {
+          $set: {
+            name: name.trim()
+          }
+        }
+      );
 
     if (ergebnis.matchedCount === 0) {
       return json(
@@ -43,14 +71,31 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
     console.error('Fehler beim Bearbeiten:', error);
 
     return json(
-      { fehler: 'Kategorie konnte nicht bearbeitet werden.' },
+      {
+        fehler: 'Kategorie konnte nicht bearbeitet werden.'
+      },
       { status: 500 }
     );
   }
 };
 
-// Kategorie löschen
-export const DELETE: RequestHandler = async ({ params }) => {
+// ========================================
+// DELETE: Kategorie des Vereins löschen
+// ========================================
+
+export const DELETE: RequestHandler = async ({
+  params,
+  locals
+}) => {
+  // Anmeldung überprüfen
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  const vereinId = locals.benutzer.vereinId;
   const { id } = params;
 
   if (!ObjectId.isValid(id)) {
@@ -61,23 +106,49 @@ export const DELETE: RequestHandler = async ({ params }) => {
   }
 
   try {
-    // Prüfen, ob Artikel zugeordnet sind
-    const anzahlArtikel = await db.collection('artikel').countDocuments({
-      kategorieId: id
-    });
+    const objektId = new ObjectId(id);
+
+    // Prüfen, ob die Kategorie zum Verein gehört
+    const bestehendeKategorie = await db
+      .collection('kategorien')
+      .findOne({
+        _id: objektId,
+        vereinId
+      });
+
+    if (!bestehendeKategorie) {
+      return json(
+        { fehler: 'Kategorie nicht gefunden.' },
+        { status: 404 }
+      );
+    }
+
+    // Prüfen, ob Artikel des eigenen Vereins
+    // dieser Kategorie zugeordnet sind
+    const anzahlArtikel = await db
+      .collection('artikel')
+      .countDocuments({
+        kategorieId: id,
+        vereinId
+      });
 
     if (anzahlArtikel > 0) {
       return json(
         {
-          fehler: `Diese Kategorie kann nicht gelöscht werden, da ${anzahlArtikel} Artikel zugeordnet sind.`
+          fehler:
+            `Diese Kategorie kann nicht gelöscht werden, da ${anzahlArtikel} Artikel zugeordnet sind.`
         },
         { status: 409 }
       );
     }
 
-    const ergebnis = await db.collection('kategorien').deleteOne({
-      _id: new ObjectId(id)
-    });
+    // Nur Kategorie des eigenen Vereins löschen
+    const ergebnis = await db
+      .collection('kategorien')
+      .deleteOne({
+        _id: objektId,
+        vereinId
+      });
 
     if (ergebnis.deletedCount === 0) {
       return json(
@@ -91,7 +162,9 @@ export const DELETE: RequestHandler = async ({ params }) => {
     console.error('Fehler beim Löschen:', error);
 
     return json(
-      { fehler: 'Kategorie konnte nicht gelöscht werden.' },
+      {
+        fehler: 'Kategorie konnte nicht gelöscht werden.'
+      },
       { status: 500 }
     );
   }

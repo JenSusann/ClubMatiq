@@ -3,12 +3,26 @@ import { json } from '@sveltejs/kit';
 import { db } from '../../../lib/server/mongodb';
 import type { RequestHandler } from './$types';
 
-// Alle Grössen laden
-export const GET: RequestHandler = async () => {
+// ========================================
+// GET: Grössen des Vereins laden
+// ========================================
+
+export const GET: RequestHandler = async ({ locals }) => {
+  // Prüfen, ob Benutzer angemeldet ist
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  // Vereins-ID aus der Session übernehmen
+  const vereinId = locals.benutzer.vereinId;
+
   try {
     const groessen = await db
       .collection('groessen')
-      .find()
+      .find({ vereinId })
       .sort({ sortierung: 1, bezeichnung: 1 })
       .toArray();
 
@@ -23,29 +37,68 @@ export const GET: RequestHandler = async () => {
     console.error('Fehler beim Laden der Grössen:', error);
 
     return json(
-      { fehler: 'Grössen konnten nicht geladen werden.' },
+      {
+        fehler: 'Grössen konnten nicht geladen werden.'
+      },
       { status: 500 }
     );
   }
 };
 
-// Neue Grösse erstellen
-export const POST: RequestHandler = async ({ request }) => {
+// ========================================
+// POST: Neue Grösse für Verein erstellen
+// ========================================
+
+export const POST: RequestHandler = async ({
+  request,
+  locals
+}) => {
+  // Prüfen, ob Benutzer angemeldet ist
+  if (!locals.benutzer) {
+    return json(
+      { fehler: 'Nicht angemeldet.' },
+      { status: 401 }
+    );
+  }
+
+  const vereinId = locals.benutzer.vereinId;
+
   try {
     const daten = await request.json().catch(() => null);
 
-    const bezeichnung = daten?.bezeichnung;
-    const sortierung = daten?.sortierung;
+    if (
+      !daten ||
+      typeof daten !== 'object' ||
+      Array.isArray(daten)
+    ) {
+      return json(
+        { fehler: 'Ungültige Grössendaten.' },
+        { status: 400 }
+      );
+    }
+
+    const bezeichnung = daten.bezeichnung;
+    const sortierung = daten.sortierung;
+
+    // ========================================
+    // Grössenbezeichnung prüfen
+    // ========================================
 
     if (
       typeof bezeichnung !== 'string' ||
       !bezeichnung.trim()
     ) {
       return json(
-        { fehler: 'Bitte eine Grössenbezeichnung eingeben.' },
+        {
+          fehler: 'Bitte eine Grössenbezeichnung eingeben.'
+        },
         { status: 400 }
       );
     }
+
+    // ========================================
+    // Sortierung prüfen
+    // ========================================
 
     if (
       typeof sortierung !== 'number' ||
@@ -53,34 +106,62 @@ export const POST: RequestHandler = async ({ request }) => {
       sortierung < 0
     ) {
       return json(
-        { fehler: 'Bitte eine gültige Sortierung eingeben.' },
+        {
+          fehler: 'Bitte eine gültige Sortierung eingeben.'
+        },
         { status: 400 }
       );
     }
 
-    const vorhanden = await db.collection('groessen').findOne({
-      bezeichnung: {
-        $regex: `^${bezeichnung.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`,
-        $options: 'i'
-      }
-    });
+    const bereinigteBezeichnung = bezeichnung.trim();
+
+    // Sonderzeichen für Regex maskieren
+    const sichereBezeichnung =
+      bereinigteBezeichnung.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        '\\$&'
+      );
+
+    // ========================================
+    // Doppelte Grössen innerhalb des Vereins prüfen
+    // ========================================
+
+    const vorhanden = await db
+      .collection('groessen')
+      .findOne({
+        vereinId,
+        bezeichnung: {
+          $regex: `^${sichereBezeichnung}$`,
+          $options: 'i'
+        }
+      });
 
     if (vorhanden) {
       return json(
-        { fehler: 'Diese Grösse existiert bereits.' },
+        {
+          fehler:
+            'Diese Grösse existiert in deinem Verein bereits.'
+        },
         { status: 409 }
       );
     }
 
-    const ergebnis = await db.collection('groessen').insertOne({
-      bezeichnung: bezeichnung.trim(),
-      sortierung
-    });
+    // ========================================
+    // Neue Grösse speichern
+    // ========================================
+
+    const ergebnis = await db
+      .collection('groessen')
+      .insertOne({
+        vereinId,
+        bezeichnung: bereinigteBezeichnung,
+        sortierung
+      });
 
     return json(
       {
         _id: ergebnis.insertedId.toString(),
-        bezeichnung: bezeichnung.trim(),
+        bezeichnung: bereinigteBezeichnung,
         sortierung
       },
       { status: 201 }
@@ -89,7 +170,9 @@ export const POST: RequestHandler = async ({ request }) => {
     console.error('Fehler beim Speichern der Grösse:', error);
 
     return json(
-      { fehler: 'Grösse konnte nicht gespeichert werden.' },
+      {
+        fehler: 'Grösse konnte nicht gespeichert werden.'
+      },
       { status: 500 }
     );
   }
