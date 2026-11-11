@@ -2,6 +2,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { db } from '../../../../lib/server/mongodb';
+import { pruefeBerechtigung } from '../../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
 // ========================================
@@ -13,17 +14,20 @@ export const PATCH: RequestHandler = async ({
   request,
   locals
 }) => {
-  // Anmeldung überprüfen
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung zur Stammdatenverwaltung prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'stammdaten:verwalten'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
   const { id } = params;
 
+  // Lagerort-ID überprüfen
   if (!ObjectId.isValid(id)) {
     return json(
       { fehler: 'Ungültige Lagerort-ID.' },
@@ -31,6 +35,7 @@ export const PATCH: RequestHandler = async ({
     );
   }
 
+  // JSON-Daten sicher einlesen
   const daten = await request.json().catch(() => null);
   const name = daten?.name;
 
@@ -43,7 +48,7 @@ export const PATCH: RequestHandler = async ({
 
   const bereinigterName = name.trim();
 
-  // Sonderzeichen für die Suche maskieren
+  // Sonderzeichen für die Regex-Suche maskieren
   const sichererName = bereinigterName.replace(
     /[.*+?^${}()|[\]\\]/g,
     '\\$&'
@@ -111,7 +116,10 @@ export const PATCH: RequestHandler = async ({
       );
     }
 
-    return json({ erfolg: true });
+    return json({
+      erfolg: true,
+      name: bereinigterName
+    });
   } catch (error) {
     console.error(
       'Fehler beim Bearbeiten des Lagerorts:',
@@ -119,7 +127,9 @@ export const PATCH: RequestHandler = async ({
     );
 
     return json(
-      { fehler: 'Bearbeiten fehlgeschlagen.' },
+      {
+        fehler: 'Lagerort konnte nicht bearbeitet werden.'
+      },
       { status: 500 }
     );
   }
@@ -133,17 +143,20 @@ export const DELETE: RequestHandler = async ({
   params,
   locals
 }) => {
-  // Anmeldung überprüfen
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung zur Stammdatenverwaltung prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'stammdaten:verwalten'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
   const { id } = params;
 
+  // Lagerort-ID überprüfen
   if (!ObjectId.isValid(id)) {
     return json(
       { fehler: 'Ungültige Lagerort-ID.' },
@@ -202,7 +215,10 @@ export const DELETE: RequestHandler = async ({
       );
     }
 
-    return json({ erfolg: true });
+    return json({
+      erfolg: true,
+      meldung: 'Lagerort wurde erfolgreich gelöscht.'
+    });
   } catch (error) {
     console.error(
       'Fehler beim Löschen des Lagerorts:',
@@ -210,7 +226,9 @@ export const DELETE: RequestHandler = async ({
     );
 
     return json(
-      { fehler: 'Löschen fehlgeschlagen.' },
+      {
+        fehler: 'Lagerort konnte nicht gelöscht werden.'
+      },
       { status: 500 }
     );
   }

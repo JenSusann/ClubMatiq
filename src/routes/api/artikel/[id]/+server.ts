@@ -2,6 +2,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { db, client } from '../../../../lib/server/mongodb';
+import { pruefeBerechtigung } from '../../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
 type Variante = {
@@ -18,14 +19,16 @@ export const GET: RequestHandler = async ({
   params,
   locals
 }) => {
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'inventar:lesen'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
   const artikelId = params.id;
 
   if (!ObjectId.isValid(artikelId)) {
@@ -87,14 +90,16 @@ export const PATCH: RequestHandler = async ({
   request,
   locals
 }) => {
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'inventar:bearbeiten'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
   const artikelId = params.id;
 
   if (!ObjectId.isValid(artikelId)) {
@@ -400,14 +405,16 @@ export const DELETE: RequestHandler = async ({
   params,
   locals
 }) => {
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'inventar:bearbeiten'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
   const artikelId = params.id;
 
   if (!ObjectId.isValid(artikelId)) {

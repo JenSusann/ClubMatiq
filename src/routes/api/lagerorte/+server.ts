@@ -1,6 +1,7 @@
 
 import { json } from '@sveltejs/kit';
 import { db } from '../../../lib/server/mongodb';
+import { pruefeBerechtigung } from '../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
 // ========================================
@@ -8,14 +9,18 @@ import type { RequestHandler } from './$types';
 // ========================================
 
 export const GET: RequestHandler = async ({ locals }) => {
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung zum Lesen prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'inventar:lesen'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  // Vereins-ID aus der Session übernehmen
+  const vereinId = locals.benutzer!.vereinId;
 
   try {
     const lagerorte = await db
@@ -53,46 +58,51 @@ export const POST: RequestHandler = async ({
   request,
   locals
 }) => {
-  if (!locals.benutzer) {
+  // Berechtigung zur Stammdatenverwaltung prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'stammdaten:verwalten'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
+  }
+
+  // Vereins-ID aus der Session übernehmen
+  const vereinId = locals.benutzer!.vereinId;
+
+  // JSON-Daten sicher einlesen
+  const daten = await request.json().catch(() => null);
+
+  if (
+    !daten ||
+    typeof daten !== 'object' ||
+    Array.isArray(daten)
+  ) {
     return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
+      { fehler: 'Ungültige Lagerortdaten.' },
+      { status: 400 }
     );
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const name = daten.name;
+
+  if (typeof name !== 'string' || !name.trim()) {
+    return json(
+      { fehler: 'Bitte einen Lagerortnamen eingeben.' },
+      { status: 400 }
+    );
+  }
+
+  const bereinigterName = name.trim();
+
+  // Sonderzeichen für die Regex-Suche maskieren
+  const sichererName = bereinigterName.replace(
+    /[.*+?^${}()|[\]\\]/g,
+    '\\$&'
+  );
 
   try {
-    const daten = await request.json().catch(() => null);
-
-    if (
-      !daten ||
-      typeof daten !== 'object' ||
-      Array.isArray(daten)
-    ) {
-      return json(
-        { fehler: 'Ungültige Lagerortdaten.' },
-        { status: 400 }
-      );
-    }
-
-    const name = daten.name;
-
-    if (typeof name !== 'string' || !name.trim()) {
-      return json(
-        { fehler: 'Bitte einen Lagerortnamen eingeben.' },
-        { status: 400 }
-      );
-    }
-
-    const bereinigterName = name.trim();
-
-    // Sonderzeichen für die Regex-Suche maskieren
-    const sichererName = bereinigterName.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      '\\$&'
-    );
-
     // Doppelte Lagerorte nur innerhalb
     // des angemeldeten Vereins prüfen
     const vorhandenerLagerort = await db

@@ -1,6 +1,7 @@
 
 import { json } from '@sveltejs/kit';
 import { db } from '../../../lib/server/mongodb';
+import { pruefeBerechtigung } from '../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
 // ========================================
@@ -8,16 +9,18 @@ import type { RequestHandler } from './$types';
 // ========================================
 
 export const GET: RequestHandler = async ({ locals }) => {
-  // Prüfen, ob Benutzer angemeldet ist
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung zum Lesen prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'inventar:lesen'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
   // Vereins-ID aus der Session übernehmen
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
 
   try {
     const groessen = await db
@@ -53,75 +56,78 @@ export const POST: RequestHandler = async ({
   request,
   locals
 }) => {
-  // Prüfen, ob Benutzer angemeldet ist
-  if (!locals.benutzer) {
+  // Berechtigung zur Stammdatenverwaltung prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'stammdaten:verwalten'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
+  }
+
+  // Vereins-ID aus der Session übernehmen
+  const vereinId = locals.benutzer!.vereinId;
+
+  // JSON-Daten sicher einlesen
+  const daten = await request.json().catch(() => null);
+
+  if (
+    !daten ||
+    typeof daten !== 'object' ||
+    Array.isArray(daten)
+  ) {
     return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
+      { fehler: 'Ungültige Grössendaten.' },
+      { status: 400 }
     );
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const bezeichnung = daten.bezeichnung;
+  const sortierung = daten.sortierung;
+
+  // ========================================
+  // Grössenbezeichnung prüfen
+  // ========================================
+
+  if (
+    typeof bezeichnung !== 'string' ||
+    !bezeichnung.trim()
+  ) {
+    return json(
+      {
+        fehler: 'Bitte eine Grössenbezeichnung eingeben.'
+      },
+      { status: 400 }
+    );
+  }
+
+  // ========================================
+  // Sortierung prüfen
+  // ========================================
+
+  if (
+    typeof sortierung !== 'number' ||
+    !Number.isInteger(sortierung) ||
+    sortierung < 0
+  ) {
+    return json(
+      {
+        fehler: 'Bitte eine gültige Sortierung eingeben.'
+      },
+      { status: 400 }
+    );
+  }
+
+  const bereinigteBezeichnung = bezeichnung.trim();
+
+  // Sonderzeichen für Regex maskieren
+  const sichereBezeichnung = bereinigteBezeichnung.replace(
+    /[.*+?^${}()|[\]\\]/g,
+    '\\$&'
+  );
 
   try {
-    const daten = await request.json().catch(() => null);
-
-    if (
-      !daten ||
-      typeof daten !== 'object' ||
-      Array.isArray(daten)
-    ) {
-      return json(
-        { fehler: 'Ungültige Grössendaten.' },
-        { status: 400 }
-      );
-    }
-
-    const bezeichnung = daten.bezeichnung;
-    const sortierung = daten.sortierung;
-
-    // ========================================
-    // Grössenbezeichnung prüfen
-    // ========================================
-
-    if (
-      typeof bezeichnung !== 'string' ||
-      !bezeichnung.trim()
-    ) {
-      return json(
-        {
-          fehler: 'Bitte eine Grössenbezeichnung eingeben.'
-        },
-        { status: 400 }
-      );
-    }
-
-    // ========================================
-    // Sortierung prüfen
-    // ========================================
-
-    if (
-      typeof sortierung !== 'number' ||
-      !Number.isInteger(sortierung) ||
-      sortierung < 0
-    ) {
-      return json(
-        {
-          fehler: 'Bitte eine gültige Sortierung eingeben.'
-        },
-        { status: 400 }
-      );
-    }
-
-    const bereinigteBezeichnung = bezeichnung.trim();
-
-    // Sonderzeichen für Regex maskieren
-    const sichereBezeichnung =
-      bereinigteBezeichnung.replace(
-        /[.*+?^${}()|[\]\\]/g,
-        '\\$&'
-      );
-
     // ========================================
     // Doppelte Grössen innerhalb des Vereins prüfen
     // ========================================

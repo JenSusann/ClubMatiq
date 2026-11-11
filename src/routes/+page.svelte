@@ -1,55 +1,148 @@
 
 <script lang="ts">
-  const funktionen = [
+  import type { PageData } from './$types';
+
+  import {
+    verwendeRollenVorschau,
+    type Rolle
+  } from '../lib/rollenVorschau.svelte';
+
+  let { data }: { data: PageData } = $props();
+
+  // ========================================
+  // Gemeinsame Rollenvorschau aus dem Layout
+  // ========================================
+
+  const rollenVorschau = verwendeRollenVorschau();
+
+  // Tatsächliche Benutzerrolle aus der Session
+  const echteRolle: Rolle = $derived(data.rolle);
+
+  // Nur Administratoren dürfen die Vorschau verwenden.
+  const angezeigteRolle = $derived(
+    echteRolle === 'admin'
+      ? rollenVorschau.rolle
+      : echteRolle
+  );
+
+  // ========================================
+  // Dashboard-Funktionen
+  // ========================================
+
+  const funktionen: {
+    titel: string;
+    beschreibung: string;
+    icon: string;
+    link: string;
+    rollen: Rolle[];
+  }[] = [
     {
       titel: 'Inventar-Dashboard',
       beschreibung: 'Bestände, Materialien und Lagerorte verwalten',
       icon: '📦',
-      link: '/inventar'
+      link: '/inventar',
+      rollen: [
+        'admin',
+        'materialverantwortlich',
+        'leiter',
+        'mitglied'
+      ]
     },
     {
       titel: 'QR-Code',
       beschreibung: 'Material über QR-Code aufrufen',
       icon: '📱',
-      link: '/qr-code'
+      link: '/qr-code',
+      rollen: [
+        'admin',
+        'materialverantwortlich',
+        'leiter',
+        'mitglied'
+      ]
     },
     {
       titel: 'Materialausleihe',
       beschreibung: 'Material ausleihen und zurückgeben',
       icon: '🔄',
-      link: '/ausleihen'
+      link: '/ausleihen',
+      rollen: [
+        'admin',
+        'materialverantwortlich',
+        'leiter'
+      ]
     },
     {
       titel: 'Vereinskleider',
       beschreibung: 'Kleiderverkäufe und Rechnungen verwalten',
       icon: '👕',
-      link: '/vereinskleider'
+      link: '/vereinskleider',
+      rollen: [
+        'admin',
+        'materialverantwortlich'
+      ]
     },
     {
       titel: 'Inventur',
       beschreibung: 'Bestände kontrollieren und korrigieren',
       icon: '📋',
-      link: '/inventur'
+      link: '/inventur',
+      rollen: [
+        'admin',
+        'materialverantwortlich'
+      ]
     },
     {
       titel: 'Inventarbewertung',
       beschreibung: 'Inventarwerte für die Buchhaltung berechnen',
       icon: '💰',
-      link: '/inventarbewertung'
+      link: '/inventarbewertung',
+      rollen: [
+        'admin',
+        'materialverantwortlich'
+      ]
     },
     {
       titel: 'Schadensmeldungen',
       beschreibung: 'Schäden und Materialbedarf melden',
       icon: '🔧',
-      link: '/meldungen'
+      link: '/meldungen',
+      rollen: [
+        'admin',
+        'materialverantwortlich',
+        'leiter',
+        'mitglied'
+      ]
     },
     {
       titel: 'Materialsuche',
       beschreibung: 'Material nach Kategorie und Lagerort suchen',
       icon: '🔍',
-      link: '/materialsuche'
+      link: '/materialsuche',
+      rollen: [
+        'admin',
+        'materialverantwortlich',
+        'leiter',
+        'mitglied'
+      ]
+    },
+    {
+      titel: 'Benutzerverwaltung',
+      beschreibung: 'Benutzer einladen und Vereinsmitglieder verwalten',
+      icon: '👥',
+      link: '/benutzer',
+      rollen: ['admin']
     }
   ];
+
+  // ========================================
+  // Sichtbare Dashboard-Kacheln
+  // ========================================
+
+  const sichtbareFunktionen = $derived(
+    funktionen.filter((funktion) =>
+      funktion.rollen.includes(angezeigteRolle)
+    )
+  );
 </script>
 
 <svelte:head>
@@ -63,7 +156,7 @@
   </div>
 
   <div class="kachel-grid">
-    {#each funktionen as funktion}
+    {#each sichtbareFunktionen as funktion (funktion.link)}
       <a href={funktion.link} class="kachel">
         <div class="icon">{funktion.icon}</div>
 

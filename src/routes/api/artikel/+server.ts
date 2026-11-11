@@ -2,6 +2,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { db } from '../../../lib/server/mongodb';
+import { pruefeBerechtigung } from '../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
 type Variante = {
@@ -15,14 +16,17 @@ type Variante = {
 // ========================================
 
 export const GET: RequestHandler = async ({ locals }) => {
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'inventar:lesen'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
 
   try {
     const artikel = await db
@@ -57,14 +61,17 @@ export const POST: RequestHandler = async ({
   request,
   locals
 }) => {
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'inventar:bearbeiten'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
 
   const daten = await request.json().catch(() => null);
 

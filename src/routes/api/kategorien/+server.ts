@@ -1,6 +1,7 @@
 
 import { json } from '@sveltejs/kit';
 import { db } from '../../../lib/server/mongodb';
+import { pruefeBerechtigung } from '../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
 // ========================================
@@ -8,16 +9,18 @@ import type { RequestHandler } from './$types';
 // ========================================
 
 export const GET: RequestHandler = async ({ locals }) => {
-  // Prüfen, ob Benutzer angemeldet ist
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung zum Lesen prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'inventar:lesen'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
   // Vereins-ID aus der Session übernehmen
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
 
   try {
     const kategorien = await db
@@ -52,52 +55,57 @@ export const POST: RequestHandler = async ({
   request,
   locals
 }) => {
-  // Prüfen, ob Benutzer angemeldet ist
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung zur Stammdatenverwaltung prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'stammdaten:verwalten'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
   // Vereins-ID aus der Session übernehmen
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
+
+  // JSON-Daten sicher einlesen
+  const daten = await request.json().catch(() => null);
+
+  if (
+    !daten ||
+    typeof daten !== 'object' ||
+    Array.isArray(daten)
+  ) {
+    return json(
+      { fehler: 'Ungültige Kategoriedaten.' },
+      { status: 400 }
+    );
+  }
+
+  const name = daten.name;
+
+  if (typeof name !== 'string' || !name.trim()) {
+    return json(
+      { fehler: 'Bitte einen Kategorienamen eingeben.' },
+      { status: 400 }
+    );
+  }
+
+  const bereinigterName = name.trim();
 
   try {
-    const daten = await request.json();
-
-    if (
-      !daten ||
-      typeof daten !== 'object' ||
-      Array.isArray(daten)
-    ) {
-      return json(
-        { fehler: 'Ungültige Kategoriedaten.' },
-        { status: 400 }
-      );
-    }
-
-    const name = daten.name;
-
-    if (typeof name !== 'string' || !name.trim()) {
-      return json(
-        { fehler: 'Bitte einen Kategorienamen eingeben.' },
-        { status: 400 }
-      );
-    }
-
     // Kategorie mit Vereins-ID speichern
     const ergebnis = await db
       .collection('kategorien')
       .insertOne({
         vereinId,
-        name: name.trim()
+        name: bereinigterName
       });
 
     return json(
       {
         _id: ergebnis.insertedId.toString(),
-        name: name.trim()
+        name: bereinigterName
       },
       { status: 201 }
     );

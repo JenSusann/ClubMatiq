@@ -1,6 +1,12 @@
 
 declare global {
   namespace App {
+    type Benutzerrolle =
+      | 'admin'
+      | 'materialverantwortlich'
+      | 'leiter'
+      | 'mitglied';
+
     interface Locals {
       benutzer: {
         id: string;
@@ -8,7 +14,7 @@ declare global {
         vorname: string;
         nachname: string;
         email: string;
-        rolle: 'admin' | 'mitglied';
+        rolle: Benutzerrolle;
       } | null;
 
       sessionId: string | null;

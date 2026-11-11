@@ -4,6 +4,7 @@
 let wirdGeloescht = $state<string | null>(null);
 
 async function artikelLoeschen(a: Artikel) {
+  if (!darfBearbeiten) return;
   const bestaetigt = confirm(
     `Möchtest du den Artikel "${a.name}" wirklich löschen?\n\n` +
     'Der Artikel und seine Grössenbestände werden dauerhaft gelöscht.'
@@ -43,6 +44,17 @@ async function artikelLoeschen(a: Artikel) {
 
   
   import { onMount } from 'svelte';
+  import { verwendeRollenVorschau } from '../../lib/rollenVorschau.svelte';
+  import { page } from '$app/state';
+
+  const rollenVorschau = verwendeRollenVorschau();
+  const echteRolle = $derived(page.data.benutzer?.rolle ?? 'mitglied');
+  const angezeigteRolle = $derived(
+    echteRolle === 'admin' ? rollenVorschau.rolle : echteRolle
+  );
+  const darfBearbeiten = $derived(
+    angezeigteRolle === 'admin' || angezeigteRolle === 'materialverantwortlich'
+  );
 
   type Variante = {
     groesseId: string;
@@ -172,9 +184,11 @@ async function artikelLoeschen(a: Artikel) {
       <p>Verwalte das Material und die Vereinskleider.</p>
     </div>
 
-    <a href="/inventar/neu" class="button">
-      + Neuer Artikel
-    </a>
+    {#if darfBearbeiten}
+      <a href="/inventar/neu" class="button">
+        + Neuer Artikel
+      </a>
+    {/if}
   </div>
 
   {#if fehlermeldung}
@@ -282,12 +296,13 @@ async function artikelLoeschen(a: Artikel) {
                     </button>
 
                     <!-- Artikel bearbeiten -->
-                    <a
-                      href={`/inventar/${a._id}/bearbeiten`}
-                      class="bearbeiten-button"
-                    >
-                      Bearbeiten
-                    </a>
+                    {#if darfBearbeiten}
+                      <a
+                        href={`/inventar/${a._id}/bearbeiten`}
+                        class="bearbeiten-button"
+                      >
+                        Bearbeiten
+                      </a>
                       <button
                         type="button"
                         class="loeschen-button"
@@ -296,6 +311,7 @@ async function artikelLoeschen(a: Artikel) {
                       >
                         {wirdGeloescht === a._id ? 'Löschen ...' : 'Löschen'}
                       </button>
+                    {/if}
                   </div>
                 </td>
               </tr>

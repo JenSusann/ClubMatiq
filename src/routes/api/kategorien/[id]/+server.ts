@@ -2,6 +2,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { db } from '../../../../lib/server/mongodb';
+import { pruefeBerechtigung } from '../../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
 // ========================================
@@ -13,17 +14,20 @@ export const PATCH: RequestHandler = async ({
   request,
   locals
 }) => {
-  // Anmeldung überprüfen
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung zur Stammdatenverwaltung prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'stammdaten:verwalten'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
   const { id } = params;
 
+  // Kategorie-ID überprüfen
   if (!ObjectId.isValid(id)) {
     return json(
       { fehler: 'Ungültige Kategorie-ID.' },
@@ -31,6 +35,7 @@ export const PATCH: RequestHandler = async ({
     );
   }
 
+  // JSON-Daten sicher einlesen
   const daten = await request.json().catch(() => null);
   const name = daten?.name;
 
@@ -40,6 +45,8 @@ export const PATCH: RequestHandler = async ({
       { status: 400 }
     );
   }
+
+  const bereinigterName = name.trim();
 
   try {
     const objektId = new ObjectId(id);
@@ -54,7 +61,7 @@ export const PATCH: RequestHandler = async ({
         },
         {
           $set: {
-            name: name.trim()
+            name: bereinigterName
           }
         }
       );
@@ -66,7 +73,10 @@ export const PATCH: RequestHandler = async ({
       );
     }
 
-    return json({ erfolg: true });
+    return json({
+      erfolg: true,
+      name: bereinigterName
+    });
   } catch (error) {
     console.error('Fehler beim Bearbeiten:', error);
 
@@ -87,17 +97,20 @@ export const DELETE: RequestHandler = async ({
   params,
   locals
 }) => {
-  // Anmeldung überprüfen
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung zur Stammdatenverwaltung prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'stammdaten:verwalten'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
   const { id } = params;
 
+  // Kategorie-ID überprüfen
   if (!ObjectId.isValid(id)) {
     return json(
       { fehler: 'Ungültige Kategorie-ID.' },
@@ -157,7 +170,10 @@ export const DELETE: RequestHandler = async ({
       );
     }
 
-    return json({ erfolg: true });
+    return json({
+      erfolg: true,
+      meldung: 'Kategorie wurde erfolgreich gelöscht.'
+    });
   } catch (error) {
     console.error('Fehler beim Löschen:', error);
 

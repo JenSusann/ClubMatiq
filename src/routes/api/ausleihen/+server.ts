@@ -2,6 +2,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { db, client } from '../../../lib/server/mongodb';
+import { pruefeBerechtigung } from '../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
 // ========================================
@@ -9,14 +10,17 @@ import type { RequestHandler } from './$types';
 // ========================================
 
 export const GET: RequestHandler = async ({ locals }) => {
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung zum Anzeigen der Ausleihen prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'ausleihen:lesen'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
 
   try {
     const ausleihen = await db
@@ -51,14 +55,17 @@ export const POST: RequestHandler = async ({
   request,
   locals
 }) => {
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung zur Verwaltung der Ausleihen prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'ausleihen:verwalten'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
 
   const daten = await request.json().catch(() => null);
 

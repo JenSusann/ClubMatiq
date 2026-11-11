@@ -2,6 +2,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { db } from '../../../../lib/server/mongodb';
+import { pruefeBerechtigung } from '../../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
 // ========================================
@@ -13,16 +14,20 @@ export const PATCH: RequestHandler = async ({
   request,
   locals
 }) => {
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung zur Stammdatenverwaltung prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'stammdaten:verwalten'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
   const { id } = params;
 
+  // Grössen-ID überprüfen
   if (!ObjectId.isValid(id)) {
     return json(
       { fehler: 'Ungültige Grössen-ID.' },
@@ -30,38 +35,45 @@ export const PATCH: RequestHandler = async ({
     );
   }
 
+  // JSON-Daten sicher einlesen
   const daten = await request.json().catch(() => null);
   const bezeichnung = daten?.bezeichnung;
   const sortierung = daten?.sortierung;
 
+  // Grössenbezeichnung überprüfen
   if (
     typeof bezeichnung !== 'string' ||
     !bezeichnung.trim()
   ) {
     return json(
-      { fehler: 'Bitte eine Grössenbezeichnung eingeben.' },
+      {
+        fehler: 'Bitte eine Grössenbezeichnung eingeben.'
+      },
       { status: 400 }
     );
   }
 
+  // Sortierung überprüfen
   if (
     typeof sortierung !== 'number' ||
     !Number.isInteger(sortierung) ||
     sortierung < 0
   ) {
     return json(
-      { fehler: 'Bitte eine gültige Sortierung eingeben.' },
+      {
+        fehler: 'Bitte eine gültige Sortierung eingeben.'
+      },
       { status: 400 }
     );
   }
 
   const bereinigteBezeichnung = bezeichnung.trim();
 
-  const sichereBezeichnung =
-    bereinigteBezeichnung.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      '\\$&'
-    );
+  // Sonderzeichen für die Regex-Suche maskieren
+  const sichereBezeichnung = bereinigteBezeichnung.replace(
+    /[.*+?^${}()|[\]\\]/g,
+    '\\$&'
+  );
 
   try {
     const objektId = new ObjectId(id);
@@ -76,13 +88,15 @@ export const PATCH: RequestHandler = async ({
 
     if (!bestehendeGroesse) {
       return json(
-        { fehler: 'Grösse nicht gefunden.' },
+        {
+          fehler: 'Grösse nicht gefunden.'
+        },
         { status: 404 }
       );
     }
 
-    // Doppelte Bezeichnungen nur
-    // innerhalb desselben Vereins prüfen
+    // Doppelte Bezeichnungen nur innerhalb
+    // desselben Vereins prüfen
     const gleicherName = await db
       .collection('groessen')
       .findOne({
@@ -122,14 +136,21 @@ export const PATCH: RequestHandler = async ({
 
     if (ergebnis.matchedCount === 0) {
       return json(
-        { fehler: 'Grösse nicht gefunden.' },
+        {
+          fehler: 'Grösse nicht gefunden.'
+        },
         { status: 404 }
       );
     }
 
-    return json({ erfolg: true });
+    return json({
+      erfolg: true
+    });
   } catch (error) {
-    console.error('Fehler beim Bearbeiten:', error);
+    console.error(
+      'Fehler beim Bearbeiten der Grösse:',
+      error
+    );
 
     return json(
       {
@@ -148,19 +169,25 @@ export const DELETE: RequestHandler = async ({
   params,
   locals
 }) => {
-  if (!locals.benutzer) {
-    return json(
-      { fehler: 'Nicht angemeldet.' },
-      { status: 401 }
-    );
+  // Berechtigung zur Stammdatenverwaltung prüfen
+  const berechtigungsfehler = pruefeBerechtigung(
+    locals.benutzer,
+    'stammdaten:verwalten'
+  );
+
+  if (berechtigungsfehler) {
+    return berechtigungsfehler;
   }
 
-  const vereinId = locals.benutzer.vereinId;
+  const vereinId = locals.benutzer!.vereinId;
   const { id } = params;
 
+  // Grössen-ID überprüfen
   if (!ObjectId.isValid(id)) {
     return json(
-      { fehler: 'Ungültige Grössen-ID.' },
+      {
+        fehler: 'Ungültige Grössen-ID.'
+      },
       { status: 400 }
     );
   }
@@ -178,7 +205,9 @@ export const DELETE: RequestHandler = async ({
 
     if (!bestehendeGroesse) {
       return json(
-        { fehler: 'Grösse nicht gefunden.' },
+        {
+          fehler: 'Grösse nicht gefunden.'
+        },
         { status: 404 }
       );
     }
@@ -212,14 +241,21 @@ export const DELETE: RequestHandler = async ({
 
     if (ergebnis.deletedCount === 0) {
       return json(
-        { fehler: 'Grösse nicht gefunden.' },
+        {
+          fehler: 'Grösse nicht gefunden.'
+        },
         { status: 404 }
       );
     }
 
-    return json({ erfolg: true });
+    return json({
+      erfolg: true
+    });
   } catch (error) {
-    console.error('Fehler beim Löschen:', error);
+    console.error(
+      'Fehler beim Löschen der Grösse:',
+      error
+    );
 
     return json(
       {

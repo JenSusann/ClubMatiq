@@ -2,6 +2,15 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import AusleihenUebersicht from '../../lib/AusleihenUebersicht.svelte';
+  import { verwendeRollenVorschau } from '../../lib/rollenVorschau.svelte';
+  import { page } from '$app/state';
+
+  const rollenVorschau = verwendeRollenVorschau();
+  const echteRolle = $derived(page.data.benutzer?.rolle ?? 'mitglied');
+  const angezeigteRolle = $derived(
+    echteRolle === 'admin' ? rollenVorschau.rolle : echteRolle
+  );
+  const darfAusleihenVerwalten = $derived(angezeigteRolle !== 'mitglied');
 
   type Variante = {
     groesseId: string;
@@ -102,10 +111,11 @@
     ausleihdatum = datumAlsText(heute);
     rueckgabedatum = datumAlsText(rueckgabe);
 
-    artikelLaden();
+    if (darfAusleihenVerwalten) artikelLaden();
   });
 
   async function ausleiheSpeichern() {
+    if (!darfAusleihenVerwalten) return;
     fehlermeldung = '';
     erfolgsmeldung = '';
 
@@ -208,6 +218,11 @@
     <a href="/" class="zurueck">← Zur Startseite</a>
   </div>
 
+  {#if !darfAusleihenVerwalten}
+    <p class="meldung hinweis" role="status">
+      Die Materialausleihe ist für die Rolle Mitglied nicht verfügbar.
+    </p>
+  {:else}
   {#if fehlermeldung}
     <p class="meldung fehler" role="alert">{fehlermeldung}</p>
   {/if}
@@ -375,6 +390,7 @@
   {/if}
 
     <AusleihenUebersicht />
+  {/if}
 
 </main>
 
@@ -513,6 +529,11 @@
     padding: 14px;
     border-radius: 8px;
     margin-bottom: 20px;
+  }
+
+  .hinweis {
+    background: #eff6ff;
+    color: #1e40af;
   }
 
   .fehler {
