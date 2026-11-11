@@ -18,6 +18,7 @@
     groesseId: string;
     menge: number;
     einzelwert: number;
+    aktiv?: boolean;
   };
 
   type Artikel = {
@@ -47,6 +48,25 @@
   let groessenBestaende = $state<Record<string, number>>({});
   let groessenEinzelwerte = $state<Record<string, number>>({});
   let standardEinzelwert = $state(0);
+  let ausgewaehlteGroessen = $state<string[]>([]);
+
+  const aktiveGroessen = $derived(
+    groessen.filter((g) => ausgewaehlteGroessen.includes(g._id))
+  );
+
+  function groesseUmschalten(id: string, aktivieren: boolean) {
+    if (aktivieren) {
+      ausgewaehlteGroessen = [...new Set([...ausgewaehlteGroessen, id])];
+    } else {
+      if (Number(groessenBestaende[id] ?? 0) > 0) {
+        fehlermeldung = 'Grössen mit Bestand können nicht deaktiviert werden.';
+        return;
+      }
+      ausgewaehlteGroessen = ausgewaehlteGroessen.filter((x) => x !== id);
+    }
+    fehlermeldung = '';
+    erfolgsmeldung = '';
+  }
 
   let wirdGeladen = $state(true);
   let wirdGespeichert = $state(false);
@@ -57,7 +77,7 @@
 
   let gesamtmenge = $derived(
     hatGroessen
-      ? groessen.reduce(
+      ? aktiveGroessen.reduce(
           (summe, groesse) =>
             summe + Number(groessenBestaende[groesse._id] ?? 0),
           0
@@ -67,7 +87,7 @@
 
   let inventarwert = $derived(
     hatGroessen
-      ? groessen.reduce(
+      ? aktiveGroessen.reduce(
           (summe, groesse) =>
             summe +
             Number(groessenBestaende[groesse._id] ?? 0) *
@@ -96,10 +116,10 @@
     fehlermeldung = '';
 
     groessenEinzelwerte = Object.fromEntries(
-      groessen.map((groesse) => [
+      aktiveGroessen.map((groesse) => [
         groesse._id,
         Number(standardEinzelwert)
-      ])
+      ]).concat(Object.entries(groessenEinzelwerte).filter(([id]) => !ausgewaehlteGroessen.includes(id)))
     );
   }
 
@@ -140,6 +160,10 @@
         groessen.map((groesse) => [groesse._id, 0])
       );
 
+      ausgewaehlteGroessen = artikel.varianten
+        .filter((variante) => variante.aktiv !== false)
+        .map((variante) => variante.groesseId);
+
       for (const variante of artikel.varianten) {
         groessenBestaende[variante.groesseId] = variante.menge;
         groessenEinzelwerte[variante.groesseId] =
@@ -174,12 +198,12 @@
     }
 
     if (hatGroessen) {
-      if (groessen.length === 0) {
-        fehlermeldung = 'Keine Grössen vorhanden.';
+      if (aktiveGroessen.length === 0) {
+        fehlermeldung = 'Bitte mindestens eine Grösse auswählen.';
         return;
       }
 
-      for (const groesse of groessen) {
+      for (const groesse of aktiveGroessen) {
         const bestand = Number(
           groessenBestaende[groesse._id] ?? 0
         );
@@ -205,7 +229,7 @@
 
     try {
       const varianten = hatGroessen
-        ? groessen.map((groesse) => ({
+        ? aktiveGroessen.map((groesse) => ({
             groesseId: groesse._id,
             menge: Number(groessenBestaende[groesse._id] ?? 0),
             einzelwert: Number(
@@ -330,6 +354,23 @@
             Du kannst die Bestände und Einzelwerte pro Grösse bearbeiten.
           </p>
 
+          <h3>Verfügbare Grössen</h3>
+          <p>Wähle die Grössen aus, die dieser Artikel tatsächlich besitzt. Grössen mit Bestand müssen aktiv bleiben.</p>
+          <div class="groessen-auswahl">
+            {#each groessen as groesse (groesse._id)}
+              <label class="groessen-option">
+                <input
+                  type="checkbox"
+                  checked={ausgewaehlteGroessen.includes(groesse._id)}
+                  disabled={wirdGespeichert || (ausgewaehlteGroessen.includes(groesse._id) && Number(groessenBestaende[groesse._id] ?? 0) > 0)}
+                  onchange={(event) => groesseUmschalten(groesse._id, event.currentTarget.checked)}
+                />
+                <span>{groesse.bezeichnung}</span>
+              </label>
+            {/each}
+          </div>
+          <p class="auswahl-info">{ausgewaehlteGroessen.length} Grössen ausgewählt</p>
+
           <h3>Einzelwert für alle Grössen übernehmen</h3>
 
           <div class="wert-uebernehmen">
@@ -365,7 +406,7 @@
               </thead>
 
               <tbody>
-                {#each groessen as groesse (groesse._id)}
+                {#each aktiveGroessen as groesse (groesse._id)}
                   <tr>
                     <td><strong>{groesse.bezeichnung}</strong></td>
 
@@ -610,6 +651,33 @@
   .erfolg {
     background: #dcfce7;
     color: #166534;
+  }
+
+  .groessen-auswahl {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+    gap: 10px;
+    margin: 15px 0;
+  }
+
+  .groessen-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .groessen-option input {
+    width: auto;
+    margin: 0;
+  }
+
+  .auswahl-info {
+    color: #64748b;
+    margin-bottom: 24px;
   }
 
   @media (max-width: 700px) {

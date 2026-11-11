@@ -1,4 +1,3 @@
-
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { db, client } from '../../../lib/server/mongodb';
@@ -35,15 +34,10 @@ export const GET: RequestHandler = async ({ locals }) => {
       }))
     );
   } catch (error) {
-    console.error(
-      'Fehler beim Laden der Inventuren:',
-      error
-    );
+    console.error('Fehler beim Laden der Inventuren:', error);
 
     return json(
-      {
-        fehler: 'Inventuren konnten nicht geladen werden.'
-      },
+      { fehler: 'Inventuren konnten nicht geladen werden.' },
       { status: 500 }
     );
   }
@@ -53,10 +47,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 // POST: Neue Inventur erstellen
 // ========================================
 
-export const POST: RequestHandler = async ({
-  request,
-  locals
-}) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
   const berechtigungsfehler = pruefeBerechtigung(
     locals.benutzer,
     'inventur:erstellen'
@@ -67,28 +58,14 @@ export const POST: RequestHandler = async ({
   }
 
   const vereinId = locals.benutzer!.vereinId;
+  const daten: unknown = await request.json().catch(() => null);
 
-  const daten: unknown = await request
-    .json()
-    .catch(() => null);
-
-  if (
-    !daten ||
-    typeof daten !== 'object' ||
-    Array.isArray(daten)
-  ) {
-    return json(
-      { fehler: 'Ungültige Inventurdaten.' },
-      { status: 400 }
-    );
+  if (!daten || typeof daten !== 'object' || Array.isArray(daten)) {
+    return json({ fehler: 'Ungültige Inventurdaten.' }, { status: 400 });
   }
 
   const eingabe = daten as Record<string, unknown>;
   const { name, typ, lagerortId } = eingabe;
-
-  // ========================================
-  // Eingaben prüfen
-  // ========================================
 
   if (
     typeof name !== 'string' ||
@@ -96,32 +73,21 @@ export const POST: RequestHandler = async ({
     name.trim().length > 150
   ) {
     return json(
-      {
-        fehler:
-          'Bitte einen gültigen Inventurnamen eingeben.'
-      },
+      { fehler: 'Bitte einen gültigen Inventurnamen eingeben.' },
       { status: 400 }
     );
   }
 
   if (typ !== 'gesamt' && typ !== 'lagerort') {
-    return json(
-      { fehler: 'Ungültiger Inventurtyp.' },
-      { status: 400 }
-    );
+    return json({ fehler: 'Ungültiger Inventurtyp.' }, { status: 400 });
   }
 
   if (
     typ === 'lagerort' &&
-    (
-      typeof lagerortId !== 'string' ||
-      !ObjectId.isValid(lagerortId)
-    )
+    (typeof lagerortId !== 'string' || !ObjectId.isValid(lagerortId))
   ) {
     return json(
-      {
-        fehler: 'Bitte einen gültigen Lagerort auswählen.'
-      },
+      { fehler: 'Bitte einen gültigen Lagerort auswählen.' },
       { status: 400 }
     );
   }
@@ -135,26 +101,19 @@ export const POST: RequestHandler = async ({
     // ========================================
 
     if (typ === 'lagerort') {
-      const lagerort = await db
-        .collection('lagerorte')
-        .findOne({
-          _id: new ObjectId(lagerortId as string),
-          vereinId
-        });
+      const lagerort = await db.collection('lagerorte').findOne({
+        _id: new ObjectId(lagerortId as string),
+        vereinId
+      });
 
       if (!lagerort) {
         return json(
-          {
-            fehler:
-              'Der Lagerort existiert nicht in deinem Verein.'
-          },
+          { fehler: 'Der Lagerort existiert nicht in deinem Verein.' },
           { status: 404 }
         );
       }
 
-      ausgewaehlterLagerortId =
-        lagerort._id.toString();
-
+      ausgewaehlterLagerortId = lagerort._id.toString();
       lagerortName = lagerort.name;
     }
 
@@ -168,8 +127,7 @@ export const POST: RequestHandler = async ({
     } = { vereinId };
 
     if (ausgewaehlterLagerortId) {
-      artikelFilter.lagerortId =
-        ausgewaehlterLagerortId;
+      artikelFilter.lagerortId = ausgewaehlterLagerortId;
     }
 
     const artikel = await db
@@ -180,16 +138,13 @@ export const POST: RequestHandler = async ({
 
     if (artikel.length === 0) {
       return json(
-        {
-          fehler:
-            'Für diese Inventur sind keine Inventarartikel vorhanden.'
-        },
+        { fehler: 'Für diese Inventur sind keine Inventarartikel vorhanden.' },
         { status: 400 }
       );
     }
 
     // ========================================
-    // Grössenvarianten laden
+    // Nur aktive Grössenvarianten laden
     // ========================================
 
     const artikelIdsMitGroessen = artikel
@@ -201,9 +156,9 @@ export const POST: RequestHandler = async ({
           .collection('artikelvarianten')
           .find({
             vereinId,
-            artikelId: {
-              $in: artikelIdsMitGroessen
-            }
+            artikelId: { $in: artikelIdsMitGroessen },
+            // Alte Datensätze ohne aktiv-Feld gelten als aktiv.
+            aktiv: { $ne: false }
           })
           .toArray()
       : [];
@@ -217,10 +172,7 @@ export const POST: RequestHandler = async ({
 
       if (eintrag.hatGroessen) {
         return varianten
-          .filter(
-            (variante) =>
-              variante.artikelId === artikelId
-          )
+          .filter((variante) => variante.artikelId === artikelId)
           .map((variante) => ({
             artikelId,
             artikelName: eintrag.name,
@@ -251,13 +203,15 @@ export const POST: RequestHandler = async ({
 
     if (positionen.length === 0) {
       return json(
-        {
-          fehler:
-            'Es konnten keine Inventurpositionen erstellt werden.'
-        },
+        { fehler: 'Es konnten keine Inventurpositionen erstellt werden.' },
         { status: 400 }
       );
     }
+
+    // Ein Artikel zählt nur, wenn er mindestens eine Inventurposition hat.
+    const anzahlArtikel = new Set(
+      positionen.map((position) => position.artikelId)
+    ).size;
 
     // ========================================
     // Inventur vorbereiten
@@ -274,7 +228,7 @@ export const POST: RequestHandler = async ({
       lagerortId: ausgewaehlterLagerortId,
       lagerortName,
       status: 'offen',
-      anzahlArtikel: artikel.length,
+      anzahlArtikel,
       anzahlPositionen: positionen.length,
       erstelltAm,
       erstelltVon: locals.benutzer!.id
@@ -288,51 +242,35 @@ export const POST: RequestHandler = async ({
 
     try {
       await session.withTransaction(async () => {
-        await db
-          .collection('inventuren')
-          .insertOne(
-            inventur,
-            { session }
-          );
+        await db.collection('inventuren').insertOne(inventur, { session });
 
-        await db
-          .collection('inventurpositionen')
-          .insertMany(
-            positionen.map((position) => ({
-              ...position,
-              inventurId: inventurId.toString(),
-              vereinId
-            })),
-            { session }
-          );
+        await db.collection('inventurpositionen').insertMany(
+          positionen.map((position) => ({
+            ...position,
+            inventurId: inventurId.toString(),
+            vereinId
+          })),
+          { session }
+        );
       });
     } finally {
       await session.endSession();
     }
 
-    // ========================================
-    // Erfolgreich erstellt
-    // ========================================
-
     return json(
       {
         erfolg: true,
         inventurId: inventurId.toString(),
-        anzahlArtikel: artikel.length,
+        anzahlArtikel,
         anzahlPositionen: positionen.length
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error(
-      'Fehler beim Erstellen der Inventur:',
-      error
-    );
+    console.error('Fehler beim Erstellen der Inventur:', error);
 
     return json(
-      {
-        fehler: 'Inventur konnte nicht erstellt werden.'
-      },
+      { fehler: 'Inventur konnte nicht erstellt werden.' },
       { status: 500 }
     );
   }

@@ -68,7 +68,8 @@ export const GET: RequestHandler = async ({
         artikelId: variante.artikelId,
         groesseId: variante.groesseId,
         menge: variante.menge,
-        einzelwert: variante.einzelwert ?? 0
+        einzelwert: variante.einzelwert ?? 0,
+        aktiv: variante.aktiv !== false
       }))
     });
   } catch (error) {
@@ -322,59 +323,119 @@ export const PATCH: RequestHandler = async ({
       }
     }
 
-    // Hauptartikel aktualisieren
-    const aktualisierung = await db
-      .collection('artikel')
-      .updateOne(
-        {
-          _id: objektId,
-          vereinId
-        },
-        {
-          $set: {
-            name: name.trim(),
-            kategorieId,
-            lagerortId,
-            menge: gesamtmenge,
-            einzelwert: hatGroessen ? 0 : einzelwert,
-            beschreibung: (beschreibung ?? '').trim(),
-            aktualisiertAm: new Date()
-          }
-        }
+    // Bestehende Varianten vor der Änderung prüfen.
+    // Nicht ausgewählte Grössen bleiben als inaktive Datensätze erhalten.
+    if (hatGroessen) {
+      const bestehendeVarianten = await db
+        .collection('artikelvarianten')
+        .find({ artikelId, vereinId })
+        .toArray();
+
+      const ausgewaehlteIds = new Set(
+        gepruefteVarianten.map((v) => v.groesseId)
       );
 
-    if (aktualisierung.matchedCount !== 1) {
-      return json(
-        { fehler: 'Artikel nicht gefunden.' },
-        { status: 404 }
+      const nichtAusgewaehlteMitBestand = bestehendeVarianten.filter(
+        (v) => !ausgewaehlteIds.has(v.groesseId) && v.menge > 0
       );
+
+      if (nichtAusgewaehlteMitBestand.length > 0) {
+        return json(
+          {
+            fehler:
+              'Eine nicht ausgewählte Grösse hat noch Lagerbestand. Bitte zuerst den Bestand auf 0 setzen.'
+          },
+          { status: 409 }
+        );
+      }
     }
 
-    // Grössenvarianten aktualisieren
-    if (hatGroessen) {
-      for (const variante of gepruefteVarianten) {
-        await db
-          .collection('artikelvarianten')
+    // Artikel und Varianten atomar speichern.
+    // Bestehende Grössen mit Bestand 0 werden nur deaktiviert, nicht gelöscht.
+    const session = client.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        const aktualisierung = await db
+          .collection('artikel')
           .updateOne(
-            {
-              artikelId,
-              groesseId: variante.groesseId,
-              vereinId
-            },
+            { _id: objektId, vereinId },
             {
               $set: {
-                menge: variante.menge,
-                einzelwert: variante.einzelwert
-              },
-              $setOnInsert: {
+                name: name.trim(),
+                kategorieId,
+                lagerortId,
+                menge: gesamtmenge,
+                einzelwert: hatGroessen ? 0 : einzelwert,
+                beschreibung: (beschreibung ?? '').trim(),
+                aktualisiertAm: new Date()
+              }
+            },
+            { session }
+          );
+
+        if (aktualisierung.matchedCount !== 1) {
+          throw new Error('Artikel nicht gefunden.');
+        }
+
+        if (hatGroessen) {
+          const ausgewaehlteIds = gepruefteVarianten.map(
+            (v) => v.groesseId
+          );
+
+          // Zur Sicherheit nochmals innerhalb der Transaktion prüfen.
+          const nichtAusgewaehlteMitBestand = await db
+            .collection('artikelvarianten')
+            .find({
+              artikelId,
+              vereinId,
+              groesseId: { $nin: ausgewaehlteIds },
+              menge: { $gt: 0 }
+            }, { session })
+            .toArray();
+
+          if (nichtAusgewaehlteMitBestand.length > 0) {
+            throw new Error(
+              'Nicht ausgewählte Grössen haben noch Bestand.'
+            );
+          }
+
+          await db.collection('artikelvarianten').updateMany(
+            {
+              artikelId,
+              vereinId,
+              groesseId: { $nin: ausgewaehlteIds }
+            },
+            { $set: { aktiv: false } },
+            { session }
+          );
+
+          for (const variante of gepruefteVarianten) {
+            await db.collection('artikelvarianten').updateOne(
+              {
                 artikelId,
                 groesseId: variante.groesseId,
                 vereinId
-              }
-            },
-            { upsert: true }
-          );
-      }
+              },
+              {
+                $set: {
+                  menge: variante.menge,
+                  einzelwert: variante.einzelwert,
+                  aktiv: true
+                },
+                $setOnInsert: {
+                  artikelId,
+                  groesseId: variante.groesseId,
+                  vereinId
+                }
+              },
+              { upsert: true, session }
+            );
+          }
+        }
+      });
+    } finally {
+      await session.endSession();
     }
 
     return json({

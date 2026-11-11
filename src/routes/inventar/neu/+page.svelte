@@ -16,6 +16,11 @@
   let kategorien = $state<Stammdatum[]>([]);
   let lagerorte = $state<Stammdatum[]>([]);
   let groessen = $state<Groesse[]>([]);
+  let ausgewaehlteGroessen = $state<string[]>([]);
+
+  let aktiveGroessen = $derived(
+    groessen.filter((groesse) => ausgewaehlteGroessen.includes(groesse._id))
+  );
 
   let name = $state('');
   let kategorieId = $state('');
@@ -39,8 +44,8 @@
 
   let gesamtmenge = $derived(
     hatGroessen
-      ? Object.values(groessenBestaende).reduce(
-          (summe, bestand) => summe + (Number(bestand) || 0),
+      ? aktiveGroessen.reduce(
+          (summe, groesse) => summe + Number(groessenBestaende[groesse._id] ?? 0),
           0
         )
       : Number(menge) || 0
@@ -48,7 +53,7 @@
 
   let inventarwert = $derived(
     hatGroessen
-      ? groessen.reduce(
+      ? aktiveGroessen.reduce(
           (summe, groesse) =>
             summe +
             Number(groessenBestaende[groesse._id] ?? 0) *
@@ -63,6 +68,12 @@
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
+  }
+
+  function groesseUmschalten(id: string, ausgewaehlt: boolean) {
+    ausgewaehlteGroessen = ausgewaehlt
+      ? [...ausgewaehlteGroessen, id]
+      : ausgewaehlteGroessen.filter((eintrag) => eintrag !== id);
   }
 
   // Einzelwert für alle Grössen übernehmen
@@ -80,7 +91,9 @@
     groessenEinzelwerte = Object.fromEntries(
       groessen.map((groesse) => [
         groesse._id,
-        Number(standardEinzelwert)
+        ausgewaehlteGroessen.includes(groesse._id)
+          ? Number(standardEinzelwert)
+          : Number(groessenEinzelwerte[groesse._id] ?? 0)
       ])
     );
   }
@@ -145,8 +158,13 @@
       return;
     }
 
+    if (hatGroessen && aktiveGroessen.length === 0) {
+      fehlermeldung = 'Bitte mindestens eine Grösse auswählen.';
+      return;
+    }
+
     if (hatGroessen) {
-      for (const groesse of groessen) {
+      for (const groesse of aktiveGroessen) {
         const bestand = Number(
           groessenBestaende[groesse._id] ?? 0
         );
@@ -172,7 +190,7 @@
 
     try {
       const varianten = hatGroessen
-        ? groessen.map((groesse) => ({
+        ? aktiveGroessen.map((groesse) => ({
             groesseId: groesse._id,
             menge: Number(
               groessenBestaende[groesse._id] ?? 0
@@ -220,6 +238,7 @@
       standardEinzelwert = 0;
       beschreibung = '';
       hatGroessen = false;
+      ausgewaehlteGroessen = [];
 
       groessenBestaende = Object.fromEntries(
         groessen.map((groesse) => [groesse._id, 0])
@@ -326,9 +345,30 @@
         </label>
 
         {#if hatGroessen}
-          <h3>Einzelwert für alle Grössen übernehmen</h3>
+          <h3>Verfügbare Grössen auswählen</h3>
+          <p>Wähle nur die Grössen aus, in denen dieser Artikel tatsächlich erhältlich ist.</p>
+
+          {#if groessen.length === 0}
+            <p class="meldung fehler">Es sind noch keine Grössen erfasst.</p>
+          {:else}
+            <div class="groessen-auswahl">
+              {#each groessen as groesse (groesse._id)}
+                <label class="groessen-option">
+                  <input
+                    type="checkbox"
+                    checked={ausgewaehlteGroessen.includes(groesse._id)}
+                    onchange={(event) => groesseUmschalten(groesse._id, event.currentTarget.checked)}
+                  />
+                  <span>{groesse.bezeichnung}</span>
+                </label>
+              {/each}
+            </div>
+            <p class="auswahl-info">{aktiveGroessen.length} Grössen ausgewählt</p>
+          {/if}
+
+          <h3>Einzelwert für alle ausgewählten Grössen übernehmen</h3>
           <p>
-            Lege einen gemeinsamen Einzelwert fest und passe
+            Lege einen gemeinsamen Einzelwert für die ausgewählten Grössen fest und passe
             anschliessend einzelne Grössen bei Bedarf an.
           </p>
 
@@ -355,6 +395,9 @@
 
           <h3>Bestand pro Grösse</h3>
 
+          {#if aktiveGroessen.length === 0}
+            <p class="meldung">Wähle zuerst mindestens eine Grösse aus.</p>
+          {:else}
           <div class="tabelle-container">
             <table>
               <thead>
@@ -367,7 +410,7 @@
               </thead>
 
               <tbody>
-                {#each groessen as groesse (groesse._id)}
+                {#each aktiveGroessen as groesse (groesse._id)}
                   <tr>
                     <td>
                       <strong>{groesse.bezeichnung}</strong>
@@ -404,6 +447,7 @@
               </tbody>
             </table>
           </div>
+          {/if}
         {:else}
           <div class="zweispaltig">
             <div class="feld">
@@ -525,6 +569,39 @@
 
   .checkbox-zeile input {
     width: auto;
+  }
+
+  .groessen-auswahl {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 16px 0 8px;
+  }
+
+  .groessen-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #f8fafc;
+  }
+
+  .groessen-option:has(input:checked) {
+    background: #eff6ff;
+    border-color: #2563eb;
+  }
+
+  .groessen-option input {
+    width: auto;
+    margin: 0;
+  }
+
+  .auswahl-info {
+    color: #64748b;
+    font-size: 14px;
   }
 
   .wert-uebernehmen {

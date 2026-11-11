@@ -51,7 +51,12 @@ export const POST: RequestHandler = async ({ params, locals }) => {
       }
 
       // Vor dem Buchen alle Bestände mit dem Inventur-Snapshot vergleichen.
+      // Auch eine nach Inventurbeginn deaktivierte Grösse ist ein Konflikt.
       for (const position of positionen) {
+        if (!ObjectId.isValid(position.artikelId)) {
+          throw new Error(`Ungültige Artikel-ID bei "${position.artikelName}".`);
+        }
+
         const artikel = await db.collection('artikel').findOne(
           { _id: new ObjectId(position.artikelId), vereinId },
           { session }
@@ -61,6 +66,12 @@ export const POST: RequestHandler = async ({ params, locals }) => {
         }
 
         if (position.groesseId) {
+          if (!artikel.hatGroessen) {
+            throw new Error(
+              `Die Grössenverwaltung von "${position.artikelName}" wurde seit Inventurbeginn verändert. Bitte Inventur überprüfen.`
+            );
+          }
+
           const variante = await db.collection('artikelvarianten').findOne(
             {
               artikelId: position.artikelId,
@@ -72,19 +83,33 @@ export const POST: RequestHandler = async ({ params, locals }) => {
           if (!variante) {
             throw new Error(`Eine Grösse von "${position.artikelName}" existiert nicht mehr.`);
           }
+          if (variante.aktiv === false) {
+            throw new Error(
+              `Eine Grösse von "${position.artikelName}" wurde seit Inventurbeginn deaktiviert. ` +
+              'Bitte die Grössenverwaltung und Inventur überprüfen, bevor du abschliesst.'
+            );
+          }
           if (variante.menge !== position.sollBestand) {
             throw new Error(
               `Der Bestand von "${position.artikelName}" hat sich seit Inventurbeginn verändert. Bitte Inventur überprüfen.`
             );
           }
-        } else if (artikel.menge !== position.sollBestand) {
-          throw new Error(
-            `Der Bestand von "${position.artikelName}" hat sich seit Inventurbeginn verändert. Bitte Inventur überprüfen.`
-          );
+        } else {
+          if (artikel.hatGroessen) {
+            throw new Error(
+              `Die Grössenverwaltung von "${position.artikelName}" wurde seit Inventurbeginn verändert. Bitte Inventur überprüfen.`
+            );
+          }
+          if (artikel.menge !== position.sollBestand) {
+            throw new Error(
+              `Der Bestand von "${position.artikelName}" hat sich seit Inventurbeginn verändert. Bitte Inventur überprüfen.`
+            );
+          }
         }
       }
 
-      // Unveränderte Buchungslogik: nur Differenzen übernehmen.
+      // Nur Differenzen übernehmen. Die Bedingung aktiv != false wird
+      // zusätzlich beim Schreiben geprüft, nicht nur beim vorherigen Lesen.
       for (const position of positionen) {
         const differenz = position.istBestand - position.sollBestand;
         if (differenz === 0) continue;
@@ -95,6 +120,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
               artikelId: position.artikelId,
               groesseId: position.groesseId,
               vereinId,
+              aktiv: { $ne: false },
               menge: position.sollBestand
             },
             { $inc: { menge: differenz } },
@@ -105,7 +131,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
           }
 
           const artikelAktualisierung = await db.collection('artikel').updateOne(
-            { _id: new ObjectId(position.artikelId), vereinId },
+            { _id: new ObjectId(position.artikelId), vereinId, hatGroessen: true },
             { $inc: { menge: differenz } },
             { session }
           );
@@ -117,6 +143,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
             {
               _id: new ObjectId(position.artikelId),
               vereinId,
+              hatGroessen: { $ne: true },
               menge: position.sollBestand
             },
             { $set: { menge: position.istBestand } },
@@ -136,7 +163,6 @@ export const POST: RequestHandler = async ({ params, locals }) => {
           _id: new ObjectId(inventurId),
           vereinId,
           status: 'offen',
-          // Auch beim Abschluss dieselbe Versionsführung wie bei Korrektur/Stornierung.
           ...(typeof inventur.version === 'number'
             ? { version: versionVorher }
             : { version: { $exists: false } })
@@ -157,8 +183,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
         throw new Error('Inventur konnte nicht abgeschlossen werden.');
       }
 
-      // Originalzählung unveränderlich protokollieren. Spätere Korrekturen
-      // verändern zwar den Ist-Bestand der Position, aber nicht diesen Snapshot.
+      // Originalzählung unveränderlich protokollieren.
       await db.collection('inventurprotokoll').insertOne(
         {
           vereinId,
