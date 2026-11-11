@@ -30,6 +30,9 @@
     1. [Understand & Define](#31-understand--define)
 
     2. [Sketch](#32-sketch)
+        - [Personas](#321-personas)
+        - [Crazy 8s](#322-crazy-8s)
+        - [User Journey Map](#323-user-journey-map)
 
     3. [Decide](#33-decide)
 
@@ -69,49 +72,227 @@
 
 Die Entwicklung erfolgt schrittweise anhand des Vereinskontexts, der Entwurfsaufgaben aus dem Unterricht und der technischen Umsetzung eines testbaren Prototyps.
 
-### 3.1 Understand & Define
+### 3.1 Understand & Define – Problemraumanalyse
 
-**Ausgangslage und Problemraum.** In der ersten Abgabe wurden vier Problembereiche identifiziert: fehlende Inventarübersicht, unübersichtliche Materialausleihe, aufwendige Bestandskontrolle und verteilte Informationen. Ausgewählt wurde der Problemraum **«Fehlende Transparenz und hoher Verwaltungsaufwand bei der Inventarverwaltung»**. Im Vereinskontext sind insbesondere begrenzte Zeitressourcen und unterschiedliche Zuständigkeiten relevant.
+#### Gewähltes Projektthema
 
-**Zielgruppen und Bedürfnisse.** Die Problemraumanalyse betrachtet Materialverantwortliche, Vorstandsmitglieder, Vereinsmitglieder und Trainingsleitende. Zentrale Bedürfnisse sind aktuelle Mengen und Lagerorte, nachvollziehbare Materialbewegungen und eine möglichst einfache Bedienung.
+**Digitale Inventarverwaltung für kleinere Vereine und Organisationen**
 
-**Annahmen (noch nicht empirisch bestätigt).** Die Analyse hält fest, dass Inventardaten teilweise dezentral liegen könnten, Bestandsänderungen verspätet dokumentiert werden könnten, ehrenamtliche Personen wenig Zeit haben, Material von mehreren Personen genutzt wird und fehlende Transparenz Doppelanschaffungen begünstigen könnte. Diese Punkte sind **Hypothesen**, keine durch Interviews bestätigten Befunde.
+#### 1. Problemräume erkennen
 
-**How-Might-We-Fragen (HMW):**
+Im Alltag kleinerer Vereine und Organisationen können verschiedene Herausforderungen bei der Verwaltung von Material und Inventar auftreten.
 
-1. **Transparenz (priorisiert):** Wie könnten wir Materialverantwortliche dabei unterstützen, jederzeit einen einfachen und aktuellen Überblick über vorhandenes Inventar, Bestände und Lagerorte zu erhalten?
-2. **Materialbewegungen:** Wie könnten wir Ausgabe und Rückgabe gemeinsam genutzten Materials nachvollziehbar und administrativ einfach gestalten?
-3. **Bestandskontrolle:** Wie könnten wir fehlendes oder knappes Material frühzeitig erkennen und Bestandskontrollen effizienter durchführen?
+| Problemraum | Beschreibung |
+|---|---|
+| Fehlende Übersicht über Inventar | Es ist nicht immer klar, welche Materialien vorhanden sind, in welcher Menge und wo sie gelagert werden. |
+| Unübersichtliche Materialausleihe | Ausgeliehenes Material wird teilweise nicht systematisch dokumentiert. Dadurch ist unklar, wer einen Gegenstand besitzt und wann dieser zurückgegeben werden soll. |
+| Aufwendige Bestandskontrolle | Materialbestände müssen manuell überprüft und aktualisiert werden. Fehlende oder beschädigte Gegenstände werden möglicherweise erst spät entdeckt. |
+| Verteilte Informationen | Informationen über Material werden in Excel-Listen, Dokumenten oder durch einzelne verantwortliche Personen verwaltet. |
 
-Die erste Frage bildet die Leitfrage des Prototyps; die beiden weiteren Fragen begründen ergänzende Funktionen wie Ausleihe und Inventur.
+**Auswahl des Problemraums:** Für das Prototyping-Projekt wird der Problemraum **«Fehlende Transparenz und hoher Verwaltungsaufwand bei der Inventarverwaltung»** ausgewählt. Er ist besonders relevant, da kleinere Organisationen häufig nur begrenzte personelle und zeitliche Ressourcen für administrative Tätigkeiten zur Verfügung haben.
 
-**Primärnachweis:** [Abgabe 1 – Problemraumanalyse (PDF)](docs/artefakte/problemraumanalyse.pdf), Seiten 1–3.
+#### 2. Problemraum-Analyse: Nutzer, Bedürfnisse und Kontext
+
+| Nutzer:innen | Bedürfnisse | Kontext / Herausforderungen |
+|---|---|---|
+| Materialverantwortliche | Übersicht über vorhandene Artikel, Mengen und Lagerorte | Unterschiedliche Lagerorte, manuelle Bestandskontrollen, veraltete Informationen |
+| Vorstandsmitglieder | Transparenz über Inventar, Materialbedarf und Anschaffungen | Fehlende zentrale Datenbasis, begrenzte Zeit, unterschiedliche Zuständigkeiten |
+| Vereinsmitglieder | Schnell herausfinden, ob benötigtes Material verfügbar ist | Keine aktuelle Bestandsübersicht, Abhängigkeit von verantwortlichen Personen |
+| Trainingsleitende | Benötigtes Material einfach finden und dessen Verfügbarkeit prüfen | Material wird von mehreren Personen genutzt, mögliche Überschneidungen bei der Verwendung |
+
+#### Gesammeltes Wissen und bestehende Annahmen
+
+Die folgenden fünf Punkte sind **erste Annahmen** über den Problemraum. Sie müssen im weiteren Projektverlauf durch Gespräche oder Beobachtungen überprüft werden:
+
+1. **Dezentrale Inventarverwaltung:** Informationen befinden sich möglicherweise in verschiedenen Dateien oder bei einzelnen Personen, wodurch die Suche nach aktuellen Beständen erschwert werden kann.
+2. **Verspätete Bestandsänderungen:** Bei Materialausgaben, Rückgaben oder Beschädigungen können Abweichungen zwischen dokumentiertem und tatsächlichem Bestand entstehen, wenn Änderungen nicht unmittelbar erfasst werden.
+3. **Bedarf an einfacher Bedienung:** Ehrenamtlich tätige Personen haben häufig nur begrenzt Zeit für administrative Aufgaben. Eine komplizierte Anwendung könnte deshalb auf geringe Akzeptanz stossen.
+4. **Gemeinsame Materialnutzung:** Material wird von unterschiedlichen Personen verwendet. Dadurch kann es schwierig sein, jederzeit nachzuvollziehen, wo sich bestimmte Gegenstände befinden.
+5. **Risiko unnötiger Anschaffungen:** Fehlende Transparenz kann dazu führen, dass vorhandenes Material nicht gefunden und deshalb doppelt beschafft wird.
+
+#### 3. How-Might-We-Fragen
+
+Aus der Problemanalyse wurden drei offene Fragestellungen abgeleitet:
+
+**HMW 1 – Transparenz (priorisiert)**
+
+> Wie könnten wir Materialverantwortliche dabei unterstützen, jederzeit einen einfachen und aktuellen Überblick über vorhandenes Inventar, Bestände und Lagerorte zu erhalten?
+
+**HMW 2 – Materialbewegungen**
+
+> Wie könnten wir die Ausgabe und Rückgabe von gemeinsam genutztem Material so gestalten, dass dessen Verbleib nachvollziehbar bleibt und der administrative Aufwand möglichst gering ist?
+
+**HMW 3 – Bestandskontrolle**
+
+> Wie könnten wir kleinere Vereine und Organisationen dabei unterstützen, fehlendes oder knapp werdendes Material frühzeitig zu erkennen und Bestandskontrollen effizienter durchzuführen?
+
+Die **erste Fragestellung** wurde als zentrale Leitfrage für den weiteren Prototyping-Prozess ausgewählt. Die anderen beiden Fragen werden als ergänzende Problemstellungen berücksichtigt.
+
+#### 4. Erkenntnisse aus der bisherigen Problemanalyse
+
+| Erkenntnis | Bedeutung für ClubMatiq |
+|---|---|
+| Zentrale Informationen | Relevante Informationen zur Inventarverwaltung müssen einfach auffindbar sein. |
+| Aktualität | Eine Bestandsübersicht ist nur hilfreich, wenn Änderungen zuverlässig nachgeführt werden. |
+| Nachvollziehbarkeit | Materialbewegungen bei gemeinsam genutzten Gegenständen müssen nachvollziehbar sein. |
+| Benutzerfreundlichkeit | Auch Personen ohne vertiefte IT-Kenntnisse sollen die Anwendung verstehen. |
+| Geringer Zeitaufwand | Administrative Abläufe sollen möglichst wenig zusätzliche Arbeit verursachen. |
+
+**Einordnung:** Diese Erkenntnisse stammen aus einer ersten konzeptionellen Analyse. Sie sind **noch keine durch Nutzerinterviews bestätigten Forschungsergebnisse**. Die spätere Evaluation muss prüfen, inwiefern der Prototyp die identifizierten Bedürfnisse erfüllt.
+
+*Quelle: Eigene Abgabe «Problemraum-Analyse», Prototyping HS2026, Seiten 1–3. Der Inhalt ist hier vollständig als README-Text und Tabellen integriert, sodass kein PDF geöffnet werden muss.*
 
 ### 3.2 Sketch
 
-**Drei Proto-Personas.** Die Skizzierabgabe beschreibt drei unterschiedliche Nutzungsperspektiven:
+#### 3.2.1 Personas
 
-| Proto-Persona | Hauptziel | Daraus abgeleitete Designanforderung |
-|---|---|---|
-| Jennifer – Kassiererin / Vorstand | Inventarwerte und Kleiderverkäufe für Buchhaltung und Rechnungsstellung nachvollziehen | Auswertbare Bestände, Werte und nachvollziehbare Änderungen |
-| Nathalie – Leiterin | Material und Lagerort schnell finden und Verfügbarkeit prüfen | Schnelle Suche, verständliche Navigation und geringer Erfassungsaufwand |
-| Laura – Materialverantwortliche | Material, Grössen, Lagerorte, Ausleihen und Inventuren zentral verwalten | Zentrale Artikelübersicht und verlässliche Bestandsführung |
+**Drei Proto-Personas.** Für ClubMatiq wurden drei konzeptionelle Proto-Personas entwickelt. Sie beschreiben unterschiedliche Rollen, Ziele und Anforderungen im Vereinsalltag. Es handelt sich um Annahmen aus der Sketch-Phase, nicht um empirisch validierte Interviewprofile. Die vollständigen Inhalte der Personas sind nachfolgend direkt dokumentiert.
 
-Die Personas sind **konzeptionelle Proto-Personas**, keine nachgewiesenen Interviewprofile.
+#### Jennifer (29) – Kassiererin / Vorstandsmitglied
 
-![Proto-Persona Jennifer](docs/images/personas-jennifer.png)
+Jennifer ist Kassiererin des Vereins, verfügt über gute IT-Kenntnisse und Erfahrung in der Buchhaltung, Rechnungsstellung und Budgetierung und legt grossen Wert auf korrekte und nachvollziehbare Finanzdaten.
 
-*Abbildung 1: Proto-Persona Jennifer und ihre Anforderungen aus Sicht der Vereinsbuchhaltung.*
+**Umfeld / Kontext**
 
-![Proto-Personas Nathalie und Laura](docs/images/personas-nathalie-laura.png)
+- Ehrenamtliche Tätigkeit im Vorstand
+- Verwaltung der Vereinsbuchhaltung und Vorbereitung des Jahresabschlusses
+- Rechnungsstellung für Vereinskleider
+- Zusammenarbeit mit der Materialverantwortlichen zur Abstimmung von Verkäufen und Lagerbeständen
+- Verwendung von ClubDesk für die Vereinsadministration und Buchhaltung
 
-*Abbildung 2: Bedürfnisse von Trainingsleitung und Materialverantwortung.*
+**Ziele**
 
-![Vergleich der Proto-Personas](docs/images/personas-vergleich.png)
+- Aktuellen Inventarwert für die Buchhaltung ermitteln
+- Vereinskleider einfach und korrekt verrechnen
+- Verkäufe und offene Rechnungen nachvollziehen
+- Materialbewegungen und finanzielle Auswirkungen überblicken
+- Doppelte Datenerfassungen vermeiden
+- Eine zuverlässige Grundlage für den Jahresabschluss erhalten
 
-*Abbildung 3: Vergleich der Aufgabenprioritäten der drei Rollen.*
+**Aufgaben**
 
-**Crazy 8s – Ideenentwicklung.** Aus den Bedürfnissen der drei Proto-Personas wurden acht Lösungsansätze entwickelt und handschriftlich skizziert.
+- Rechnungen für verkaufte Vereinskleider erstellen
+- Verkaufspreise und Rechnungsbeträge kontrollieren
+- Zahlungseingänge überwachen
+- Inventarbestände mit der Materialverantwortlichen abstimmen
+- Lagerbestände und Einstandswerte für die Buchhaltung auswerten
+- Einnahmen aus Kleiderverkäufen nachvollziehen
+- Inventarlisten und Auswertungen für den Jahresabschluss bereitstellen
+
+**Frustpunkte / Herausforderungen**
+
+- Verkaufs- und Bestandsdaten müssen möglicherweise manuell abgeglichen werden
+- Fehlende direkte Verbindung zwischen Materialverwaltung und Rechnungsstellung
+- Inventarwerte müssen aus verschiedenen Informationen zusammengestellt werden
+- Fehleranfälligkeit bei manuellen Bestandskorrekturen
+- Zusätzlicher Zeitaufwand beim Jahresabschluss
+- Unklare oder verspätet dokumentierte Materialbewegungen
+
+#### Nathalie (34) – Leiterin
+
+Nathalie ist engagierte Leiterin im Verein, organisiert und leitet regelmässig Trainings und legt Wert auf eine einfache, schnelle und unkomplizierte Nutzung digitaler Anwendungen.
+
+**Umfeld / Kontext**
+
+- Regelmässige Trainings in den Turnhallen
+- Verwendung unterschiedlicher Sportgeräte und Trainingsmaterialien
+- Material wird teilweise von mehreren Trainingsgruppen gemeinsam genutzt
+- Trainingsvorbereitung findet auch ausserhalb der Turnhalle statt
+- Häufig ist nur wenig Zeit für die Materialorganisation vorhanden
+
+**Ziele**
+
+- Schnell erkennen, welches Trainingsmaterial vorhanden ist
+- Lagerorte von Geräten und Materialien einfach finden
+- Verfügbarkeit von Material vor dem Training überprüfen
+- Fehlendes oder beschädigtes Material unkompliziert melden
+- Material für Trainings und Anlässe rechtzeitig organisieren
+- Möglichst wenig Zeit mit administrativen Aufgaben verbringen
+
+**Aufgaben**
+
+- Trainings vorbereiten und benötigtes Material bestimmen
+- Vorhandene Materialien und deren Lagerorte überprüfen
+- Material für Trainings entnehmen und wieder zurückbringen
+- Materialausleihen dokumentieren, sofern erforderlich
+- Fehlendes oder defektes Material melden
+- Materialbedarf an die zuständige Person weitergeben
+- Bei Wettkämpfen oder Vereinsanlässen benötigtes Material organisieren
+
+**Frustpunkte / Herausforderungen**
+
+- Unklarheit darüber, ob benötigtes Material vorhanden ist
+- Material befindet sich möglicherweise nicht am erwarteten Lagerort
+- Keine einfache Möglichkeit, beschädigtes Material zu melden
+- Rückfragen bei der Materialverantwortlichen kosten Zeit
+- Überschneidungen bei der Nutzung von Material durch mehrere Gruppen
+- Aufwendige oder unübersichtliche Erfassung von Materialausleihen
+
+#### Laura (24) – Materialverantwortliche
+
+Laura ist Materialverantwortliche des Vereins, organisiert und verwaltet das Vereinsmaterial, arbeitet strukturiert und legt grossen Wert auf eine übersichtliche, effiziente und zuverlässige Bestandsverwaltung.
+
+**Umfeld / Kontext**
+
+- Ehrenamtliche Verwaltung von Sportmaterial und Vereinskleidern
+- Material befindet sich an unterschiedlichen Lagerorten
+- Zusammenarbeit mit Leitenden, Vorstandsmitgliedern und der Kassiererin
+- Material wird für Trainings, Wettkämpfe und Vereinsanlässe benötigt
+- Bestände können sich durch Verkäufe, Neuanschaffungen, Ausleihen oder Beschädigungen verändern
+
+**Ziele**
+
+- Jederzeit eine aktuelle Übersicht über das gesamte Vereinsinventar haben
+- Material nach Kategorien und Lagerorten organisieren
+- Bestandsänderungen einfach erfassen
+- Ausgeliehenes Material nachvollziehen können
+- Fehlende oder beschädigte Artikel frühzeitig erkennen
+- Mindestbestände bei Vereinskleidern überwachen
+- Inventardaten für die Kassiererin bereitstellen
+- Den Aufwand für Inventuren reduzieren
+
+**Aufgaben**
+
+- Neue Materialien und Vereinskleider erfassen
+- Artikelinformationen und Lagerorte pflegen
+- Materialeingänge und Materialausgaben dokumentieren
+- Bestände nach Kleiderverkäufen aktualisieren
+- Ausleihen und Rückgaben verwalten
+- Beschädigtes oder verlorenes Material erfassen
+- Regelmässige Inventuren durchführen
+- Fehlende Artikel und Nachbestellungen koordinieren
+- Aktuelle Bestandsinformationen an den Vorstand weitergeben
+- Inventarwerte gemeinsam mit der Kassiererin überprüfen
+
+**Frustpunkte / Herausforderungen**
+
+- Manuelle Aktualisierung verschiedener Bestandslisten
+- Fehlende Transparenz über ausgeliehenes Material
+- Unterschiedliche oder unvollständige Angaben zu Lagerorten
+- Bestandsabweichungen nach Materialausgaben oder Verkäufen
+- Zeitaufwendige Inventuren
+- Schwierige Nachverfolgung von Materialbewegungen
+- Fehlende automatische Hinweise bei niedrigen Beständen
+
+#### Vergleich der drei Proto-Personas
+
+| Bereich | Jennifer | Nathalie | Laura |
+|---|---|---|---|
+| Inventarübersicht | Relevant | Relevant | Sehr wichtig |
+| Material suchen | Gelegentlich | Sehr wichtig | Sehr wichtig |
+| Bestände bearbeiten | Eingeschränkt | Meldungen | Sehr wichtig |
+| Ausleihen verwalten | Übersicht | Ausleihen/Rückgaben | Verwaltung |
+| Vereinskleider verkaufen | Rechnungsstellung | – | Bestandsführung |
+| Rechnungen erstellen | Sehr wichtig | – | – |
+| Inventarbewertung | Sehr wichtig | – | Daten bereitstellen |
+| Inventur durchführen | Auswertung | – | Sehr wichtig |
+| Materialbedarf melden | – | Sehr wichtig | Bearbeitung |
+
+*Quelle: Eigene Abgabe «Sketch / Skizzieren», Seiten 1–3. Die Personas und der Vergleich sind hier vollständig als README-Text integriert.*
+
+#### 3.2.2 Crazy 8s
+
+Aus den Bedürfnissen der drei Proto-Personas wurden acht Lösungsansätze entwickelt und handschriftlich skizziert.
 
 | Nr. | Lösungsansatz | Beschreibung | Relevante Personas |
 |---|---|---|---|
@@ -124,29 +305,34 @@ Die Personas sind **konzeptionelle Proto-Personas**, keine nachgewiesenen Interv
 | 7 | Materialbedarf und Schadensmeldungen | Fehlendes oder beschädigtes Material melden und bearbeiten. | Nathalie, Laura |
 | 8 | Materialsuche nach Lagerort | Material nach Kategorien, Suchbegriffen und Lagerorten finden. | Nathalie, Laura |
 
-![Handgezeichnete Crazy-8s-Skizzen](docs/images/crazy8s.png)
-
-*Abbildung: Acht handgezeichnete Lösungsvarianten aus der Sketch-Phase.*
-
 ![Crazy-8s-Skizzen](docs/images/crazy8s.png)
 
 *Abbildung 4: Acht Ideen mit handgezeichneten Skizzen aus der Sketch-Abgabe.*
 
 **Primärnachweis:** [Abgabe 9 – Sketch / Skizzieren (PDF)](docs/artefakte/skizzieren.pdf), Seiten 1–4.
 
-### 3.3 Decide
+#### 3.2.3 User Journey Map
 
-**Entscheidung.** Ausgewählt wurde das **zentrale Inventar-Dashboard**. Gemäss Entscheidungsreflexion berücksichtigt es die Bedürfnisse aller drei Proto-Personas, vereinfacht die Artikelsuche und bildet eine erweiterbare Grundlage für Ausleihe, Rechnungsstellung und Inventarbewertung. Damit passt die Wahl zur priorisierten HMW-Frage nach Transparenz über Bestände und Lagerorte.
+Die User Journey zeigt den Ablauf der **Artikelerfassung aus Sicht von Laura**, der Materialverantwortlichen. Sie umfasst vier Phasen: Dashboard öffnen, Artikel erfassen, Angaben prüfen und Speichern. Dabei werden Ziele, Aktionen, Touchpoints, Emotionen, mögliche Probleme und Verbesserungsmassnahmen betrachtet.
 
-**User Journey Map – Artikel erfassen.** Das dokumentierte Szenario folgt **Laura**, die einen neuen Artikel anlegt. Die vier Phasen sind: Dashboard öffnen → Artikel erfassen → Angaben prüfen → Speichern. Die Journey beschreibt Ziele, Aktionen, Touchpoints, gewünschte Emotionen, Risiken und Massnahmen. Beispiele: klare Navigation gegen Orientierungsprobleme, Pflichtfeldkennzeichnung gegen unvollständige Eingaben, Plausibilitätsprüfung gegen falsche Mengen und eine Erfolgs-/Fehlermeldung nach dem Speichern.
+| Phase | Aktion | Mögliche Herausforderung | Gestaltungsmassnahme |
+|---|---|---|---|
+| Dashboard öffnen | Laura navigiert zur Artikelerfassung. | Die passende Funktion ist schwer zu finden. | Klare Navigation und gut sichtbare Aktion. |
+| Artikel erfassen | Laura trägt die Angaben zum neuen Material ein. | Pflichtangaben sind unklar. | Verständliche Feldbezeichnungen und Pflichtfeldkennzeichnung. |
+| Angaben prüfen | Laura kontrolliert die eingegebenen Daten. | Falsche Mengen oder unvollständige Daten. | Plausibilitätsprüfung und verständliche Hinweise. |
+| Speichern | Laura schliesst die Erfassung ab. | Unklar, ob der Artikel gespeichert wurde. | Eindeutige Erfolgs- oder Fehlermeldung. |
 
 ![User Journey und handgezeichneter Ablauf](docs/images/user-journey.png)
 
-*Abbildung 5: User Journey Map und skizzierter End-to-End-Ablauf der Artikelerfassung.*
+*Abbildung 5: User Journey Map und handgezeichneter Ablauf der Artikelerfassung.*
 
-**Wichtige Abgrenzung:** Diese User Journey dokumentiert die **Artikelerfassung**, nicht die Materialausleihe. Ein Figma-Mockup ist durch die vorliegenden beiden Abgaben nicht belegt; falls vorhanden, separat verlinken. Die gezeichneten Ansichten sind Konzeptskizzen, keine Screenshots der fertigen Anwendung.
+**Hinweis:** Die User Journey behandelt die **Artikelerfassung**, nicht die Materialausleihe. Die handgezeichneten Ansichten sind Konzeptskizzen und keine Screenshots der fertigen Anwendung.
 
 **Primärnachweis:** [Abgabe 9 – Sketch / Skizzieren (PDF)](docs/artefakte/skizzieren.pdf), Seiten 5–6.
+
+### 3.3 Decide
+
+**Entscheidung.** Ausgewählt wurde das **zentrale Inventar-Dashboard**. Gemäss Entscheidungsreflexion berücksichtigt es die Bedürfnisse aller drei Proto-Personas, vereinfacht die Artikelsuche und bildet eine erweiterbare Grundlage für Ausleihe, Rechnungsstellung und Inventarbewertung. Damit passt die Wahl zur priorisierten HMW-Frage nach Transparenz über Bestände und Lagerorte.
 
 ### 3.4 Prototype
 
@@ -284,7 +470,7 @@ Der Einsatz von ChatGPT hat die schrittweise technische Umsetzung beschleunigt u
 
 - **Rohdaten/Auswertung:** **[Falls vorhanden: Link ergänzen]**.
 
-- **Entwurfsartefakte:** [Problemraumanalyse](docs/artefakte/problemraumanalyse.pdf) und [Sketch-Abgabe](docs/artefakte/skizzieren.pdf); Mockup-Link bei Vorliegen ergänzen.
+- **Entwurfsartefakte:** Problemraumanalyse (vollständig in Kapitel 3.1) und [Sketch-Abgabe](docs/artefakte/skizzieren.pdf); Mockup-Link bei Vorliegen ergänzen.
 
 **---**
 
