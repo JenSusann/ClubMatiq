@@ -19,51 +19,51 @@
 
 ## Inhaltsverzeichnis
 
-[Projektübersicht & Zugänge]\(#projektübersicht--zugänge)
+[Projektübersicht & Zugänge](#projektübersicht--zugänge)
 
-1. [Ausgangslage]\(#1-ausgangslage)
+1. [Ausgangslage](#1-ausgangslage)
 
-2. [Lösungsidee]\(#2-lösungsidee)
+2. [Lösungsidee](#2-lösungsidee)
 
-3. [Vorgehen & Artefakte]\(#3-vorgehen--artefakte)
+3. [Vorgehen & Artefakte](#3-vorgehen--artefakte)
 
-    1. [Understand & Define]\(#31-understand--define)
+    1. [Understand & Define](#31-understand--define)
 
-    2. [Sketch]\(#32-sketch)
+    2. [Sketch](#32-sketch)
 
-    3. [Decide]\(#33-decide)
+    3. [Decide](#33-decide)
 
-    4. [Prototype]\(#34-prototype)
+    4. [Prototype](#34-prototype)
 
-    5. [Validate]\(#35-validate)
+    5. [Validate](#35-validate)
 
-4. [Erweiterungen [Optional]]\(#4-erweiterungen-optional)
+4. [Erweiterungen [Optional]](#4-erweiterungen-optional)
 
-5. [Projektorganisation [Optional]]\(#5-projektorganisation-optional)
+5. [Projektorganisation [Optional]](#5-projektorganisation-optional)
 
-6. [KI-Deklaration]\(#6-ki-deklaration)
+6. [KI-Deklaration](#6-ki-deklaration)
 
-7. [Anhang [Optional]]\(#7-anhang-optional)
+7. [Anhang [Optional]](#7-anhang-optional)
 
 > **Hinweis:** Massgeblich sind die im Unterricht und auf Moodle kommunizierten Anforderungen. Die Angaben zu Mindestumfang und Erweiterungen sind vor der Abgabe mit diesen Anforderungen abzugleichen.
 
 ## 1. Ausgangslage
 
-\- **Problem:** In Vereinen werden Materialbestände, Vereinskleider und Ausleihen häufig über unterschiedliche Listen und manuelle Absprachen verwaltet. Dadurch ist nicht jederzeit ersichtlich, welches Material vorhanden ist, wo es lagert und an wen es ausgeliehen wurde. Auch die Erfassung von Kleidergrössen und Inventarwerten kann aufwendig sein.
+- **Problem:** In Vereinen werden Materialbestände, Vereinskleider und Ausleihen häufig über unterschiedliche Listen und manuelle Absprachen verwaltet. Dadurch ist nicht jederzeit ersichtlich, welches Material vorhanden ist, wo es lagert und an wen es ausgeliehen wurde. Auch die Erfassung von Kleidergrössen und Inventarwerten kann aufwendig sein.
 
-\- **Ziele:** ClubMatiq soll eine zentrale, einfach bedienbare Webanwendung für Artikel, Lagerorte, Grössen und Materialbewegungen bereitstellen. Bestände sollen nachvollziehbar sein und Ausleihen sowie Rückgaben ohne parallele Listen dokumentiert werden können.
+- **Ziele:** ClubMatiq soll eine zentrale, einfach bedienbare Webanwendung für Artikel, Lagerorte, Grössen und Materialbewegungen bereitstellen. Bestände sollen nachvollziehbar sein und Ausleihen sowie Rückgaben ohne parallele Listen dokumentiert werden können.
 
-\- **Primäre Zielgruppe:** Personen, die in einem Verein Material, Vereinskleider und Inventar betreuen, insbesondere Materialverantwortliche und Leiterinnen bzw. Leiter.
+- **Primäre Zielgruppe:** Personen, die in einem Verein Material, Vereinskleider und Inventar betreuen, insbesondere Materialverantwortliche und Leiterinnen bzw. Leiter.
 
-\- **Weitere Stakeholder [Optional]:** Kassiererin bzw. Finanzverantwortliche für Inventarwerte und Rechnungsbezüge; Vereinsvorstand als organisatorisch verantwortliches Gremium. Der Turnverein Weiningen dient als Praxisbeispiel.
+- **Weitere Stakeholder [Optional]:** Kassiererin bzw. Finanzverantwortliche für Inventarwerte und Rechnungsbezüge; Vereinsvorstand als organisatorisch verantwortliches Gremium. Der Turnverein Weiningen dient als Praxisbeispiel.
 
 ## 2. Lösungsidee
 
-\- **Kernfunktionalität:** ClubMatiq bündelt die Inventarverwaltung in einer Weboberfläche. Artikel werden mit Kategorie, Lagerort, Beschreibung, Bestand und Einzelwert erfasst. Vereinskleider können mehrere Grössen mit unterschiedlichen Beständen und Werten besitzen. Material kann an Personen ausgeliehen und teilweise oder vollständig zurückgegeben werden; verfügbare Mengen werden dabei automatisch angepasst. Die Übersicht zeigt offene, überfällige und abgeschlossene Ausleihen. Vereine können sich mit einem Administratorkonto registrieren und anschliessend ihre eigenen Inventardaten verwalten. Die Inventurverwaltung mit Abschluss, Korrekturen, Stornierung, Verlauf und PDF-Bericht ist inzwischen umgesetzt. QR-Codes und weitere Bereiche sind je nach Entwicklungsstand noch vorgesehen oder als Platzhalter vorhanden.
+- **Kernfunktionalität:** ClubMatiq bündelt die Inventarverwaltung in einer Weboberfläche. Artikel werden mit Kategorie, Lagerort, Beschreibung, Bestand und Einzelwert erfasst. Vereinskleider können mehrere Grössen mit unterschiedlichen Beständen und Werten besitzen. Material kann an Personen ausgeliehen und teilweise oder vollständig zurückgegeben werden; verfügbare Mengen werden dabei automatisch angepasst. Die Übersicht zeigt offene, überfällige und abgeschlossene Ausleihen. Vereine können sich mit einem Administratorkonto registrieren und anschliessend ihre eigenen Inventardaten verwalten. Die Inventurverwaltung mit Abschluss, Korrekturen, Stornierung, Verlauf und PDF-Bericht ist inzwischen umgesetzt. QR-Codes und weitere Bereiche sind je nach Entwicklungsstand noch vorgesehen oder als Platzhalter vorhanden.
 
-\- **Annahmen [Optional]:** Eine gemeinsame Datenbasis reduziert Mehrfacherfassungen. Eine übersichtliche Bedienung mit klaren Formularen unterstützt auch Vereinsmitglieder mit wenig IT-Erfahrung. Grössenvarianten sind für die Verwaltung von Vereinskleidern notwendig.
+- **Annahmen [Optional]:** Eine gemeinsame Datenbasis reduziert Mehrfacherfassungen. Eine übersichtliche Bedienung mit klaren Formularen unterstützt auch Vereinsmitglieder mit wenig IT-Erfahrung. Grössenvarianten sind für die Verwaltung von Vereinskleidern notwendig.
 
-\- **Abgrenzung [Optional]:** Der aktuelle Stand ist ein lokal getesteter Prototyp und keine produktiv freigegebene Vereinssoftware. Registrierung, Anmeldung und eine erste Administratorrolle sind implementiert. Eine serverseitige Berechtigungsprüfung ist für die Inventur-Endpunkte vorhanden; die vollständige Benutzer- und Rollenverwaltung sowie sämtliche Rechteprüfungen sind vor einer Produktivfreigabe weiter zu verifizieren. Öffentliches Deployment und weitere Module sind noch nicht abgeschlossen. Eine vollständige Buchhaltung ist nicht Bestandteil des Prototyps.
+- **Abgrenzung [Optional]:** Der aktuelle Stand ist ein lokal getesteter Prototyp und keine produktiv freigegebene Vereinssoftware. Registrierung, Anmeldung und eine erste Administratorrolle sind implementiert. Eine serverseitige Berechtigungsprüfung ist für die Inventur-Endpunkte vorhanden; die vollständige Benutzer- und Rollenverwaltung sowie sämtliche Rechteprüfungen sind vor einer Produktivfreigabe weiter zu verifizieren. Öffentliches Deployment und weitere Module sind noch nicht abgeschlossen. Eine vollständige Buchhaltung ist nicht Bestandteil des Prototyps.
 
 ## 3. Vorgehen & Artefakte
 
@@ -111,7 +111,22 @@ Die Personas sind **konzeptionelle Proto-Personas**, keine nachgewiesenen Interv
 
 *Abbildung 3: Vergleich der Aufgabenprioritäten der drei Rollen.*
 
-**Crazy 8s.** Acht Lösungsansätze wurden gegenübergestellt: Inventar-Dashboard, QR-Code-Verwaltung, digitale Materialausleihe, Vereinskleider mit Rechnungsstellung, digitale Inventur, Inventarbewertung, Materialbedarf/Schadensmeldungen und Materialsuche nach Lagerort. Die handgezeichneten Varianten verdeutlichen unterschiedliche Schwerpunkte und mögliche Module.
+**Crazy 8s – Ideenentwicklung.** Aus den Bedürfnissen der drei Proto-Personas wurden acht Lösungsansätze entwickelt und handschriftlich skizziert.
+
+| Nr. | Lösungsansatz | Beschreibung | Relevante Personas |
+|---|---|---|---|
+| 1 | Zentrales Inventar-Dashboard | Übersicht über Materialien, Bestand, Lagerort und Status inklusive Warnhinweisen. | Laura, Jennifer, Nathalie |
+| 2 | Materialverwaltung per QR-Code | Artikelinformationen und Bestandsänderungen per QR-Code aufrufen bzw. erfassen. | Laura, Nathalie |
+| 3 | Digitale Materialausleihe | Material Personen zuordnen, Rückgabedaten festhalten und offene Ausleihen anzeigen. | Laura, Nathalie |
+| 4 | Vereinskleider mit Rechnungsstellung | Kleiderverkäufe erfassen, Bestand anpassen und Rechnung vorbereiten. | Jennifer, Laura |
+| 5 | Digitale Inventur | Soll- und Ist-Bestände vergleichen und Abweichungen korrigieren. | Jennifer, Laura |
+| 6 | Inventarbewertung für die Buchhaltung | Bestände und Einstandspreise zu einem Inventarwert zusammenführen. | Jennifer, Laura |
+| 7 | Materialbedarf und Schadensmeldungen | Fehlendes oder beschädigtes Material melden und bearbeiten. | Nathalie, Laura |
+| 8 | Materialsuche nach Lagerort | Material nach Kategorien, Suchbegriffen und Lagerorten finden. | Nathalie, Laura |
+
+![Handgezeichnete Crazy-8s-Skizzen](docs/images/crazy8s.png)
+
+*Abbildung: Acht handgezeichnete Lösungsvarianten aus der Sketch-Phase.*
 
 ![Crazy-8s-Skizzen](docs/images/crazy8s.png)
 
@@ -137,49 +152,49 @@ Die Personas sind **konzeptionelle Proto-Personas**, keine nachgewiesenen Interv
 
 #### 3.4.1. Entwurf (Design)
 
-\- **Informationsarchitektur:** Die Startseite bietet Zugänge zu Inventar, QR-Code, Materialausleihe, Vereinskleidern, Inventur, Inventarbewertung, Schadensmeldungen und Materialsuche. Registrierung und Anmeldung sind als eigene Seiten umgesetzt; der Kopfbereich zeigt bei angemeldeten Benutzern Name, Rolle und Abmeldefunktion. Über die Navigation ist ausserdem die Stammdatenverwaltung mit Kategorien, Lagerorten und Grössen erreichbar. Einzelne noch nicht implementierte Bereiche dienen weiterhin als Platzhalter.
+- **Informationsarchitektur:** Die Startseite bietet Zugänge zu Inventar, QR-Code, Materialausleihe, Vereinskleidern, Inventur, Inventarbewertung, Schadensmeldungen und Materialsuche. Registrierung und Anmeldung sind als eigene Seiten umgesetzt; der Kopfbereich zeigt bei angemeldeten Benutzern Name, Rolle und Abmeldefunktion. Über die Navigation ist ausserdem die Stammdatenverwaltung mit Kategorien, Lagerorten und Grössen erreichbar. Einzelne noch nicht implementierte Bereiche dienen weiterhin als Platzhalter.
 
-\- **User Interface Design:** Die Inventarübersicht kombiniert Kennzahlen, Suche, Kategorienfilter und eine Artikeltabelle. Artikel können aufgeklappt, bearbeitet und gelöscht werden. Das Ausleihformular zeigt verfügbare Mengen; die Ausleihübersicht enthält Statusfilter, Kennzahlen und einen Rückgabedialog. **[Screenshots der Startseite, Inventarübersicht, Artikelmaske und Materialausleihe ergänzen]**.
+- **User Interface Design:** Die Inventarübersicht kombiniert Kennzahlen, Suche, Kategorienfilter und eine Artikeltabelle. Artikel können aufgeklappt, bearbeitet und gelöscht werden. Das Ausleihformular zeigt verfügbare Mengen; die Ausleihübersicht enthält Statusfilter, Kennzahlen und einen Rückgabedialog. **[Screenshots der Startseite, Inventarübersicht, Artikelmaske und Materialausleihe ergänzen]**.
 
-\- **Designentscheidungen:** Wiederkehrende Formulare, eindeutige Schaltflächen und eine konsistente Farbgestaltung sollen die Bedienung vereinfachen. Vereinskleider werden nicht als separate Artikelwelt geführt, sondern über Grössenvarianten innerhalb der zentralen Inventarverwaltung abgebildet.
+- **Designentscheidungen:** Wiederkehrende Formulare, eindeutige Schaltflächen und eine konsistente Farbgestaltung sollen die Bedienung vereinfachen. Vereinskleider werden nicht als separate Artikelwelt geführt, sondern über Grössenvarianten innerhalb der zentralen Inventarverwaltung abgebildet.
 
 #### 3.4.2. Umsetzung (Technik)
 
-\- **Technologie-Stack:** SvelteKit, Svelte 5, TypeScript, MongoDB-Treiber für Node.js und MongoDB Atlas als Cloud-Datenbank.
+- **Technologie-Stack:** SvelteKit, Svelte 5, TypeScript, MongoDB-Treiber für Node.js und MongoDB Atlas als Cloud-Datenbank.
 
-\- **Tooling:** Visual Studio Code, Node.js/npm, Git, GitHub, MongoDB Atlas und lokale Browser-Tests. KI-Unterstützung ist in Kapitel 6 beschrieben.
+- **Tooling:** Visual Studio Code, Node.js/npm, Git, GitHub, MongoDB Atlas und lokale Browser-Tests. KI-Unterstützung ist in Kapitel 6 beschrieben.
 
-\- **Vorgehen bei der Implementierung:** Funktionen wurden in kleinen Schritten umgesetzt und unmittelbar lokal geprüft: zunächst Projektstruktur und Datenbankverbindung, danach Stammdaten, Artikelanlage, Inventarübersicht, Artikelbearbeitung, Materialausleihe mit Rückgabe und anschliessend die Inventurverwaltung samt PDF-Export. Fehlermeldungen aus TypeScript und Laufzeittests wurden schrittweise behoben. Danach wurden Registrierung, Login, Session-Prüfung, automatische Anmeldung nach Registrierung und die Vereinsfilter in den API-Endpunkten ergänzt. Die Umsetzung wurde durch ChatGPT mit Codevorschlägen und Fehlersuche unterstützt; Auswahl, Integration und lokale Prüfung erfolgten im Projekt. Details siehe Kapitel 6.
+- **Vorgehen bei der Implementierung:** Funktionen wurden in kleinen Schritten umgesetzt und unmittelbar lokal geprüft: zunächst Projektstruktur und Datenbankverbindung, danach Stammdaten, Artikelanlage, Inventarübersicht, Artikelbearbeitung, Materialausleihe mit Rückgabe und anschliessend die Inventurverwaltung samt PDF-Export. Fehlermeldungen aus TypeScript und Laufzeittests wurden schrittweise behoben. Danach wurden Registrierung, Login, Session-Prüfung, automatische Anmeldung nach Registrierung und die Vereinsfilter in den API-Endpunkten ergänzt. Die Umsetzung wurde durch ChatGPT mit Codevorschlägen und Fehlersuche unterstützt; Auswahl, Integration und lokale Prüfung erfolgten im Projekt. Details siehe Kapitel 6.
 
-\- **Struktur & Komponenten:** Die Seiten liegen unter `src/routes/`, beispielsweise `inventar/`, `inventar/neu/`, `inventar/[id]/bearbeiten/`, `ausleihen/`, `stammdaten/`, `anmelden/` und `registrieren/`. Die Komponente `src/lib/AusleihenUebersicht.svelte` stellt die Ausleihen dar und ermöglicht Rückgaben. Die MongoDB-Verbindung befindet sich in `src/lib/server/mongodb.ts`. Server-Endpunkte liegen unter `src/routes/api/`.
+- **Struktur & Komponenten:** Die Seiten liegen unter `src/routes/`, beispielsweise `inventar/`, `inventar/neu/`, `inventar/[id]/bearbeiten/`, `ausleihen/`, `stammdaten/`, `anmelden/` und `registrieren/`. Die Komponente `src/lib/AusleihenUebersicht.svelte` stellt die Ausleihen dar und ermöglicht Rückgaben. Die MongoDB-Verbindung befindet sich in `src/lib/server/mongodb.ts`. Server-Endpunkte liegen unter `src/routes/api/`.
 
-\- **Daten & Schnittstellen:** Die Datenbank `clubmatiq` enthält unter anderem die Collections `artikel`, `artikelvarianten`, `kategorien`, `lagerorte`, `groessen`, `ausleihen`, `vereine`, `benutzer` und `sessions`. SvelteKit-API-Routen stellen JSON-Daten bereit und übernehmen Prüfungen und Schreiboperationen. Für Ausleihen, Rückgaben und kritische Inventurvorgänge werden MongoDB-Transaktionen eingesetzt, damit Bestandsänderungen und Ausleihvorgänge gemeinsam gespeichert werden. Verbindungsdaten werden über eine lokale `.env`-Datei verwaltet und nicht ins Repository übernommen. Passwörter werden mit Argon2 gehasht; Sessions werden über ein HttpOnly-Cookie und serverseitig gespeicherte Token-Hashes verwaltet. Der Server-Hook `src/hooks.server.ts` prüft die Anmeldung und schützt nicht öffentliche Routen. Die Datensätze der Inventar-Collections tragen eine `vereinId`; API-Abfragen und Schreiboperationen sind auf den angemeldeten Verein eingeschränkt. Für ältere Datensätze wurde ein Migrationsskript zur Vereinszuordnung ausgeführt.
+- **Daten & Schnittstellen:** Die Datenbank `clubmatiq` enthält unter anderem die Collections `artikel`, `artikelvarianten`, `kategorien`, `lagerorte`, `groessen`, `ausleihen`, `vereine`, `benutzer` und `sessions`. SvelteKit-API-Routen stellen JSON-Daten bereit und übernehmen Prüfungen und Schreiboperationen. Für Ausleihen, Rückgaben und kritische Inventurvorgänge werden MongoDB-Transaktionen eingesetzt, damit Bestandsänderungen und Ausleihvorgänge gemeinsam gespeichert werden. Verbindungsdaten werden über eine lokale `.env`-Datei verwaltet und nicht ins Repository übernommen. Passwörter werden mit Argon2 gehasht; Sessions werden über ein HttpOnly-Cookie und serverseitig gespeicherte Token-Hashes verwaltet. Der Server-Hook `src/hooks.server.ts` prüft die Anmeldung und schützt nicht öffentliche Routen. Die Datensätze der Inventar-Collections tragen eine `vereinId`; API-Abfragen und Schreiboperationen sind auf den angemeldeten Verein eingeschränkt. Für ältere Datensätze wurde ein Migrationsskript zur Vereinszuordnung ausgeführt.
 
-\- **Deployment:** Link siehe «Aktuelle App» in der [Projektübersicht]\(#projektübersicht--zugänge). Ein öffentliches Deployment ist noch ausstehend; Netlify ist als Hosting-Option vorgesehen.
+- **Deployment:** Link siehe «Aktuelle App» in der [Projektübersicht](#projektübersicht--zugänge). Ein öffentliches Deployment ist noch ausstehend; Netlify ist als Hosting-Option vorgesehen.
 
-\- **Besondere Entscheidungen:** Grössenabhängige Artikel erhalten eigene Datensätze in `artikelvarianten`, damit Mengen und Einzelwerte pro Grösse unterschiedlich sein können. Bei einer Ausleihe wird derzeit der **verfügbare** Bestand reduziert und bei Rückgabe erhöht. Für eine spätere buchhalterische Inventarbewertung muss weiterhin ausgeliehenes, aber vereinseigenes Material mitgezählt werden. Die grundlegende Authentifizierung ist umgesetzt. Vor einer öffentlichen Freigabe müssen insbesondere Rollenrechte, alle API-Endpunkte, parallele Änderungen, Registrierungs-Missbrauchsschutz, PDF-Zugriff und Mandantentrennung sicherheitstechnisch weiter geprüft werden.
+- **Besondere Entscheidungen:** Grössenabhängige Artikel erhalten eigene Datensätze in `artikelvarianten`, damit Mengen und Einzelwerte pro Grösse unterschiedlich sein können. Bei einer Ausleihe wird derzeit der **verfügbare** Bestand reduziert und bei Rückgabe erhöht. Für eine spätere buchhalterische Inventarbewertung muss weiterhin ausgeliehenes, aber vereinseigenes Material mitgezählt werden. Die grundlegende Authentifizierung ist umgesetzt. Vor einer öffentlichen Freigabe müssen insbesondere Rollenrechte, alle API-Endpunkte, parallele Änderungen, Registrierungs-Missbrauchsschutz, PDF-Zugriff und Mandantentrennung sicherheitstechnisch weiter geprüft werden.
 
 ### 3.5 Validate
 
 > **Stand 11. November 2026:** Bisher wurden Funktionen während der Entwicklung lokal ausprobiert. Eine formelle, separat deployte Nutzerevaluation mit dokumentierter Stichprobe und Nachweisen ist noch nicht abgeschlossen. Inventur- und PDF-Funktionen wurden lokal mit `npm run check` und manuellen Browser-Tests überprüft. Die folgenden Angaben sind deshalb als Planungsstand gekennzeichnet.
 
-\- **Getestete Version:** Bislang lokaler Entwicklungsstand; separat deployte Testversion und Commit/Tag noch ausstehend. Link nach Bereitstellung in der [Projektübersicht]\(#projektübersicht--zugänge) ergänzen.
+- **Getestete Version:** Bislang lokaler Entwicklungsstand; separat deployte Testversion und Commit/Tag noch ausstehend. Link nach Bereitstellung in der [Projektübersicht](#projektübersicht--zugänge) ergänzen.
 
-\- **Ziele der Prüfung:** Können Vereinsverantwortliche Artikel selbstständig erfassen und finden? Sind Grössenbestände verständlich? Lassen sich Ausleihen und Teilrückgaben fehlerfrei durchführen?
+- **Ziele der Prüfung:** Können Vereinsverantwortliche Artikel selbstständig erfassen und finden? Sind Grössenbestände verständlich? Lassen sich Ausleihen und Teilrückgaben fehlerfrei durchführen?
 
-\- **Vorgehen:** **[Formelle Evaluation noch planen: moderiert/unmoderiert, vor Ort/remote]**. Bisher erfolgten manuelle Funktionstests während der Entwicklung.
+- **Vorgehen:** **[Formelle Evaluation noch planen: moderiert/unmoderiert, vor Ort/remote]**. Bisher erfolgten manuelle Funktionstests während der Entwicklung.
 
-\- **Stichprobe:** **[Testpersonen, Rollen und Anzahl nach tatsächlicher Durchführung ergänzen]**.
+- **Stichprobe:** **[Testpersonen, Rollen und Anzahl nach tatsächlicher Durchführung ergänzen]**.
 
-\- **Aufgaben/Szenarien:** Vorgeschlagene Szenarien: (1) Neuen Inventarartikel mit Lagerort erfassen; (2) Vereinskleid mit mehreren Grössen und Preisen erfassen; (3) Artikel über Suche finden; (4) Material ausleihen; (5) Teilrückgabe und anschliessend vollständige Rückgabe erfassen.
+- **Aufgaben/Szenarien:** Vorgeschlagene Szenarien: (1) Neuen Inventarartikel mit Lagerort erfassen; (2) Vereinskleid mit mehreren Grössen und Preisen erfassen; (3) Artikel über Suche finden; (4) Material ausleihen; (5) Teilrückgabe und anschliessend vollständige Rückgabe erfassen.
 
-\- **Kennzahlen & Beobachtungen:** **[Erfolgsquote, Zeitbedarf, Schwierigkeiten und Rückmeldungen erst nach Durchführung eintragen]**. In lokalen Entwicklungstests funktionierten Artikelanlage, Bearbeitung, Löschung sowie Ausleihe und Rückgabe nach Fehlerkorrekturen. Zusätzlich wurden die automatische Anmeldung nach Neuregistrierung sowie die Trennung von Inventardaten und Testkategorien zwischen zwei Vereinen manuell erfolgreich überprüft.
+- **Kennzahlen & Beobachtungen:** **[Erfolgsquote, Zeitbedarf, Schwierigkeiten und Rückmeldungen erst nach Durchführung eintragen]**. In lokalen Entwicklungstests funktionierten Artikelanlage, Bearbeitung, Löschung sowie Ausleihe und Rückgabe nach Fehlerkorrekturen. Zusätzlich wurden die automatische Anmeldung nach Neuregistrierung sowie die Trennung von Inventardaten und Testkategorien zwischen zwei Vereinen manuell erfolgreich überprüft.
 
-\- **Nachweise:** **[Anonymisierte Testprotokolle, Screenshots, Beobachtungsnotizen und Auswertung verlinken]**.
+- **Nachweise:** **[Anonymisierte Testprotokolle, Screenshots, Beobachtungsnotizen und Auswertung verlinken]**.
 
-\- **Zusammenfassung der Resultate:** Die bisherigen lokalen Tests bestätigen die grundlegende technische Funktionsfähigkeit der umgesetzten Kernabläufe. Bei einem zweiten Testverein waren die Daten des ersten Vereins nicht sichtbar; auch eine neu erstellte Testkategorie blieb auf den eigenen Verein beschränkt. Dies ist ein Funktionstest, kein vollständiger Sicherheitsnachweis gegen manipulierte API-Anfragen. Aussagen über die Verständlichkeit und Nutzbarkeit für andere Vereinsmitglieder sind erst nach einer strukturierten Evaluation möglich.
+- **Zusammenfassung der Resultate:** Die bisherigen lokalen Tests bestätigen die grundlegende technische Funktionsfähigkeit der umgesetzten Kernabläufe. Bei einem zweiten Testverein waren die Daten des ersten Vereins nicht sichtbar; auch eine neu erstellte Testkategorie blieb auf den eigenen Verein beschränkt. Dies ist ein Funktionstest, kein vollständiger Sicherheitsnachweis gegen manipulierte API-Anfragen. Aussagen über die Verständlichkeit und Nutzbarkeit für andere Vereinsmitglieder sind erst nach einer strukturierten Evaluation möglich.
 
-\- **Abgeleitete Verbesserungen:** Als nächste Schritte sind eine vollständige Prüfung der Mandantentrennung bei direkten API-Anfragen, die Verifikation aller Benutzer- und Rollenrechte, QR-Code-Zugriff auf Artikel sowie weitere Module vorgesehen. Konkrete, aus Nutzertests abgeleitete Verbesserungen werden nach der Evaluation ergänzt.
+- **Abgeleitete Verbesserungen:** Als nächste Schritte sind eine vollständige Prüfung der Mandantentrennung bei direkten API-Anfragen, die Verifikation aller Benutzer- und Rollenrechte, QR-Code-Zugriff auf Artikel sowie weitere Module vorgesehen. Konkrete, aus Nutzertests abgeleitete Verbesserungen werden nach der Evaluation ergänzt.
 
 ## 4. Erweiterungen [Optional]
 
@@ -189,51 +204,51 @@ Die Personas sind **konzeptionelle Proto-Personas**, keine nachgewiesenen Interv
 
 #### 4.1.1 Grössenabhängige Inventarvarianten
 
-\- **Beschreibung & Nutzen:** Vereinskleider können mit mehreren Grössen und jeweils eigenem Bestand sowie Einzelwert verwaltet werden. Dies erleichtert die Bestandsführung für Kinder- und Erwachsenengrössen.
+- **Beschreibung & Nutzen:** Vereinskleider können mit mehreren Grössen und jeweils eigenem Bestand sowie Einzelwert verwaltet werden. Dies erleichtert die Bestandsführung für Kinder- und Erwachsenengrössen.
 
-\- **Abgrenzung zum Mindestumfang:** **[Prüfen und konkret mit den verbindlichen Mindestanforderungen abgleichen]**.
+- **Abgrenzung zum Mindestumfang:** **[Prüfen und konkret mit den verbindlichen Mindestanforderungen abgleichen]**.
 
-\- **Umsetzung:** Datenmodell mit `artikel` und `artikelvarianten`; Artikelanlage und -bearbeitung mit Grössentabelle sowie Summenberechnung in der Inventarübersicht.
+- **Umsetzung:** Datenmodell mit `artikel` und `artikelvarianten`; Artikelanlage und -bearbeitung mit Grössentabelle sowie Summenberechnung in der Inventarübersicht.
 
-\- **Nachweise:** **[Screenshot der Grössentabelle ergänzen]**. Codestellen: `src/routes/inventar/neu/+page.svelte`, `src/routes/inventar/[id]/bearbeiten/+page.svelte`, `src/routes/api/artikel/+server.ts`, `src/routes/api/inventar-uebersicht/+server.ts`.
+- **Nachweise:** **[Screenshot der Grössentabelle ergänzen]**. Codestellen: `src/routes/inventar/neu/+page.svelte`, `src/routes/inventar/[id]/bearbeiten/+page.svelte`, `src/routes/api/artikel/+server.ts`, `src/routes/api/inventar-uebersicht/+server.ts`.
 
-\- **Bezug zur Evaluation:** Nein; aus dem Vereinskontext und den Anforderungen an die Kleiderverwaltung abgeleitet.
+- **Bezug zur Evaluation:** Nein; aus dem Vereinskontext und den Anforderungen an die Kleiderverwaltung abgeleitet.
 
 #### 4.1.2 Teil- und Vollrückgabe bei Materialausleihen
 
-\- **Beschreibung & Nutzen:** Material kann in mehreren Schritten zurückgegeben werden. Der verfügbare Bestand erhöht sich jeweils um die tatsächlich zurückgegebene Menge; abgeschlossene Ausleihen bleiben nachvollziehbar.
+- **Beschreibung & Nutzen:** Material kann in mehreren Schritten zurückgegeben werden. Der verfügbare Bestand erhöht sich jeweils um die tatsächlich zurückgegebene Menge; abgeschlossene Ausleihen bleiben nachvollziehbar.
 
-\- **Abgrenzung zum Mindestumfang:** **[Prüfen und konkret mit den verbindlichen Mindestanforderungen abgleichen]**.
+- **Abgrenzung zum Mindestumfang:** **[Prüfen und konkret mit den verbindlichen Mindestanforderungen abgleichen]**.
 
-\- **Umsetzung:** Rückgabe-Endpunkt mit MongoDB-Transaktion und Rückgabedialog in der Ausleihübersicht. Status und Restmenge werden aktualisiert.
+- **Umsetzung:** Rückgabe-Endpunkt mit MongoDB-Transaktion und Rückgabedialog in der Ausleihübersicht. Status und Restmenge werden aktualisiert.
 
-\- **Nachweise:** **[Screenshot einer Teilrückgabe und der aktualisierten Übersicht ergänzen]**. Codestellen: `src/routes/api/ausleihen/[id]/rueckgabe/+server.ts` und `src/lib/AusleihenUebersicht.svelte`.
+- **Nachweise:** **[Screenshot einer Teilrückgabe und der aktualisierten Übersicht ergänzen]**. Codestellen: `src/routes/api/ausleihen/[id]/rueckgabe/+server.ts` und `src/lib/AusleihenUebersicht.svelte`.
 
-\- **Bezug zur Evaluation:** Nein; als funktionale Ergänzung des Ausleihprozesses umgesetzt. Eine spätere Nutzerevaluation steht noch aus.
+- **Bezug zur Evaluation:** Nein; als funktionale Ergänzung des Ausleihprozesses umgesetzt. Eine spätere Nutzerevaluation steht noch aus.
 
 ### 4.2 Weitere Erweiterungen
 
 #### 4.2.1 Vereinsregistrierung, Anmeldung und Mandantentrennung
 
-\- **Beschreibung & Nutzen:** Mehrere Vereine können die gleiche Anwendung mit getrennten Datenbeständen nutzen. Bei der Registrierung werden ein Verein und ein Administratorkonto angelegt; nach erfolgreicher Registrierung erfolgt die automatische Anmeldung.
+- **Beschreibung & Nutzen:** Mehrere Vereine können die gleiche Anwendung mit getrennten Datenbeständen nutzen. Bei der Registrierung werden ein Verein und ein Administratorkonto angelegt; nach erfolgreicher Registrierung erfolgt die automatische Anmeldung.
 
-\- **Abgrenzung zum Mindestumfang:** **[Mit verbindlichen Anforderungen aus Moodle abgleichen]**.
+- **Abgrenzung zum Mindestumfang:** **[Mit verbindlichen Anforderungen aus Moodle abgleichen]**.
 
-\- **Umsetzung:** `vereine`, `benutzer` und `sessions` in MongoDB; Passwort-Hashing mit Argon2; Session-Cookie und Authentifizierungsprüfung in `src/hooks.server.ts`; serverseitige Weitergabe des Benutzers über `src/routes/+layout.server.ts`. Die relevanten Inventar-APIs filtern nach `vereinId`, darunter Artikel, Kategorien, Lagerorte, Grössen, Ausleihen und Inventarübersicht. Registrierungsseite unter `src/routes/registrieren/+page.svelte`.
+- **Umsetzung:** `vereine`, `benutzer` und `sessions` in MongoDB; Passwort-Hashing mit Argon2; Session-Cookie und Authentifizierungsprüfung in `src/hooks.server.ts`; serverseitige Weitergabe des Benutzers über `src/routes/+layout.server.ts`. Die relevanten Inventar-APIs filtern nach `vereinId`, darunter Artikel, Kategorien, Lagerorte, Grössen, Ausleihen und Inventarübersicht. Registrierungsseite unter `src/routes/registrieren/+page.svelte`.
 
-\- **Nachweise:** **[Screenshots der Registrierung, angemeldeten Startseite und des Tests mit zwei Vereinen ergänzen]**.
+- **Nachweise:** **[Screenshots der Registrierung, angemeldeten Startseite und des Tests mit zwei Vereinen ergänzen]**.
 
-\- **Bezug zur Evaluation:** Zwei Vereine wurden im lokalen Entwicklungstest auf getrennte Anzeige und Erstellung von Daten geprüft; ein systematischer Sicherheits- und Nutzertest steht aus.
+- **Bezug zur Evaluation:** Zwei Vereine wurden im lokalen Entwicklungstest auf getrennte Anzeige und Erstellung von Daten geprüft; ein systematischer Sicherheits- und Nutzertest steht aus.
 
 Noch keine zusätzliche methodische oder organisatorische Erweiterung zur Bewertung dokumentiert. **[Bei Bedarf einen Eintrag 4.2.1 mit sämtlichen Pflichtfeldern gemäss Vorlage ergänzen]**.
 
 ## 5. Projektorganisation [Optional]
 
-\- **Repository & Struktur:** Die Projektdateien werden in einem GitHub-Repository verwaltet; Link siehe [Projektübersicht]\(#projektübersicht--zugänge). SvelteKit trennt Seiten, wiederverwendbare Komponenten, serverseitige Datenbankanbindung und API-Endpunkte.
+- **Repository & Struktur:** Die Projektdateien werden in einem GitHub-Repository verwaltet; Link siehe [Projektübersicht](#projektübersicht--zugänge). SvelteKit trennt Seiten, wiederverwendbare Komponenten, serverseitige Datenbankanbindung und API-Endpunkte.
 
-\- **Issue-Management:** **[Falls verwendet: Vorgehen und Link ergänzen; andernfalls «Kein separates Issue-Management dokumentiert»]**.
+- **Issue-Management:** **[Falls verwendet: Vorgehen und Link ergänzen; andernfalls «Kein separates Issue-Management dokumentiert»]**.
 
-\- **Commit-Praxis:** Änderungen werden mit Git versioniert und auf GitHub gesichert. Sprechende Commit-Nachrichten sollen den jeweiligen Entwicklungsstand erkennbar machen.
+- **Commit-Praxis:** Änderungen werden mit Git versioniert und auf GitHub gesichert. Sprechende Commit-Nachrichten sollen den jeweiligen Entwicklungsstand erkennbar machen.
 
 ## 6. KI-Deklaration
 
@@ -241,21 +256,21 @@ KI wurde im Projekt eingesetzt, insbesondere bei der Programmierung und technisc
 
 ### 6.1 KI-Tools
 
-\- **Eingesetzte Tools:** ChatGPT (OpenAI); **[weitere tatsächlich eingesetzte KI-Tools und gegebenenfalls Modellvarianten ergänzen]**.
+- **Eingesetzte Tools:** ChatGPT (OpenAI); **[weitere tatsächlich eingesetzte KI-Tools und gegebenenfalls Modellvarianten ergänzen]**.
 
-\- **Zweck & Umfang:** ChatGPT wurde zur Strukturierung von Entwicklungsschritten, zum Formulieren von Codevorschlägen für SvelteKit-Komponenten und API-Endpunkte, zur Erklärung von TypeScript-Fehlern, zur Fehlerbehebung und zur Überarbeitung der Projektdokumentation verwendet. Wesentliche Teile der bisher implementierten Funktionen basieren auf KI-unterstützten Codevorschlägen.
+- **Zweck & Umfang:** ChatGPT wurde zur Strukturierung von Entwicklungsschritten, zum Formulieren von Codevorschlägen für SvelteKit-Komponenten und API-Endpunkte, zur Erklärung von TypeScript-Fehlern, zur Fehlerbehebung und zur Überarbeitung der Projektdokumentation verwendet. Wesentliche Teile der bisher implementierten Funktionen basieren auf KI-unterstützten Codevorschlägen.
 
-\- **Eigene Leistung (Abgrenzung):** Projektidee und Vereinsanforderungen wurden aus dem eigenen Anwendungskontext eingebracht. Die vorgeschlagenen Änderungen wurden eigenständig in VS Code integriert, lokal ausgeführt, auf Fehler geprüft und bei Bedarf gemeinsam mit der KI überarbeitet. **[Weitere selbst erstellte Entwurfs- und Analyseartefakte konkret ergänzen]**.
+- **Eigene Leistung (Abgrenzung):** Projektidee und Vereinsanforderungen wurden aus dem eigenen Anwendungskontext eingebracht. Die vorgeschlagenen Änderungen wurden eigenständig in VS Code integriert, lokal ausgeführt, auf Fehler geprüft und bei Bedarf gemeinsam mit der KI überarbeitet. **[Weitere selbst erstellte Entwurfs- und Analyseartefakte konkret ergänzen]**.
 
 ### 6.2 Vorgehen mit KI
 
-\- **Arbeitsablauf & Aufgabenverteilung:** Die Entwicklung wurde in kleine, einzeln überprüfbare Schritte gegliedert. ChatGPT lieferte Erklärungen und teilweise vollständige Dateivorschläge. Die Umsetzung in der lokalen Entwicklungsumgebung, das Ausführen der Tests und die Rückmeldung zu auftretenden Fehlern erfolgten durch die Projektbearbeiterin. Es wurde keine eigenständig im Repository handelnde Coding-Agent-Umgebung eingesetzt, soweit bisher dokumentiert.
+- **Arbeitsablauf & Aufgabenverteilung:** Die Entwicklung wurde in kleine, einzeln überprüfbare Schritte gegliedert. ChatGPT lieferte Erklärungen und teilweise vollständige Dateivorschläge. Die Umsetzung in der lokalen Entwicklungsumgebung, das Ausführen der Tests und die Rückmeldung zu auftretenden Fehlern erfolgten durch die Projektbearbeiterin. Es wurde keine eigenständig im Repository handelnde Coding-Agent-Umgebung eingesetzt, soweit bisher dokumentiert.
 
-\- **Prompt-Vorgehen & Kontext:** Anforderungen wurden anhand konkreter Vereinsprozesse beschrieben. Für Fehlerbehebungen wurden Fehlermeldungen und bestehende Codeausschnitte bereitgestellt. Nach jedem Entwicklungsschritt wurde geprüft, ob die Funktion wie vorgesehen arbeitet.
+- **Prompt-Vorgehen & Kontext:** Anforderungen wurden anhand konkreter Vereinsprozesse beschrieben. Für Fehlerbehebungen wurden Fehlermeldungen und bestehende Codeausschnitte bereitgestellt. Nach jedem Entwicklungsschritt wurde geprüft, ob die Funktion wie vorgesehen arbeitet.
 
-\- **Konfiguration & Werkzeuge:** Keine projektspezifische KI-Agenten-Konfiguration dokumentiert. Die Codeintegration erfolgte in Visual Studio Code; Git/GitHub dienten der Versionsverwaltung. Die Anmeldung und Mandantentrennung wurden anhand vorhandener API-Dateien und lokaler Tests schrittweise überarbeitet.
+- **Konfiguration & Werkzeuge:** Keine projektspezifische KI-Agenten-Konfiguration dokumentiert. Die Codeintegration erfolgte in Visual Studio Code; Git/GitHub dienten der Versionsverwaltung. Die Anmeldung und Mandantentrennung wurden anhand vorhandener API-Dateien und lokaler Tests schrittweise überarbeitet.
 
-\- **Prüfung & Überarbeitung:** KI-Vorschläge wurden durch lokale Ausführung, Browser-Tests und TypeScript-Fehlermeldungen überprüft. Bei Problemen wurden die betroffenen Stellen angepasst und erneut getestet. So wurde die automatische Anmeldung nach der Registrierung erst nach Anpassung der Registrierungsseite und der Navigation korrekt angezeigt. Für eine spätere Veröffentlichung sind zusätzliche Sicherheits-, Integrations- und Nutzertests erforderlich. Externe Inhalte und Lizenzen sind vor der Abgabe gesondert zu prüfen.
+- **Prüfung & Überarbeitung:** KI-Vorschläge wurden durch lokale Ausführung, Browser-Tests und TypeScript-Fehlermeldungen überprüft. Bei Problemen wurden die betroffenen Stellen angepasst und erneut getestet. So wurde die automatische Anmeldung nach der Registrierung erst nach Anpassung der Registrierungsseite und der Navigation korrekt angezeigt. Für eine spätere Veröffentlichung sind zusätzliche Sicherheits-, Integrations- und Nutzertests erforderlich. Externe Inhalte und Lizenzen sind vor der Abgabe gesondert zu prüfen.
 
 ### 6.3 Reflexion
 
@@ -263,13 +278,13 @@ Der Einsatz von ChatGPT hat die schrittweise technische Umsetzung beschleunigt u
 
 ## 7. Anhang [Optional]
 
-\- **Quellen:** **[Verwendete fremde Vorlagen, Bilder, Icons, Code und weitere Inhalte mit Quelle sowie Lizenz/Nutzungsbedingungen ergänzen]**. Die Dokumentationsstruktur basiert auf der im Unterricht bereitgestellten README-Vorlage.
+- **Quellen:** **[Verwendete fremde Vorlagen, Bilder, Icons, Code und weitere Inhalte mit Quelle sowie Lizenz/Nutzungsbedingungen ergänzen]**. Die Dokumentationsstruktur basiert auf der im Unterricht bereitgestellten README-Vorlage.
 
-\- **Testskript & Materialien:** **[Link zu den Testaufgaben und anonymisierten Testprotokollen ergänzen]**.
+- **Testskript & Materialien:** **[Link zu den Testaufgaben und anonymisierten Testprotokollen ergänzen]**.
 
-\- **Rohdaten/Auswertung:** **[Falls vorhanden: Link ergänzen]**.
+- **Rohdaten/Auswertung:** **[Falls vorhanden: Link ergänzen]**.
 
-\- **Entwurfsartefakte:** [Problemraumanalyse](docs/artefakte/problemraumanalyse.pdf) und [Sketch-Abgabe](docs/artefakte/skizzieren.pdf); Mockup-Link bei Vorliegen ergänzen.
+- **Entwurfsartefakte:** [Problemraumanalyse](docs/artefakte/problemraumanalyse.pdf) und [Sketch-Abgabe](docs/artefakte/skizzieren.pdf); Mockup-Link bei Vorliegen ergänzen.
 
 **---**
 
