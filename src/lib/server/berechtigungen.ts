@@ -7,7 +7,11 @@ export type Berechtigung =
   | 'ausleihen:lesen'
   | 'ausleihen:verwalten'
   | 'stammdaten:verwalten'
-  | 'benutzer:verwalten';
+  | 'benutzer:verwalten'
+  | 'inventur:lesen'
+  | 'inventur:erstellen'
+  | 'inventur:zaehlen'
+  | 'inventur:abschliessen';
 
 const rollenBerechtigungen: Record<
   Benutzerrolle,
@@ -19,7 +23,11 @@ const rollenBerechtigungen: Record<
     'ausleihen:lesen',
     'ausleihen:verwalten',
     'stammdaten:verwalten',
-    'benutzer:verwalten'
+    'benutzer:verwalten',
+    'inventur:lesen',
+    'inventur:erstellen',
+    'inventur:zaehlen',
+    'inventur:abschliessen'
   ],
 
   materialverantwortlich: [
@@ -27,13 +35,19 @@ const rollenBerechtigungen: Record<
     'inventar:bearbeiten',
     'ausleihen:lesen',
     'ausleihen:verwalten',
-    'stammdaten:verwalten'
+    'stammdaten:verwalten',
+    'inventur:lesen',
+    'inventur:erstellen',
+    'inventur:zaehlen',
+    'inventur:abschliessen'
   ],
 
   leiter: [
     'inventar:lesen',
     'ausleihen:lesen',
-    'ausleihen:verwalten'
+    'ausleihen:verwalten',
+    'inventur:lesen',
+    'inventur:zaehlen'
   ],
 
   mitglied: [
