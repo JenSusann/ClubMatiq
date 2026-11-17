@@ -11,6 +11,7 @@ type Bestellposition = {
   einzelpreis: number;
   verkaufsart: 'direkt' | 'bestellung';
   uebergebenMenge?: number;
+  reserviertMenge?: number;
 };
 
 export const GET: RequestHandler = async ({ locals, url }) => {
@@ -37,8 +38,13 @@ export const GET: RequestHandler = async ({ locals, url }) => {
         if (position.verkaufsart !== 'bestellung') return [];
         const bestellt = Number(position.menge);
         const uebergeben = Number(position.uebergebenMenge ?? 0);
-        if (!Number.isSafeInteger(bestellt) || bestellt < 1 || !Number.isSafeInteger(uebergeben) || uebergeben < 0 || uebergeben > bestellt) return [];
+        const reserviert = Number(position.reserviertMenge ?? 0);
+        if (!Number.isSafeInteger(bestellt) || bestellt < 1 ||
+            !Number.isSafeInteger(uebergeben) || uebergeben < 0 || uebergeben > bestellt ||
+            !Number.isSafeInteger(reserviert) || reserviert < 0 || reserviert > bestellt - uebergeben) return [];
+
         const offen = bestellt - uebergeben;
+        const nochFehlend = offen - reserviert;
         const positionsstatus = offen === 0 ? 'abgeschlossen' : uebergeben > 0 ? 'teilweise' : 'offen';
         const eintrag = {
           vorgangId: vorgang._id.toString(),
@@ -53,6 +59,9 @@ export const GET: RequestHandler = async ({ locals, url }) => {
           groesseId: position.groesseId,
           bestellt,
           uebergeben,
+          reserviert,
+          reserviertMenge: reserviert,
+          nochFehlend,
           offen,
           einzelpreis: position.einzelpreis,
           status: positionsstatus

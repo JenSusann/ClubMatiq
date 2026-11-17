@@ -16,6 +16,7 @@
     groesseId: string | null;
     bestellt: number;
     uebergeben: number;
+    reserviert?: number;
     offen: number;
     einzelpreis: number;
     status: Status;
@@ -65,6 +66,7 @@
   const offenGesamt = $derived(gefiltert.reduce((summe, b) => summe + b.offen, 0));
   const bestelltGesamt = $derived(gefiltert.reduce((summe, b) => summe + b.bestellt, 0));
   const uebergebenGesamt = $derived(gefiltert.reduce((summe, b) => summe + b.uebergeben, 0));
+  const reserviertGesamt = $derived(gefiltert.reduce((summe, b) => summe + (b.reserviert ?? 0), 0));
 
   function groesseName(id: string | null): string {
     if (id === null) return 'Ohne Grösse';
@@ -89,7 +91,19 @@
   }
   function verfuegbarFuer(b: Bestellung): number | null {
     const bestand = bestandFuer(b);
-    return bestand === null ? null : Math.max(0, bestand - 1);
+    if (bestand === null) return null;
+    // Die API prüft beim Speichern zusätzlich alle Reservierungen in der Datenbank.
+    // Die hier geladenen Bestellungen können auf 1000 Vorgänge begrenzt sein.
+    const fremdeReservierungen = bestellungen.reduce((summe, eintrag) => {
+      if (eintrag.artikelId !== b.artikelId || eintrag.groesseId !== b.groesseId ||
+          (eintrag.vorgangId === b.vorgangId && eintrag.positionsIndex === b.positionsIndex)) return summe;
+      return summe + (eintrag.reserviert ?? 0);
+    }, 0);
+    return Math.min(b.offen, Math.max(0, bestand - 1 - fremdeReservierungen));
+  }
+
+  function nochFehlend(b: Bestellung): number {
+    return Math.max(0, b.offen - (b.reserviert ?? 0));
   }
   async function historieAbrufen(): Promise<void> {
     historieLaden = true;
@@ -240,7 +254,9 @@
     <div class="kennzahl"><span>Bestellpositionen</span><strong>{gefiltert.length}</strong></div>
     <div class="kennzahl"><span>Bestellte Stück</span><strong>{bestelltGesamt}</strong></div>
     <div class="kennzahl"><span>Bereits übergeben</span><strong>{uebergebenGesamt}</strong></div>
-    <div class="kennzahl"><span>Noch offen</span><strong>{offenGesamt}</strong></div>
+    <div class="kennzahl"><span>Reserviert</span><strong>{reserviertGesamt}</strong></div>
+    <div class="kennzahl"><span>Noch fehlend</span><strong>{gefiltert.reduce((summe, b) => summe + nochFehlend(b), 0)}</strong></div>
+    <div class="kennzahl"><span>Noch nicht übergeben</span><strong>{offenGesamt}</strong></div>
   </div>
 
   {#if laden}
@@ -258,6 +274,8 @@
               <th>Artikel / Grösse</th>
               <th class="zahl">Bestellt</th>
               <th class="zahl">Übergeben</th>
+              <th class="zahl">Reserviert</th>
+              <th class="zahl">Noch fehlend</th>
               <th class="zahl">Offen</th>
               <th>Bestand / verfügbar</th>
               <th>Status</th>
@@ -272,6 +290,8 @@
                 <td><strong>{b.artikelname}</strong><small>{groesseName(b.groesseId)} · {formatCHF(b.einzelpreis)} / Stk.</small></td>
                 <td class="zahl">{b.bestellt}</td>
                 <td class="zahl">{b.uebergeben}</td>
+                <td class="zahl"><strong>{b.reserviert ?? '–'}</strong></td>
+                <td class="zahl">{b.reserviert === undefined ? '–' : nochFehlend(b)}</td>
                 <td class="zahl"><strong>{b.offen}</strong></td>
                 <td>
                   {#if b.offen === 0}
@@ -391,7 +411,7 @@
   input, select { box-sizing: border-box; width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; background: white; }
   .aktualisieren { background: #2563eb; color: white; border: 0; border-radius: 8px; padding: 11px 16px; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
   button:disabled { opacity: .6; cursor: not-allowed; }
-  .kennzahlen { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .kennzahlen { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
   .kennzahl { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 7px; }
   .kennzahl span { font-size: 13px; color: #64748b; }
   .kennzahl strong { font-size: 25px; color: #172b4d; }
