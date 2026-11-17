@@ -26,6 +26,7 @@
     name: string;
     kategorieId: string;
     lagerortId: string;
+    lieferantId?: string | null;
     menge: number;
     einzelwert: number;
     beschreibung: string;
@@ -35,11 +36,13 @@
 
   let kategorien = $state<Stammdatum[]>([]);
   let lagerorte = $state<Stammdatum[]>([]);
+  let lieferanten = $state<Stammdatum[]>([]);
   let groessen = $state<Groesse[]>([]);
 
   let name = $state('');
   let kategorieId = $state('');
   let lagerortId = $state('');
+  let lieferantId = $state('');
   let menge = $state(0);
   let einzelwert = $state(0);
   let beschreibung = $state('');
@@ -129,6 +132,7 @@
         fetch('/api/kategorien'),
         fetch('/api/lagerorte'),
         fetch('/api/groessen'),
+        fetch('/api/lieferanten'),
         fetch(`/api/artikel/${artikelId}`)
       ]);
 
@@ -136,17 +140,21 @@
         throw new Error('Artikeldaten konnten nicht geladen werden.');
       }
 
-    const [k, l, g, artikel] = await Promise.all(
+    const [k, l, g, lieferantenAntwort, artikel] = await Promise.all(
         antworten.map((antwort) => antwort.json())
-    ) as [Stammdatum[], Stammdatum[], Groesse[], Artikel];
+    ) as [Stammdatum[], Stammdatum[], Groesse[], Stammdatum[] | { lieferanten: Stammdatum[] }, Artikel];
 
       kategorien = k;
       lagerorte = l;
       groessen = g;
+      lieferanten = Array.isArray(lieferantenAntwort)
+        ? lieferantenAntwort
+        : lieferantenAntwort.lieferanten;
 
       name = artikel.name;
       kategorieId = artikel.kategorieId;
       lagerortId = artikel.lagerortId;
+      lieferantId = artikel.lieferantId ?? '';
       menge = artikel.menge;
       einzelwert = artikel.einzelwert;
       beschreibung = artikel.beschreibung ?? '';
@@ -247,6 +255,7 @@
           name: name.trim(),
           kategorieId,
           lagerortId,
+          lieferantId: lieferantId || null,
           menge: gesamtmenge,
           einzelwert: hatGroessen ? 0 : Number(einzelwert),
           beschreibung,
@@ -333,6 +342,19 @@
               {/each}
             </select>
           </div>
+        </div>
+
+        <div class="feld">
+          <label for="lieferant">Standardlieferant</label>
+          <select id="lieferant" bind:value={lieferantId} disabled={wirdGespeichert}>
+            <option value="">Kein Lieferant zugeordnet</option>
+            {#each lieferanten as lieferant (lieferant._id)}
+              <option value={lieferant._id}>{lieferant.name}</option>
+            {/each}
+          </select>
+          {#if lieferanten.length === 0}
+            <p class="hinweis">Noch keine Lieferanten vorhanden. <a href="/stammdaten/lieferanten">Lieferanten verwalten</a></p>
+          {/if}
         </div>
 
         <div class="feld">
@@ -541,6 +563,12 @@
     font: inherit;
     width: 100%;
     box-sizing: border-box;
+  }
+
+  .hinweis {
+    color: #64748b;
+    font-size: 14px;
+    margin: 0;
   }
 
   .zweispaltig {

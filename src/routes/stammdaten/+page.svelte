@@ -29,6 +29,12 @@
       beschreibung: 'Mitglieder suchen und ClubDesk-CSV-Dateien importieren.',
       symbol: '👥',
       link: '/stammdaten/mitglieder'
+    },
+    {
+      titel: 'Lieferanten',
+      beschreibung: 'Lieferanten für Vereinskleider erfassen und verwalten.',
+      symbol: '🚚',
+      link: '/stammdaten/lieferanten'
     }
   ];
 </script>

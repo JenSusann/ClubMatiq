@@ -35,7 +35,15 @@
     kombinierbar: boolean;
     aktiv: boolean;
   };
-  type Verkaufsart = 'direkt' | 'bestellung';
+  type Mitglied = {
+    _id: string;
+    clubdeskId: string;
+    vorname: string;
+    nachname: string;
+    anzeigename: string;
+    status: string;
+  };
+  type Verkaufsart = 'automatisch' | 'direkt' | 'bestellung';
   type Position = {
     artikelId: string;
     groesseId: string | null;
@@ -57,7 +65,52 @@
   let positionen = $state<Position[]>([]);
   let positionsFehler = $state('');
   let kaeufer = $state('');
-  let verkaufsart = $state<Verkaufsart>('direkt');
+  let ausgewaehltesMitglied = $state<Mitglied | null>(null);
+  let mitgliederVorschlaege = $state<Mitglied[]>([]);
+  let mitgliederSucheLaeuft = $state(false);
+  let mitgliederSucheFehler = $state('');
+  let mitgliederListeOffen = $state(false);
+  let mitgliederAnfrage = 0;
+
+  async function mitgliederSuchen(): Promise<void> {
+    const anfrage = ++mitgliederAnfrage;
+    ausgewaehltesMitglied = null;
+    mitgliederSucheFehler = '';
+    speichernErfolg = '';
+    const suchtext = kaeufer.trim();
+    if (suchtext.length < 2) {
+      mitgliederVorschlaege = [];
+      mitgliederSucheLaeuft = false;
+      mitgliederListeOffen = false;
+      return;
+    }
+    mitgliederListeOffen = true;
+    mitgliederSucheLaeuft = true;
+    try {
+      const antwort = await fetch(`/api/mitglieder?suche=${encodeURIComponent(suchtext)}`);
+      if (!antwort.ok) throw new Error('Mitglieder konnten nicht geladen werden.');
+      const ergebnis = (await antwort.json()) as Mitglied[];
+      if (anfrage !== mitgliederAnfrage) return;
+      mitgliederVorschlaege = ergebnis;
+    } catch (e) {
+      if (anfrage !== mitgliederAnfrage) return;
+      mitgliederVorschlaege = [];
+      mitgliederSucheFehler = e instanceof Error ? e.message : 'Mitgliedersuche fehlgeschlagen.';
+    } finally {
+      if (anfrage === mitgliederAnfrage) mitgliederSucheLaeuft = false;
+    }
+  }
+
+  function mitgliedAuswaehlen(mitglied: Mitglied): void {
+    ++mitgliederAnfrage;
+    ausgewaehltesMitglied = mitglied;
+    kaeufer = mitglied.anzeigename;
+    mitgliederVorschlaege = [];
+    mitgliederListeOffen = false;
+    mitgliederSucheLaeuft = false;
+    mitgliederSucheFehler = '';
+  }
+  let verkaufsart = $state<Verkaufsart>('automatisch');
   let zahlungsart = $state('rechnung');
   let bemerkung = $state('');
   const riegenOptionen = ['Allround', 'GETU Meitli', 'GETU Buebe', 'Jugend Aerobic', 'KITU', 'Aktive'];
@@ -165,6 +218,8 @@
       .reduce((summe, p) => summe + p.menge, 0)
   );
   const verkaufbar = $derived(Math.max(0, bestand - 1 - bereitsImWarenkorb));
+  const direktNeueMenge = $derived(verkaufsart === 'bestellung' ? 0 : Math.min(menge, verkaufbar));
+  const bestellNeueMenge = $derived(verkaufsart === 'direkt' ? 0 : Math.max(0, menge - direktNeueMenge));
 
   function artikelWechseln() {
     groesseId = '';
@@ -246,12 +301,31 @@
   }
 
   const warenkorbGueltig = $derived(
-    verkaufsart === 'bestellung' || positionen.every((p) =>
+    verkaufsart !== 'direkt' || positionen.every((p) =>
       positionen
         .filter((andere) => andere.artikelId === p.artikelId && andere.groesseId === p.groesseId)
         .reduce((summe, andere) => summe + andere.menge, 0) <= Math.max(0, bestandFuerPosition(p) - 1)
     )
   );
+
+  // Verfügbarkeit pro Variante über den gesamten Warenkorb berechnen.
+  // So wird die Anprobierreserve auch bei mehreren Preisen nicht mehrfach vergeben.
+  const warenkorbAufteilung = $derived.by(() => {
+    const verbleibend = new Map<string, number>();
+    return positionen.map((p) => {
+      const schluessel = `${p.artikelId}:${p.groesseId ?? ''}`;
+      if (!verbleibend.has(schluessel)) {
+        verbleibend.set(schluessel, Math.max(0, bestandFuerPosition(p) - 1));
+      }
+      const direkt = verkaufsart === 'bestellung' ? 0
+        : verkaufsart === 'direkt' ? p.menge
+        : Math.min(p.menge, verbleibend.get(schluessel) ?? 0);
+      verbleibend.set(schluessel, Math.max(0, (verbleibend.get(schluessel) ?? 0) - direkt));
+      return { direkt, bestellung: p.menge - direkt };
+    });
+  });
+  const direktTotal = $derived(warenkorbAufteilung.reduce((summe, p) => summe + p.direkt, 0));
+  const bestellTotal = $derived(warenkorbAufteilung.reduce((summe, p) => summe + p.bestellung, 0));
 
   async function datenLaden(): Promise<void> {
     const [kategorienAntwort, artikelAntwort, groessenAntwort, preiseAntwort, rabatteAntwort] = await Promise.all([
@@ -304,7 +378,7 @@
           zusaetzlicherRabatt: rabattZahl
         })
       });
-      const ergebnis: { erfolg?: boolean; fehler?: string; verkauf?: { _id?: string } } =
+      const ergebnis: { erfolg?: boolean; fehler?: string; verkauf?: { _id?: string; direktMenge?: number; bestellMenge?: number } } =
         await antwort.json().catch(() => ({}));
       if (!antwort.ok || !ergebnis.erfolg) {
         throw new Error(ergebnis.fehler ?? 'Der Vorgang konnte nicht gespeichert werden.');
@@ -316,12 +390,16 @@
       menge = 1;
       manuellerPreis = '';
       kaeufer = '';
+      ++mitgliederAnfrage;
+      ausgewaehltesMitglied = null;
+      mitgliederVorschlaege = [];
+      mitgliederListeOffen = false;
       riegen = [];
       bemerkung = '';
       zusaetzlicherRabatt = '0';
       rabattId = '';
       positionsFehler = '';
-      speichernErfolg = `${verkaufsart === 'direkt' ? 'Verkauf' : 'Bestellung'} erfolgreich gespeichert${ergebnis.verkauf?._id ? ` (ID: ${ergebnis.verkauf._id})` : ''}.`;
+      speichernErfolg = `Vorgang erfolgreich gespeichert: ${ergebnis.verkauf?.direktMenge ?? 0} direkt verkauft, ${ergebnis.verkauf?.bestellMenge ?? 0} bestellt${ergebnis.verkauf?._id ? ` (ID: ${ergebnis.verkauf._id})` : ''}.`;
       // Bei einem Direktverkauf Bestände erneut vom Server laden.
       try {
         await datenLaden();
@@ -357,7 +435,7 @@
   <a class="zurueck" href="/vereinskleider">← Zurück zu Vereinskleider</a>
   <header>
     <h1>Vereinskleider verkaufen</h1>
-    <p>Mehrere Artikel und Grössen in einem Verkauf oder einer Bestellung zusammenstellen.</p>
+    <p>Mehrere Artikel und Grössen zusammenstellen. Die verfügbaren Mengen werden automatisch verkauft, der Rest bestellt.</p>
   </header>
 
   {#if laden}
@@ -374,13 +452,42 @@
           <div class="felder">
             <div>
               <label for="kaeufer">Käufer / Mitglied</label>
-              <input id="kaeufer" type="text" placeholder="Name eingeben" bind:value={kaeufer} />
+              <div class="mitgliedersuche">
+                <input id="kaeufer" type="text" placeholder="Mitglied suchen oder Namen eingeben"
+                  autocomplete="off" bind:value={kaeufer} oninput={() => { void mitgliederSuchen(); }}
+                  role="combobox" aria-autocomplete="list" aria-expanded={mitgliederListeOffen} 
+                  aria-controls="mitgliedervorschlaege" />
+                {#if ausgewaehltesMitglied}
+                  <p class="mitglied-gewaehlt">✓ ClubDesk-Mitglied ausgewählt (ID: {ausgewaehltesMitglied.clubdeskId})</p>
+                {:else if kaeufer.trim().length > 0}
+                  <p class="hinweis">Ohne Auswahl aus der Liste wird der Name manuell übernommen.</p>
+                {/if}
+                {#if mitgliederListeOffen}
+                  <div class="mitgliedervorschlaege" id="mitgliedervorschlaege">
+                    {#if mitgliederSucheLaeuft}
+                      <p class="vorschlag-info">Mitglieder werden gesucht ...</p>
+                    {:else if mitgliederSucheFehler}
+                      <p class="vorschlag-info warnung" role="alert">{mitgliederSucheFehler}</p>
+                    {:else if mitgliederVorschlaege.length === 0}
+                      <p class="vorschlag-info">Keine passenden Mitglieder gefunden. Manuelle Eingabe ist möglich.</p>
+                    {:else}
+                      {#each mitgliederVorschlaege as mitglied (mitglied._id)}
+                        <button class="mitglied-vorschlag" type="button" onclick={() => mitgliedAuswaehlen(mitglied)}>
+                          <strong>{mitglied.anzeigename}</strong>
+                          <span>ClubDesk-ID: {mitglied.clubdeskId}{mitglied.status ? ` · ${mitglied.status}` : ''}</span>
+                        </button>
+                      {/each}
+                    {/if}
+                  </div>
+                {/if}
+              </div>
             </div>
             <div>
               <label for="verkaufsart">Vorgang</label>
               <select id="verkaufsart" bind:value={verkaufsart}>
-                <option value="direkt">Direktverkauf / Übergabe</option>
-                <option value="bestellung">Bestellung (noch keine Übergabe)</option>
+                <option value="automatisch">Automatisch nach Lagerbestand (empfohlen)</option>
+                <option value="direkt">Nur Direktverkauf / Übergabe</option>
+                <option value="bestellung">Nur Bestellung (noch keine Übergabe)</option>
               </select>
             </div>
             <div>
@@ -449,9 +556,12 @@
             <div class="infozeile">
               <span>Lagerbestand: <strong>{bestand}</strong></span>
               <span>Reserve: <strong>{Math.min(1, bestand)}</strong></span>
-              <span>Noch hinzufügbar: <strong>{verkaufbar}</strong></span>
+              <span>Noch direkt verfügbar: <strong>{verkaufbar}</strong></span>
               <span>Stückpreis: <strong>{gueltigerPreis && stueckpreis !== null ? formatCHF(stueckpreis) : 'Offen'}</strong></span>
             </div>
+            {#if verkaufsart === 'automatisch' && Number.isInteger(menge) && menge > 0}
+              <p class="aufteilung-hinweis">Für diese Auswahl: <strong>{direktNeueMenge} direkt</strong> · <strong>{bestellNeueMenge} Bestellung</strong></p>
+            {/if}
           {/if}
           {#if positionsFehler}
             <p class="warnung" role="alert">{positionsFehler}</p>
@@ -475,6 +585,14 @@
                 <div class="positionsdetails">
                   <span>{groesseName(p.groesseId)} · {p.menge} × {formatCHF(p.einzelpreis)}</span>
                   <strong>{formatCHF(p.menge * p.einzelpreis)}</strong>
+                </div>
+                <div class="positions-aufteilung">
+                  {#if warenkorbAufteilung[index]?.direkt}
+                    <span class="direkt-tag">✓ {warenkorbAufteilung[index].direkt} direkt</span>
+                  {/if}
+                  {#if warenkorbAufteilung[index]?.bestellung}
+                    <span class="bestellung-tag">◷ {warenkorbAufteilung[index].bestellung} Bestellung</span>
+                  {/if}
                 </div>
               </div>
             {/each}
@@ -503,6 +621,8 @@
           </div>
           <div class="zeile"><span>Positionen</span><strong>{positionen.length}</strong></div>
           <div class="zeile"><span>Stückzahl</span><strong>{gesamtmenge}</strong></div>
+          <div class="zeile"><span>Direktverkauf</span><strong>{direktTotal} Stück</strong></div>
+          <div class="zeile"><span>Bestellung</span><strong>{bestellTotal} Stück</strong></div>
           <div class="zeile"><span>Zwischentotal</span><strong>{formatCHF(gesamtpreis)}</strong></div>
           {#if ausgewaehlterRabatt}<div class="zeile"><span>{ausgewaehlterRabatt.name}</span><strong>− {formatCHF(regelRabatt)}</strong></div>{/if}
           {#if rabattGueltig && rabattZahl > 0}<div class="zeile"><span>Weiterer Rabatt</span><strong>− {formatCHF(rabattZahl)}</strong></div>{/if}
@@ -510,8 +630,10 @@
         {/if}
         {#if verkaufsart === 'bestellung'}
           <p class="hinweis">Bei Bestellungen wird der Lagerbestand erst bei der späteren Übergabe reduziert.</p>
+        {:else if verkaufsart === 'automatisch'}
+          <p class="hinweis">Die Aufteilung berücksichtigt pro Grösse eine Anprobierreserve. Der Server prüft den Bestand beim Speichern erneut; die endgültige Aufteilung kann sich deshalb ändern.</p>
         {:else if !warenkorbGueltig}
-          <p class="warnung" role="alert">Mindestens eine Warenkorbposition überschreitet den verfügbaren Bestand inklusive Anprobierreserve. Bitte Positionen reduzieren oder eine Bestellung wählen.</p>
+          <p class="warnung" role="alert">Mindestens eine Warenkorbposition überschreitet den verfügbaren Bestand inklusive Anprobierreserve. Bitte Menge reduzieren oder «Automatisch» wählen.</p>
         {/if}
         {#if speichernErfolg}
           <p class="erfolg" role="status">{speichernErfolg}</p>
@@ -523,13 +645,25 @@
           disabled={speichernLaeuft || !bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0}>
           {speichernLaeuft ? 'Wird gespeichert ...' : 'Gesamten Vorgang speichern'}
         </button>
-        <p class="hinweis">Die API speichert den Vorgang. Bei Direktverkäufen wird der Lagerbestand reduziert; bei Bestellungen bleibt er unverändert. Rechnungen werden noch nicht erstellt.</p>
+        <p class="hinweis">Die API speichert den Vorgang. Nur direkt übergebene Stücke reduzieren den Lagerbestand. Bestellte Stücke bleiben offen. Rechnungen werden noch nicht erstellt.</p>
       </aside>
     </div>
   {/if}
 </main>
 
 <style>
+  .aufteilung-hinweis { margin: 10px 0 0; color: #334155; font-size: 13px; }
+  .positions-aufteilung { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; font-size: 12px; font-weight: 600; }
+  .direkt-tag { background: #dcfce7; color: #166534; border-radius: 6px; padding: 4px 8px; }
+  .bestellung-tag { background: #fef3c7; color: #92400e; border-radius: 6px; padding: 4px 8px; }
+  .mitgliedersuche { position: relative; }
+  .mitglied-gewaehlt { color: #166534; font-size: 12px; margin: 6px 0 0; }
+  .mitgliedersuche .hinweis { margin: 6px 0 0; }
+  .mitgliedervorschlaege { position: absolute; z-index: 20; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 25px #0000001a; max-height: 250px; overflow-y: auto; }
+  .mitglied-vorschlag { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; background: white; border: 0; border-bottom: 1px solid #e2e8f0; padding: 10px 12px; cursor: pointer; text-align: left; font: inherit; }
+  .mitglied-vorschlag:hover, .mitglied-vorschlag:focus-visible { background: #eff6ff; }
+  .mitglied-vorschlag span { font-size: 12px; color: #64748b; }
+  .vorschlag-info { margin: 0; padding: 12px; font-size: 13px; color: #64748b; }
   main { max-width: 1200px; margin: 40px auto; padding: 20px; }
   .zurueck { color: #2563eb; text-decoration: none; font-weight: 600; font-size: 14px; }
   header { margin: 28px 0; }

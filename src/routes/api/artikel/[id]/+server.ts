@@ -127,6 +127,7 @@ export const PATCH: RequestHandler = async ({
     name,
     kategorieId,
     lagerortId,
+    lieferantId,
     menge,
     einzelwert,
     beschreibung,
@@ -172,6 +173,20 @@ export const PATCH: RequestHandler = async ({
   ) {
     return json(
       { fehler: 'Ungültige Artikelangaben.' },
+      { status: 400 }
+    );
+  }
+
+  // Optionaler Standardlieferant: fehlendes Feld belässt die bestehende Zuordnung.
+  // null oder ein leerer String entfernt die Zuordnung bewusst.
+  if (
+    lieferantId !== undefined &&
+    lieferantId !== null &&
+    (typeof lieferantId !== 'string' ||
+      (lieferantId.trim() !== '' && !ObjectId.isValid(lieferantId.trim())))
+  ) {
+    return json(
+      { fehler: 'Ungültige Lieferanten-ID.' },
       { status: 400 }
     );
   }
@@ -299,6 +314,24 @@ export const PATCH: RequestHandler = async ({
       );
     }
 
+    // Zugewiesener Lieferant muss zum angemeldeten Verein gehören.
+    const lieferantIdNeu =
+      typeof lieferantId === 'string' ? lieferantId.trim() : lieferantId;
+
+    if (lieferantIdNeu) {
+      const lieferant = await db.collection('lieferanten').findOne({
+        _id: new ObjectId(lieferantIdNeu),
+        vereinId
+      });
+
+      if (!lieferant) {
+        return json(
+          { fehler: 'Lieferant existiert nicht in deinem Verein.' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Grössen müssen ebenfalls zum Verein gehören
     if (hatGroessen) {
       const groessenIds = gepruefteVarianten.map(
@@ -365,6 +398,10 @@ export const PATCH: RequestHandler = async ({
                 name: name.trim(),
                 kategorieId,
                 lagerortId,
+                // Bei älteren Clients ohne Feld bleibt die Zuordnung unverändert.
+                ...(lieferantId !== undefined
+                  ? { lieferantId: lieferantIdNeu || null }
+                  : {}),
                 menge: gesamtmenge,
                 einzelwert: hatGroessen ? 0 : einzelwert,
                 beschreibung: (beschreibung ?? '').trim(),

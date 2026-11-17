@@ -49,7 +49,7 @@ function pruefeEingabe(daten: unknown) {
     throw new Verkaufsfehler('Ungültige Verkaufsdaten.');
   }
   const d = daten as Record<string, unknown>;
-  if (d.verkaufsart !== 'direkt' && d.verkaufsart !== 'bestellung') {
+  if (d.verkaufsart !== 'direkt' && d.verkaufsart !== 'bestellung' && d.verkaufsart !== 'automatisch') {
     throw new Verkaufsfehler('Ungültige Verkaufsart.');
   }
   if (typeof d.kaeufer !== 'string' || !d.kaeufer.trim() || d.kaeufer.length > 200) {
@@ -86,7 +86,7 @@ function pruefeEingabe(daten: unknown) {
   const zusatz = d.zusaetzlicherRabatt ?? 0;
   if (!betragGueltig(zusatz)) throw new Verkaufsfehler('Ungültiger zusätzlicher Rabatt.');
   return {
-    verkaufsart: d.verkaufsart as 'direkt' | 'bestellung',
+    verkaufsart: d.verkaufsart as 'direkt' | 'bestellung' | 'automatisch',
     kaeufer: (d.kaeufer as string).trim(),
     zahlungsart: d.zahlungsart as string,
     bemerkung: (d.bemerkung as string | undefined)?.trim() ?? '',
@@ -231,40 +231,87 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         throw new Verkaufsfehler('Die Rabatte übersteigen den Warenkorbwert.');
       }
 
-      if (eingabe.verkaufsart === 'direkt') {
-        // Bedingte Updates verhindern negative Bestände bei parallelen Verkäufen.
-        for (const eintrag of mengen.values()) {
-          const mindestbestand = eintrag.menge + 1; // 1 Stück Anprobierreserve
-          if (eintrag.groesseId !== null) {
-            const aktualisiert = await variantenCollection.updateOne({
-              vereinId, artikelId: eintrag.artikelId, groesseId: eintrag.groesseId,
-              aktiv: { $ne: false }, menge: { $gte: mindestbestand }
-            }, { $inc: { menge: -eintrag.menge } }, { session });
-            if (aktualisiert.modifiedCount !== 1) throw new Verkaufsfehler('Nicht genügend Lagerbestand für eine Grösse.', 409);
-            const artikelAktualisiert = await artikelCollection.updateOne({
-              _id: new ObjectId(eintrag.artikelId), vereinId, menge: { $gte: eintrag.menge }
-            }, { $inc: { menge: -eintrag.menge }, $set: { aktualisiertAm: new Date() } }, { session });
-            if (artikelAktualisiert.modifiedCount !== 1) throw new Verkaufsfehler('Artikelbestand konnte nicht aktualisiert werden.', 409);
-          } else {
-            const aktualisiert = await artikelCollection.updateOne({
-              _id: new ObjectId(eintrag.artikelId), vereinId, menge: { $gte: mindestbestand }
-            }, { $inc: { menge: -eintrag.menge }, $set: { aktualisiertAm: new Date() } }, { session });
-            if (aktualisiert.modifiedCount !== 1) throw new Verkaufsfehler('Nicht genügend Lagerbestand.', 409);
-          }
-        }
-      }
+       // Pro Artikel und Grösse wird nur der tatsächlich verfügbare Bestand
+       // (abzüglich eines Stücks Anprobierreserve) direkt verkauft.
+       const direkteMengen = new Map<string, number>();
+       for (const [schluessel, eintrag] of mengen) {
+         let direkt = 0;
+         if (eingabe.verkaufsart !== 'bestellung') {
+           const bestandDokument = eintrag.groesseId !== null
+             ? await variantenCollection.findOne({
+                 vereinId, artikelId: eintrag.artikelId, groesseId: eintrag.groesseId,
+                 aktiv: { $ne: false }
+               }, { session })
+             : await artikelCollection.findOne({
+                 _id: new ObjectId(eintrag.artikelId), vereinId
+               }, { session });
+           if (!bestandDokument) throw new Verkaufsfehler('Lagerbestand nicht gefunden.', 409);
+           const verfuegbar = Math.max(0, (Number(bestandDokument.menge) || 0) - 1);
+           direkt = eingabe.verkaufsart === 'direkt'
+             ? eintrag.menge
+             : Math.min(eintrag.menge, verfuegbar);
+           if (eingabe.verkaufsart === 'direkt' && direkt > verfuegbar) {
+             throw new Verkaufsfehler('Nicht genügend Lagerbestand nach Abzug der Anprobierreserve.', 409);
+           }
+         }
+         direkteMengen.set(schluessel, direkt);
+         if (direkt === 0) continue;
+
+         // Bedingte Updates schützen vor konkurrierenden Verkäufen.
+         if (eintrag.groesseId !== null) {
+           const aktualisiert = await variantenCollection.updateOne({
+             vereinId, artikelId: eintrag.artikelId, groesseId: eintrag.groesseId,
+             aktiv: { $ne: false }, menge: { $gte: direkt + 1 }
+           }, { $inc: { menge: -direkt } }, { session });
+           if (aktualisiert.modifiedCount !== 1) throw new Verkaufsfehler('Bestand der Grösse wurde zwischenzeitlich geändert.', 409);
+           const artikelAktualisiert = await artikelCollection.updateOne({
+             _id: new ObjectId(eintrag.artikelId), vereinId, menge: { $gte: direkt }
+           }, { $inc: { menge: -direkt }, $set: { aktualisiertAm: new Date() } }, { session });
+           if (artikelAktualisiert.modifiedCount !== 1) throw new Verkaufsfehler('Artikelbestand konnte nicht aktualisiert werden.', 409);
+         } else {
+           const aktualisiert = await artikelCollection.updateOne({
+             _id: new ObjectId(eintrag.artikelId), vereinId, menge: { $gte: direkt + 1 }
+           }, { $inc: { menge: -direkt }, $set: { aktualisiertAm: new Date() } }, { session });
+           if (aktualisiert.modifiedCount !== 1) throw new Verkaufsfehler('Lagerbestand wurde zwischenzeitlich geändert.', 409);
+         }
+       }
+
+       // Die Aufteilung erfolgt auch bei mehreren Positionen derselben Variante
+       // deterministisch in Warenkorbreihenfolge.
+       const verbleibendDirekt = new Map(direkteMengen);
+       const aufgeteiltePositionen: Array<PositionGeprueft & { verkaufsart: 'direkt' | 'bestellung' }> = [];
+       for (const p of geprueft) {
+         const schluessel = `${p.artikelId}:${p.groesseId ?? ''}`;
+         const direkt = Math.min(p.menge, verbleibendDirekt.get(schluessel) ?? 0);
+         verbleibendDirekt.set(schluessel, (verbleibendDirekt.get(schluessel) ?? 0) - direkt);
+         const bestellt = p.menge - direkt;
+         if (direkt > 0) aufgeteiltePositionen.push({
+           ...p, menge: direkt, positionsbetrag: geld(p.einzelpreis) * direkt, verkaufsart: 'direkt'
+         });
+         if (bestellt > 0) aufgeteiltePositionen.push({
+           ...p, menge: bestellt, positionsbetrag: geld(p.einzelpreis) * bestellt, verkaufsart: 'bestellung'
+         });
+       }
+       const direktMenge = aufgeteiltePositionen.filter((p) => p.verkaufsart === 'direkt')
+         .reduce((summe, p) => summe + p.menge, 0);
+       const bestellMenge = aufgeteiltePositionen.filter((p) => p.verkaufsart === 'bestellung')
+         .reduce((summe, p) => summe + p.menge, 0);
+       const effektiveVerkaufsart = direktMenge > 0 && bestellMenge > 0
+         ? 'gemischt' : bestellMenge > 0 ? 'bestellung' : 'direkt';
 
       const jetzt = new Date();
       const dokument = {
         vereinId,
-        verkaufsart: eingabe.verkaufsart,
-        status: eingabe.verkaufsart === 'direkt' ? 'abgeschlossen' : 'offen',
+        verkaufsart: effektiveVerkaufsart,
+        status: bestellMenge > 0 ? 'offen' : 'abgeschlossen',
+        direktMenge,
+        bestellMenge,
         kaeufer: eingabe.kaeufer,
         riegen: eingabe.riegen,
         zahlungsart: eingabe.zahlungsart,
         zahlungsstatus: 'offen', // Zahlungsart bedeutet noch nicht, dass bezahlt wurde.
         bemerkung: eingabe.bemerkung,
-        positionen: geprueft.map(({ kategorieId, positionsbetrag, ...p }) => ({ ...p, positionsbetrag: positionsbetrag / 100 })),
+        positionen: aufgeteiltePositionen.map(({ kategorieId, positionsbetrag, ...p }) => ({ ...p, positionsbetrag: positionsbetrag / 100 })),
         rabatte: angewendeteRabatte,
         zusaetzlicherRabatt: eingabe.zusaetzlicherRabatt,
         zwischentotal: zwischentotalRappen / 100,

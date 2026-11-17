@@ -16,6 +16,8 @@
   let kategorien = $state<Stammdatum[]>([]);
   let lagerorte = $state<Stammdatum[]>([]);
   let groessen = $state<Groesse[]>([]);
+  let lieferanten = $state<Stammdatum[]>([]);
+  let lieferantId = $state('');
   let ausgewaehlteGroessen = $state<string[]>([]);
 
   let aktiveGroessen = $derived(
@@ -103,20 +105,22 @@
       const antworten = await Promise.all([
         fetch('/api/kategorien'),
         fetch('/api/lagerorte'),
-        fetch('/api/groessen')
+        fetch('/api/groessen'),
+        fetch('/api/lieferanten')
       ]);
 
       if (antworten.some((antwort) => !antwort.ok)) {
         throw new Error('Stammdaten konnten nicht geladen werden.');
       }
 
-      const [k, l, g] = await Promise.all(
+      const [k, l, g, lie] = await Promise.all(
         antworten.map((antwort) => antwort.json())
       );
 
       kategorien = k;
       lagerorte = l;
       groessen = g;
+      lieferanten = Array.isArray(lie) ? lie : lie.lieferanten ?? [];
 
       groessenBestaende = Object.fromEntries(
         groessen.map((groesse) => [groesse._id, 0])
@@ -210,6 +214,7 @@
           name: name.trim(),
           kategorieId,
           lagerortId,
+          lieferantId: lieferantId || null,
           menge: gesamtmenge,
           einzelwert: hatGroessen ? 0 : Number(einzelwert),
           beschreibung,
@@ -323,6 +328,19 @@
               {/each}
             </select>
           </div>
+        </div>
+
+        <div class="feld">
+          <label for="lieferant">Standardlieferant (optional)</label>
+          <select id="lieferant" bind:value={lieferantId}>
+            <option value="">Kein Lieferant zugeordnet</option>
+            {#each lieferanten as lieferant (lieferant._id)}
+              <option value={lieferant._id}>{lieferant.name}</option>
+            {/each}
+          </select>
+          {#if lieferanten.length === 0}
+            <p>Es sind noch keine Lieferanten erfasst. <a href="/stammdaten/lieferanten">Lieferanten verwalten</a></p>
+          {/if}
         </div>
 
         <div class="feld">

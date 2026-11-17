@@ -77,9 +77,17 @@ async function artikelLoeschen(a: Artikel) {
     inventarwert: number;
     einzelwert: number;
     varianten: Variante[];
+    lieferantId?: string | null;
   };
 
   let artikel = $state<Artikel[]>([]);
+  let lieferanten = $state<{ _id: string; name: string }[]>([]);
+  let artikelLieferanten = $state<Record<string, string>>({});
+
+  function lieferantenName(a: Artikel): string {
+    const id = artikelLieferanten[a._id] ?? a.lieferantId;
+    return lieferanten.find((l) => l._id === id)?.name ?? 'Nicht zugeordnet';
+  }
   let suche = $state('');
   let kategorieFilter = $state('');
   let ausgeklappteArtikel = $state<string[]>([]);
@@ -99,7 +107,8 @@ async function artikelLoeschen(a: Artikel) {
       const passtZurSuche =
         a.name.toLowerCase().includes(suchtext) ||
         a.kategorie.toLowerCase().includes(suchtext) ||
-        a.lagerort.toLowerCase().includes(suchtext);
+        a.lagerort.toLowerCase().includes(suchtext) ||
+        lieferantenName(a).toLowerCase().includes(suchtext);
 
       const passtZurKategorie =
         !kategorieFilter || a.kategorie === kategorieFilter;
@@ -157,6 +166,32 @@ async function artikelLoeschen(a: Artikel) {
       }
 
       artikel = await antwort.json();
+
+      // Lieferanten unabhängig laden, damit die Inventarübersicht
+      // auch bei einem Fehler dieser Zusatzabfragen nutzbar bleibt.
+      const [artikelAntwort, lieferantenAntwort] = await Promise.allSettled([
+        fetch('/api/artikel'),
+        fetch('/api/lieferanten')
+      ]);
+
+      if (artikelAntwort.status === 'fulfilled' && artikelAntwort.value.ok) {
+        const alleArtikel: { _id: string; lieferantId?: string | null }[] =
+          await artikelAntwort.value.json();
+        artikelLieferanten = Object.fromEntries(
+          alleArtikel.filter((a) => a.lieferantId).map((a) => [a._id, a.lieferantId!])
+        );
+      }
+
+      if (lieferantenAntwort.status === 'fulfilled' && lieferantenAntwort.value.ok) {
+        const daten: unknown = await lieferantenAntwort.value.json();
+        // Unterstützt sowohl eine direkte Liste als auch { lieferanten: [...] }.
+        if (Array.isArray(daten)) {
+          lieferanten = daten;
+        } else if (daten && typeof daten === 'object' && 'lieferanten' in daten &&
+          Array.isArray(daten.lieferanten)) {
+          lieferanten = daten.lieferanten;
+        }
+      }
     } catch (error) {
       fehlermeldung =
         error instanceof Error
@@ -227,7 +262,7 @@ async function artikelLoeschen(a: Artikel) {
           <input
             id="suche"
             type="search"
-            placeholder="Name, Kategorie oder Lagerort ..."
+            placeholder="Name, Kategorie, Lagerort oder Lieferant ..."
             bind:value={suche}
           />
         </div>
@@ -257,6 +292,7 @@ async function artikelLoeschen(a: Artikel) {
               <th>Artikel</th>
               <th>Kategorie</th>
               <th>Lagerort</th>
+              <th>Standardlieferant</th>
               <th>Bestand</th>
               <th>Inventarwert</th>
               <th>Aktionen</th>
@@ -274,6 +310,8 @@ async function artikelLoeschen(a: Artikel) {
                 <td>{a.kategorie}</td>
 
                 <td>{a.lagerort}</td>
+
+                <td>{lieferantenName(a)}</td>
 
                 <td>{a.gesamtmenge} Stück</td>
 
@@ -319,7 +357,7 @@ async function artikelLoeschen(a: Artikel) {
               <!-- Ausklappbare Details -->
               {#if ausgeklappteArtikel.includes(a._id)}
                 <tr class="detail-zeile">
-                  <td colspan="6">
+                  <td colspan="7">
                     <div class="details">
                       {#if a.beschreibung}
                         <p>
