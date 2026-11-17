@@ -5,8 +5,8 @@
 | Angabe | Inhalt |
 |---|---|
 | Projekttitel | ClubMatiq – Digitale Material- und Inventarverwaltung für Vereine |
-| Verfasser/in | Jennifer Mentner – **[Klasse ergänzen]** |
-| GitHub-Repository | **[Direkten Link zum Repository ergänzen]** |
+| Verfasser/in | Jennifer Mentner – **WIN-03-23HS-TZDSRH** |
+| GitHub-Repository | **https://github.com/JenSusann/ClubMatiq** |
 | Aktuelle App | Noch nicht öffentlich bereitgestellt; derzeit lokale Entwicklungsumgebung |
 | Getestete Version | Lokaler Entwicklungsstand vom 11. November 2026; **[Commit/Tag nach dem Push ergänzen]** |
 | Testzugänge | Registrierung und Anmeldung implementiert; separate Testzugänge für Dozierende vor der Abgabe sicher bereitstellen |
@@ -22,30 +22,19 @@
 [Projektübersicht & Zugänge](#projektübersicht--zugänge)
 
 1. [Ausgangslage](#1-ausgangslage)
-
 2. [Lösungsidee](#2-lösungsidee)
-
 3. [Vorgehen & Artefakte](#3-vorgehen--artefakte)
-
     1. [Understand & Define](#31-understand--define)
-
     2. [Sketch](#32-sketch)
         - [Personas](#321-personas)
         - [Crazy 8s](#322-crazy-8s)
         - [User Journey Map](#323-user-journey-map)
-
     3. [Decide](#33-decide)
-
     4. [Prototype](#34-prototype)
-
     5. [Validate](#35-validate)
-
 4. [Erweiterungen [Optional]](#4-erweiterungen-optional)
-
 5. [Projektorganisation [Optional]](#5-projektorganisation-optional)
-
 6. [KI-Deklaration](#6-ki-deklaration)
-
 7. [Anhang [Optional]](#7-anhang-optional)
 
 > **Hinweis:** Massgeblich sind die im Unterricht und auf Moodle kommunizierten Anforderungen. Die Angaben zu Mindestumfang und Erweiterungen sind vor der Abgabe mit diesen Anforderungen abzugleichen.
@@ -58,11 +47,18 @@
 
 - **Primäre Zielgruppe:** Personen, die in einem Verein Material, Vereinskleider und Inventar betreuen, insbesondere Materialverantwortliche und Leiterinnen bzw. Leiter.
 
-- **Weitere Stakeholder [Optional]:** Kassiererin bzw. Finanzverantwortliche für Inventarwerte und Rechnungsbezüge; Vereinsvorstand als organisatorisch verantwortliches Gremium. Der Turnverein Weiningen dient als Praxisbeispiel.
+- **Weitere Stakeholder:** Kassiererin bzw. Finanzverantwortliche für Inventarwerte und Rechnungsbezüge; Vereinsvorstand als organisatorisch verantwortliches Gremium. Der Turnverein Weiningen dient als Praxisbeispiel.
 
 ## 2. Lösungsidee
 
-- **Kernfunktionalität:** ClubMatiq bündelt die Inventarverwaltung in einer Weboberfläche. Artikel werden mit Kategorie, Lagerort, Beschreibung, Bestand und Einzelwert erfasst. Vereinskleider können mehrere Grössen mit unterschiedlichen Beständen und Werten besitzen. Material kann an Personen ausgeliehen und teilweise oder vollständig zurückgegeben werden; verfügbare Mengen werden dabei automatisch angepasst. Die Übersicht zeigt offene, überfällige und abgeschlossene Ausleihen. Vereine können sich mit einem Administratorkonto registrieren und anschliessend ihre eigenen Inventardaten verwalten. Die Inventurverwaltung mit Abschluss, Korrekturen, Stornierung, Verlauf und PDF-Bericht ist inzwischen umgesetzt. QR-Codes und weitere Bereiche sind je nach Entwicklungsstand noch vorgesehen oder als Platzhalter vorhanden.
+- **Kernfunktionalität:** ClubMatiq ist eine webbasierte Plattform, die eine zentrale Verwaltung von Vereinsmaterial, Lagerbeständen und Vereinskleider ermöglicht. Inventarartikel können mit Angaben wie Bezeichnung, Kategorie, Lagerort, Menge und Einzelwert erfasst, bearbeitet und verwaltet werden. Vereinskleider unterstützen artikelspezifische Grössen, unterschiedliche Lagerbestände sowie individuelle Einkaufs- und Verkaufspreise.
+
+Die Materialausleihe bietet die Möglichkeit, Inventarartikel Personen zuzuordnen, Ausleih- und Rückgabedaten zu erfassen sowie teilweise oder vollständige Rückgaben abzuwickeln. Die verfügbaren Bestände werden dabei automatisch angepasst. Eine zentrale Übersicht unterscheidet zwischen offenen, überfälligen und abgeschlossenen Ausleihen.
+
+Die digitale Inventur ermöglicht es, Bestandsaufnahmen zu erstellen, gezählte Mengen zu erfassen und den Abschluss mit automatischer Bestandskorrektr durchzuführen. Zusätzlich gibt es Funktionen für nachträgliche Korrekturen, Stornierungen, die Inventurhistorie, Änderungsprotokolle und den PDF-Export. 
+
+
+
 
 - **Annahmen [Optional]:** Eine gemeinsame Datenbasis reduziert Mehrfacherfassungen. Eine übersichtliche Bedienung mit klaren Formularen unterstützt auch Vereinsmitglieder mit wenig IT-Erfahrung. Grössenvarianten sind für die Verwaltung von Vereinskleidern notwendig.
 
@@ -412,9 +408,7 @@ Die User Journey zeigt den Ablauf der **Artikelerfassung aus Sicht von Laura**, 
 
 - **Bezug zur Evaluation:** Nein; als funktionale Ergänzung des Ausleihprozesses umgesetzt. Eine spätere Nutzerevaluation steht noch aus.
 
-### 4.2 Weitere Erweiterungen
-
-#### 4.2.1 Vereinsregistrierung, Anmeldung und Mandantentrennung
+#### 4.1.3 Vereinsregistrierung, Anmeldung und Mandantentrennung
 
 - **Beschreibung & Nutzen:** Mehrere Vereine können die gleiche Anwendung mit getrennten Datenbeständen nutzen. Bei der Registrierung werden ein Verein und ein Administratorkonto angelegt; nach erfolgreicher Registrierung erfolgt die automatische Anmeldung.
 
@@ -427,6 +421,50 @@ Die User Journey zeigt den Ablauf der **Artikelerfassung aus Sicht von Laura**, 
 - **Bezug zur Evaluation:** Zwei Vereine wurden im lokalen Entwicklungstest auf getrennte Anzeige und Erstellung von Daten geprüft; ein systematischer Sicherheits- und Nutzertest steht aus.
 
 Noch keine zusätzliche methodische oder organisatorische Erweiterung zur Bewertung dokumentiert. **[Bei Bedarf einen Eintrag 4.2.1 mit sämtlichen Pflichtfeldern gemäss Vorlage ergänzen]**.
+
+### 4.2 Weitere Erweiterungen
+
+#### 4.2.1 Strukturiertes Projektmanagement mit GitHub
+- **Beschreibung & Nutzen:** _[Was wurde zusätzlich erarbeitet oder verbessert und welchen Mehrwert bietet es?]_
+- **Abgrenzung zum Mindestumfang:** _[Was geht konkret über die verbindlichen Anforderungen hinaus?]_
+- **Umsetzung:** _[Wie wurde vorgegangen und was ist das Ergebnis?]_
+- **Nachweise:** _[Screenshot(s) mit Erläuterung; Links auf Artefakte, Konfigurationen oder andere Ergebnisse; bei Code zusätzlich Referenzen auf die relevanten Codestellen]_
+- **Bezug zur Evaluation:** _[Wurde die Erweiterung aus der Evaluation abgeleitet? Falls ja: auf die betreffende Beobachtung bzw. das Issue verweisen. Andernfalls: «Nein».]_
+
+#### 4.2.2 Strukturierter Ki-gestützter Entwicklungsworkflow
+- **Beschreibung & Nutzen:** _[Was wurde zusätzlich erarbeitet oder verbessert und welchen Mehrwert bietet es?]_
+- **Abgrenzung zum Mindestumfang:** _[Was geht konkret über die verbindlichen Anforderungen hinaus?]_
+- **Umsetzung:** _[Wie wurde vorgegangen und was ist das Ergebnis?]_
+- **Nachweise:** _[Screenshot(s) mit Erläuterung; Links auf Artefakte, Konfigurationen oder andere Ergebnisse; bei Code zusätzlich Referenzen auf die relevanten Codestellen]_
+- **Bezug zur Evaluation:** _[Wurde die Erweiterung aus der Evaluation abgeleitet? Falls ja: auf die betreffende Beobachtung bzw. das Issue verweisen. Andernfalls: «Nein».]_
+
+#### 4.2.3 Datenmodell
+- **Beschreibung & Nutzen:** _[Was wurde zusätzlich erarbeitet oder verbessert und welchen Mehrwert bietet es?]_
+- **Abgrenzung zum Mindestumfang:** _[Was geht konkret über die verbindlichen Anforderungen hinaus?]_
+- **Umsetzung:** _[Wie wurde vorgegangen und was ist das Ergebnis?]_
+- **Nachweise:** _[Screenshot(s) mit Erläuterung; Links auf Artefakte, Konfigurationen oder andere Ergebnisse; bei Code zusätzlich Referenzen auf die relevanten Codestellen]_
+- **Bezug zur Evaluation:** _[Wurde die Erweiterung aus der Evaluation abgeleitet? Falls ja: auf die betreffende Beobachtung bzw. das Issue verweisen. Andernfalls: «Nein».]_
+
+#### 4.2.4 Systematische Testmatrix und Testprotokolle
+- **Beschreibung & Nutzen:** _[Was wurde zusätzlich erarbeitet oder verbessert und welchen Mehrwert bietet es?]_
+- **Abgrenzung zum Mindestumfang:** _[Was geht konkret über die verbindlichen Anforderungen hinaus?]_
+- **Umsetzung:** _[Wie wurde vorgegangen und was ist das Ergebnis?]_
+- **Nachweise:** _[Screenshot(s) mit Erläuterung; Links auf Artefakte, Konfigurationen oder andere Ergebnisse; bei Code zusätzlich Referenzen auf die relevanten Codestellen]_
+- **Bezug zur Evaluation:** _[Wurde die Erweiterung aus der Evaluation abgeleitet? Falls ja: auf die betreffende Beobachtung bzw. das Issue verweisen. Andernfalls: «Nein».]_
+
+#### 4.2.5 Anforderungs- und Rückverfolgungsmatrix
+- **Beschreibung & Nutzen:** _[Was wurde zusätzlich erarbeitet oder verbessert und welchen Mehrwert bietet es?]_
+- **Abgrenzung zum Mindestumfang:** _[Was geht konkret über die verbindlichen Anforderungen hinaus?]_
+- **Umsetzung:** _[Wie wurde vorgegangen und was ist das Ergebnis?]_
+- **Nachweise:** _[Screenshot(s) mit Erläuterung; Links auf Artefakte, Konfigurationen oder andere Ergebnisse; bei Code zusätzlich Referenzen auf die relevanten Codestellen]_
+- **Bezug zur Evaluation:** _[Wurde die Erweiterung aus der Evaluation abgeleitet? Falls ja: auf die betreffende Beobachtung bzw. das Issue verweisen. Andernfalls: «Nein».]_
+
+#### 4.2.6 Rollenbasiertes Berechtigungskonzept
+- **Beschreibung & Nutzen:** _[Was wurde zusätzlich erarbeitet oder verbessert und welchen Mehrwert bietet es?]_
+- **Abgrenzung zum Mindestumfang:** _[Was geht konkret über die verbindlichen Anforderungen hinaus?]_
+- **Umsetzung:** _[Wie wurde vorgegangen und was ist das Ergebnis?]_
+- **Nachweise:** _[Screenshot(s) mit Erläuterung; Links auf Artefakte, Konfigurationen oder andere Ergebnisse; bei Code zusätzlich Referenzen auf die relevanten Codestellen]_
+- **Bezug zur Evaluation:** _[Wurde die Erweiterung aus der Evaluation abgeleitet? Falls ja: auf die betreffende Beobachtung bzw. das Issue verweisen. Andernfalls: «Nein».]_
 
 ## 5. Projektorganisation [Optional]
 

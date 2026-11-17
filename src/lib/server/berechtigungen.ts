@@ -11,6 +11,8 @@ export type Berechtigung =
   | 'inventur:lesen'
   | 'inventur:erstellen'
   | 'inventur:zaehlen'
+  | 'rabatte:verwalten'
+  | 'verkauf:verwalten'
   | 'inventur:abschliessen';
 
 const rollenBerechtigungen: Record<
@@ -27,7 +29,9 @@ const rollenBerechtigungen: Record<
     'inventur:lesen',
     'inventur:erstellen',
     'inventur:zaehlen',
-    'inventur:abschliessen'
+    'inventur:abschliessen',
+    'rabatte:verwalten',
+    'verkauf:verwalten',
   ],
 
   materialverantwortlich: [
@@ -39,7 +43,9 @@ const rollenBerechtigungen: Record<
     'inventur:lesen',
     'inventur:erstellen',
     'inventur:zaehlen',
-    'inventur:abschliessen'
+    'inventur:abschliessen',
+    'rabatte:verwalten',
+    'verkauf:verwalten',
   ],
 
   leiter: [

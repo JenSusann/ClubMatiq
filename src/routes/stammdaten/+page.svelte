@@ -1,4 +1,3 @@
-
 <script lang="ts">
   const stammdaten = [
     {
@@ -18,6 +17,18 @@
       beschreibung: 'Grössen für Vereinskleider verwalten.',
       symbol: '👕',
       link: '/stammdaten/groessen'
+    },
+    {
+      titel: 'Rabatte',
+      beschreibung: 'Rabattregeln für Verkäufe erstellen und verwalten.',
+      symbol: '🏷️',
+      link: '/stammdaten/rabatte'
+    },
+    {
+      titel: 'Mitglieder',
+      beschreibung: 'Mitglieder suchen und ClubDesk-CSV-Dateien importieren.',
+      symbol: '👥',
+      link: '/stammdaten/mitglieder'
     }
   ];
 </script>
@@ -29,20 +40,15 @@
 <main>
   <div class="kopf">
     <h1>Stammdatenverwaltung</h1>
-    <p>
-      Verwalte die grundlegenden Daten für dein Vereinsinventar.
-    </p>
+    <p>Verwalte die grundlegenden Daten für dein Vereinsinventar.</p>
   </div>
 
   <div class="karten">
     {#each stammdaten as eintrag}
       <a href={eintrag.link} class="karte">
         <span class="symbol">{eintrag.symbol}</span>
-
         <h2>{eintrag.titel}</h2>
-
         <p>{eintrag.beschreibung}</p>
-
         <span class="weiter">Verwalten →</span>
       </a>
     {/each}
