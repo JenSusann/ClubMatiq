@@ -346,3 +346,64 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     await session.endSession();
   }
 };
+
+
+// Verkaufshistorie: bestehende Verkäufe lesen, ohne die Verkaufslogik zu verändern.
+export const GET: RequestHandler = async ({ locals, url }) => {
+  const berechtigungsfehler = pruefeBerechtigung(locals.benutzer, 'verkauf:verwalten');
+  if (berechtigungsfehler) return berechtigungsfehler;
+
+  const vereinId = locals.benutzer!.vereinId;
+  const seiteText = url.searchParams.get('seite') ?? '1';
+  if (!/^[1-9]\d*$/.test(seiteText)) {
+    return json({ fehler: 'Ungültige Seitennummer.' }, { status: 400 });
+  }
+  const seite = Number(seiteText);
+  if (!Number.isSafeInteger(seite) || seite > 10000) {
+    return json({ fehler: 'Ungültige Seitennummer.' }, { status: 400 });
+  }
+  const limit = 100;
+
+  try {
+    const filter = { vereinId };
+    const collection = db.collection('vereinskleider_verkaeufe');
+    const [gesamt, verkaeufe] = await Promise.all([
+      collection.countDocuments(filter),
+      collection.find(filter)
+        .sort({ erstelltAm: -1, _id: -1 })
+        .skip((seite - 1) * limit)
+        .limit(limit)
+        .toArray()
+    ]);
+
+    const ids = verkaeufe.map((v) => v._id);
+    const rechnungen = ids.length
+      ? await db.collection('vereinskleider_rechnungen')
+          .find({ vereinId, verkaufId: { $in: ids.map((id) => id.toString()) } })
+          .project({ verkaufId: 1, rechnungsnummer: 1, status: 1, gesamtbetrag: 1,
+            bezahltBetrag: 1, gutgeschriebenBetrag: 1, rueckerstattungOffen: 1 })
+          .toArray()
+      : [];
+    const rechnungenNachVerkauf = new Map(rechnungen.map((r) => [String(r.verkaufId), {
+      _id: r._id.toString(), rechnungsnummer: r.rechnungsnummer, status: r.status,
+      gesamtbetrag: r.gesamtbetrag, bezahltBetrag: r.bezahltBetrag,
+      gutgeschriebenBetrag: r.gutgeschriebenBetrag,
+      rueckerstattungOffen: r.rueckerstattungOffen
+    }]));
+
+    return json({
+      verkaeufe: verkaeufe.map((v) => ({
+        ...v,
+        _id: v._id.toString(),
+        rechnung: rechnungenNachVerkauf.get(v._id.toString()) ?? null
+      })),
+      seite,
+      proSeite: limit,
+      gesamt,
+      seiten: Math.ceil(gesamt / limit)
+    });
+  } catch (error) {
+    console.error('Fehler beim Laden der Verkaufshistorie:', error);
+    return json({ fehler: 'Verkaufshistorie konnte nicht geladen werden.' }, { status: 500 });
+  }
+};
