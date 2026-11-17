@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
 
-  type Status = 'offen' | 'teilweise' | 'abgeschlossen';
+  type Status = 'offen' | 'teilweise' | 'abgeschlossen' | 'storniert';
   type Filter = 'alle' | Status;
   type Bestellung = {
     vorgangId: string;
@@ -15,6 +15,8 @@
     artikelname: string;
     groesseId: string | null;
     bestellt: number;
+    urspruenglichBestellt?: number;
+    storniertMenge?: number;
     uebergeben: number;
     reserviert?: number;
     offen: number;
@@ -41,6 +43,11 @@
   let uebergabeLaeuft = $state(false);
   let uebergabeFehler = $state('');
   let erfolgsmeldung = $state('');
+  let stornierungAuswahl = $state<Bestellung | null>(null);
+  let stornierungMenge = $state(1);
+  let stornierungGrund = $state('');
+  let stornierungFehler = $state('');
+  let stornierungLaeuft = $state(false);
   type UebergabeEintrag = {
     id: string; vorgangId: string; positionsIndex: number; kaeufer: string;
     riegen: string[]; artikelId: string; artikelname: string;
@@ -204,6 +211,59 @@
     }
   }
 
+  function stornierungOeffnen(b: Bestellung): void {
+    stornierungAuswahl = b;
+    stornierungMenge = b.offen;
+    stornierungGrund = '';
+    stornierungFehler = '';
+    erfolgsmeldung = '';
+  }
+
+  function stornierungSchliessen(): void {
+    if (stornierungLaeuft) return;
+    stornierungAuswahl = null;
+    stornierungFehler = '';
+  }
+
+  async function stornierungSpeichern(): Promise<void> {
+    const b = stornierungAuswahl;
+    if (!b || stornierungLaeuft) return;
+    if (!Number.isSafeInteger(stornierungMenge) || stornierungMenge < 1 || stornierungMenge > b.offen) {
+      stornierungFehler = `Bitte eine Menge zwischen 1 und ${b.offen} eingeben.`;
+      return;
+    }
+    if (!stornierungGrund.trim() || stornierungGrund.length > 1000) {
+      stornierungFehler = 'Bitte einen Stornierungsgrund mit maximal 1000 Zeichen eingeben.';
+      return;
+    }
+    stornierungLaeuft = true;
+    stornierungFehler = '';
+    try {
+      const antwort = await fetch('/api/vereinskleider/stornierungen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          verkaufId: b.vorgangId,
+          positionsIndex: b.positionsIndex,
+          menge: stornierungMenge,
+          grund: stornierungGrund.trim()
+        })
+      });
+      const daten = await antwort.json().catch(() => ({})) as { fehler?: string; erfolg?: boolean };
+      if (!antwort.ok || daten.erfolg !== true) {
+        throw new Error(daten.fehler ?? 'Stornierung konnte nicht gespeichert werden.');
+      }
+      const menge = stornierungMenge;
+      stornierungAuswahl = null;
+      await datenLaden();
+      erfolgsmeldung = `${menge} Stück «${b.artikelname}» für ${b.kaeufer} wurden storniert.`;
+    } catch (e) {
+      stornierungFehler = e instanceof Error ? e.message : 'Unbekannter Fehler.';
+    } finally {
+      stornierungLaeuft = false;
+    }
+  }
+
   onMount(() => { void datenLaden(); });
 </script>
 
@@ -216,7 +276,7 @@
   <header>
     <div>
       <h1>Bestellungen</h1>
-      <p>Offene und abgeschlossene Vereinskleiderbestellungen im Überblick.</p>
+      <p>Offene, abgeschlossene und stornierte Vereinskleiderbestellungen im Überblick.</p>
     </div>
     <button class="aktualisieren" type="button" onclick={() => void datenLaden()} disabled={aktualisieren}>
       {aktualisieren ? 'Wird aktualisiert ...' : '↻ Aktualisieren'}
@@ -245,6 +305,7 @@
         <option value="offen">Offen (inkl. teilweise übergeben)</option>
         <option value="teilweise">Teilweise übergeben</option>
         <option value="abgeschlossen">Abgeschlossen</option>
+        <option value="storniert">Storniert</option>
         <option value="alle">Alle Bestellungen</option>
       </select>
     </div>
@@ -273,13 +334,14 @@
               <th>Mitglied / Riege</th>
               <th>Artikel / Grösse</th>
               <th class="zahl">Bestellt</th>
+              <th class="zahl">Storniert</th>
               <th class="zahl">Übergeben</th>
               <th class="zahl">Reserviert</th>
               <th class="zahl">Noch fehlend</th>
               <th class="zahl">Offen</th>
               <th>Bestand / verfügbar</th>
               <th>Status</th>
-              <th>Übergabe</th>
+              <th>Aktionen</th>
             </tr>
           </thead>
           <tbody>
@@ -288,7 +350,8 @@
                 <td><strong>{formatDatum(b.erstelltAm)}</strong><small title={b.vorgangId}>#{b.vorgangId.slice(-8)}</small></td>
                 <td><strong>{b.kaeufer}</strong><small>{b.riegen.join(', ') || '–'}</small></td>
                 <td><strong>{b.artikelname}</strong><small>{groesseName(b.groesseId)} · {formatCHF(b.einzelpreis)} / Stk.</small></td>
-                <td class="zahl">{b.bestellt}</td>
+                <td class="zahl">{b.bestellt}<small>Ursprünglich: {b.urspruenglichBestellt ?? b.bestellt}</small></td>
+                <td class="zahl">{b.storniertMenge ?? 0}</td>
                 <td class="zahl">{b.uebergeben}</td>
                 <td class="zahl"><strong>{b.reserviert ?? '–'}</strong></td>
                 <td class="zahl">{b.reserviert === undefined ? '–' : nochFehlend(b)}</td>
@@ -310,18 +373,24 @@
                   {/if}
                 </td>
                 <td>
-                  <span class:status-offen={b.status === 'offen'} class:status-teilweise={b.status === 'teilweise'} class:status-abgeschlossen={b.status === 'abgeschlossen'} class="status">
-                    {b.status === 'offen' ? 'Offen' : b.status === 'teilweise' ? 'Teilweise übergeben' : 'Abgeschlossen'}
+                  <span class:status-offen={b.status === 'offen'} class:status-teilweise={b.status === 'teilweise'} class:status-abgeschlossen={b.status === 'abgeschlossen'} class:status-storniert={b.status === 'storniert'} class="status">
+                    {b.status === 'offen' ? 'Offen' : b.status === 'teilweise' ? 'Teilweise übergeben' : b.status === 'storniert' ? 'Storniert' : 'Abgeschlossen'}
                   </span>
                 </td>
                 <td>
                   {#if b.offen > 0}
-                    <button class="uebergabe-knopf" type="button" onclick={() => uebergabeOeffnen(b)}
-                      disabled={aktualisieren || uebergabeLaeuft || (verfuegbarFuer(b) ?? 0) < 1}>
-                      Übergeben
-                    </button>
+                    <div class="aktionsgruppe">
+                      <button class="uebergabe-knopf" type="button" onclick={() => uebergabeOeffnen(b)}
+                        disabled={aktualisieren || uebergabeLaeuft || stornierungLaeuft || (verfuegbarFuer(b) ?? 0) < 1}>
+                        Übergeben
+                      </button>
+                      <button class="stornierung-knopf" type="button" onclick={() => stornierungOeffnen(b)}
+                        disabled={aktualisieren || uebergabeLaeuft || stornierungLaeuft}>
+                        Stornieren
+                      </button>
+                    </div>
                   {:else}
-                    <span class="dezent">Erledigt</span>
+                    <span class="dezent">{b.status === 'storniert' ? 'Storniert' : 'Erledigt'}</span>
                   {/if}
                 </td>
               </tr>
@@ -349,6 +418,31 @@
           <button type="button" class="aktualisieren" onclick={() => void uebergabeSpeichern()}
             disabled={uebergabeLaeuft || !Number.isSafeInteger(uebergabeMenge) || uebergabeMenge < 1 || uebergabeMenge > Math.min(ausgewaehlt.offen, verfuegbarFuer(ausgewaehlt) ?? 0)}>
             {uebergabeLaeuft ? 'Wird gespeichert ...' : 'Übergabe bestätigen'}
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  {#if stornierungAuswahl}
+    <div class="dialog-hintergrund" role="presentation">
+      <div class="dialog karte" role="dialog" aria-modal="true" aria-labelledby="stornierung-titel">
+        <h2 id="stornierung-titel">Bestellartikel stornieren</h2>
+        <p><strong>{stornierungAuswahl.kaeufer}</strong> · {stornierungAuswahl.artikelname} · {groesseName(stornierungAuswahl.groesseId)}</p>
+        <p>Bestellt: <strong>{stornierungAuswahl.bestellt}</strong> · Bereits übergeben: <strong>{stornierungAuswahl.uebergeben}</strong> · Noch stornierbar: <strong>{stornierungAuswahl.offen}</strong></p>
+        <label for="stornierung-menge">Zu stornierende Stückzahl</label>
+        <input id="stornierung-menge" type="number" min="1" max={stornierungAuswahl.offen}
+          step="1" bind:value={stornierungMenge} disabled={stornierungLaeuft} />
+        <label for="stornierung-grund" class="grund-label">Stornierungsgrund (Pflichtfeld)</label>
+        <textarea id="stornierung-grund" rows="3" maxlength="1000" bind:value={stornierungGrund}
+          disabled={stornierungLaeuft} placeholder="z. B. falsche Grösse bestellt"></textarea>
+        <p class="dezent">Nur noch nicht übergebene Mengen können storniert werden. Reservierungen werden freigegeben. Verkäufe mit Rechnung, Quittung, Zahlung oder Rabatt werden bis zur Umsetzung der Belegkorrektur von der API abgelehnt.</p>
+        {#if stornierungFehler}<p class="warnung" role="alert">{stornierungFehler}</p>{/if}
+        <div class="dialog-aktionen">
+          <button type="button" class="abbrechen" onclick={stornierungSchliessen} disabled={stornierungLaeuft}>Abbrechen</button>
+          <button type="button" class="stornierung-knopf" onclick={() => void stornierungSpeichern()}
+            disabled={stornierungLaeuft || !Number.isSafeInteger(stornierungMenge) || stornierungMenge < 1 || stornierungMenge > stornierungAuswahl.offen || !stornierungGrund.trim()}>
+            {stornierungLaeuft ? 'Wird storniert ...' : 'Stornierung bestätigen'}
           </button>
         </div>
       </div>
@@ -393,6 +487,7 @@
   <section class="karte info">
     <h2>Hinweise zur Bestellübersicht</h2>
     <p>Die verfügbaren Mengen sind eine Momentaufnahme des Lagerbestands abzüglich eines Stücks Anprobierreserve pro Grösse. Wenn mehrere Bestellungen denselben Artikel betreffen, ist der angezeigte Bestand nicht für jede Bestellung separat reserviert.</p>
+    <p>Über «Stornieren» können noch nicht übergebene Mengen einzeln oder vollständig storniert werden. Bereits übergebene Artikel benötigen einen separaten Rückgabeprozess.</p>
     <p>Über den Knopf «Übergeben» kannst du eine vollständige oder teilweise Übergabe erfassen. Die API prüft den Lagerbestand beim Speichern nochmals. Bereits gespeicherte Übergaben sind in den offenen Stückzahlen berücksichtigt.</p>
     {#if letzteAktualisierung}<small>Zuletzt aktualisiert: {new Intl.DateTimeFormat('de-CH', { dateStyle: 'short', timeStyle: 'short' }).format(letzteAktualisierung)}</small>{/if}
   </section>
@@ -408,7 +503,7 @@
   .karte { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 22px; margin-bottom: 20px; }
   .filterbereich { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
   label { display: block; color: #334155; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
-  input, select { box-sizing: border-box; width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; background: white; }
+  input, select, textarea { box-sizing: border-box; width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; background: white; }
   .aktualisieren { background: #2563eb; color: white; border: 0; border-radius: 8px; padding: 11px 16px; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
   button:disabled { opacity: .6; cursor: not-allowed; }
   .kennzahlen { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
@@ -427,6 +522,7 @@
   .status { display: inline-block; border-radius: 100px; padding: 5px 9px; font-size: 12px; white-space: nowrap; font-weight: 600; }
   .status-offen { color: #92400e; background: #fef3c7; }
   .status-teilweise { color: #1d4ed8; background: #dbeafe; }
+  .status-storniert { color: #475569; background: #e2e8f0; }
   .status-abgeschlossen { color: #166534; background: #dcfce7; }
   td small.lager-gut { color: #166534; }
   td small.lager-teil { color: #92400e; }
@@ -435,6 +531,10 @@
   .leer { text-align: center; color: #64748b; padding: 50px 20px; }
   .info h2 { font-size: 17px; margin-top: 0; }
   .info p, .info small { color: #64748b; font-size: 13px; line-height: 1.6; }
+  .aktionsgruppe { display: flex; flex-wrap: wrap; gap: 8px; }
+  .stornierung-knopf { border: 0; border-radius: 8px; padding: 9px 12px; background: #b91c1c; color: white; font: inherit; font-weight: 600; cursor: pointer; }
+  .grund-label { margin-top: 14px; }
+  textarea { resize: vertical; }
   .uebergabe-knopf { border: 0; border-radius: 8px; padding: 9px 12px; background: #0f766e; color: white; font-weight: 600; cursor: pointer; white-space: nowrap; }
   .uebergabe-knopf:disabled { opacity: .45; cursor: not-allowed; }
   .erfolg { background: #ecfdf5; color: #166534; padding: 12px; border-radius: 8px; }

@@ -58,6 +58,12 @@ function pruefeEingabe(daten: unknown) {
   if (!['rechnung', 'twint', 'bar'].includes(d.zahlungsart as string)) {
     throw new Verkaufsfehler('Ungültige Zahlungsart.');
   }
+  if (d.zahlungErhalten !== undefined && typeof d.zahlungErhalten !== 'boolean') {
+    throw new Verkaufsfehler('Ungültige Zahlungsbestätigung.');
+  }
+  if (d.zahlungsart === 'rechnung' && d.zahlungErhalten === true) {
+    throw new Verkaufsfehler('Bei Zahlungsart Rechnung kann die Zahlung nicht beim Verkauf bestätigt werden.');
+  }
   if (d.bemerkung !== undefined && (typeof d.bemerkung !== 'string' || d.bemerkung.length > 2000)) {
     throw new Verkaufsfehler('Ungültige Bemerkung.');
   }
@@ -89,6 +95,7 @@ function pruefeEingabe(daten: unknown) {
     verkaufsart: d.verkaufsart as 'direkt' | 'bestellung' | 'automatisch',
     kaeufer: (d.kaeufer as string).trim(),
     zahlungsart: d.zahlungsart as string,
+    zahlungErhalten: d.zahlungErhalten === true,
     bemerkung: (d.bemerkung as string | undefined)?.trim() ?? '',
     riegen: [...new Set(d.riegen as string[])],
     positionen,
@@ -300,6 +307,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
          ? 'gemischt' : bestellMenge > 0 ? 'bestellung' : 'direkt';
 
       const jetzt = new Date();
+      const endbetrag = (zwischentotalRappen - regelRabattRappen - zusatzRappen) / 100;
+      const bezahlt = eingabe.zahlungErhalten && eingabe.zahlungsart !== 'rechnung';
+      const zahlungen: { betrag: number; datum: Date; zahlungsart: string }[] = bezahlt && endbetrag > 0
+        ? [{ betrag: endbetrag, datum: jetzt, zahlungsart: eingabe.zahlungsart }]
+        : [];
       const dokument = {
         vereinId,
         verkaufsart: effektiveVerkaufsart,
@@ -309,14 +321,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         kaeufer: eingabe.kaeufer,
         riegen: eingabe.riegen,
         zahlungsart: eingabe.zahlungsart,
-        zahlungsstatus: 'offen', // Zahlungsart bedeutet noch nicht, dass bezahlt wurde.
+        zahlungsstatus: bezahlt || endbetrag === 0 ? 'bezahlt' : 'offen',
+        bezahltBetrag: bezahlt ? endbetrag : 0,
+        zahlungen,
         bemerkung: eingabe.bemerkung,
         positionen: aufgeteiltePositionen.map(({ kategorieId, positionsbetrag, ...p }) => ({ ...p, positionsbetrag: positionsbetrag / 100 })),
         rabatte: angewendeteRabatte,
         zusaetzlicherRabatt: eingabe.zusaetzlicherRabatt,
         zwischentotal: zwischentotalRappen / 100,
         rabattTotal: (regelRabattRappen + zusatzRappen) / 100,
-        endbetrag: (zwischentotalRappen - regelRabattRappen - zusatzRappen) / 100,
+        endbetrag,
         erstelltAm: jetzt,
         aktualisiertAm: jetzt
       };

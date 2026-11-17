@@ -112,6 +112,7 @@
   }
   let verkaufsart = $state<Verkaufsart>('automatisch');
   let zahlungsart = $state('rechnung');
+  let zahlungErhalten = $state(false);
   let bemerkung = $state('');
   const riegenOptionen = ['Allround', 'GETU Meitli', 'GETU Buebe', 'Jugend Aerobic', 'KITU', 'Aktive'];
   let riegen = $state<string[]>([]);
@@ -371,6 +372,7 @@
           kaeufer: kaeufer.trim(),
           verkaufsart,
           zahlungsart,
+          zahlungErhalten: zahlungsart !== 'rechnung' && zahlungErhalten,
           bemerkung,
           riegen,
           positionen,
@@ -396,6 +398,7 @@
       mitgliederListeOffen = false;
       riegen = [];
       bemerkung = '';
+      zahlungErhalten = false;
       zusaetzlicherRabatt = '0';
       rabattId = '';
       positionsFehler = '';
@@ -491,13 +494,22 @@
               </select>
             </div>
             <div>
-              <label for="zahlung">Zahlungsart (geplant)</label>
+              <label for="zahlung">Zahlungsart</label>
               <select id="zahlung" bind:value={zahlungsart}>
                 <option value="rechnung">Rechnung / ClubDesk</option>
                 <option value="twint">TWINT</option>
                 <option value="bar">Barzahlung</option>
               </select>
             </div>
+            {#if zahlungsart === 'twint' || zahlungsart === 'bar'}
+              <div class="volle-breite">
+                <label class="checkzeile zahlung-bestaetigung">
+                  <input type="checkbox" bind:checked={zahlungErhalten} />
+                  Zahlung erhalten ({zahlungsart === 'twint' ? 'TWINT' : 'Bar'})
+                </label>
+                <p class="hinweis">Nur bestätigen, wenn der vollständige Betrag tatsächlich eingegangen ist. Andernfalls bleibt die Zahlung offen.</p>
+              </div>
+            {/if}
             <div class="volle-breite">
               <span class="feldtitel">Riege(n)</span>
               <div class="riegenliste">
@@ -645,7 +657,7 @@
           disabled={speichernLaeuft || !bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0}>
           {speichernLaeuft ? 'Wird gespeichert ...' : 'Gesamten Vorgang speichern'}
         </button>
-        <p class="hinweis">Die API speichert den Vorgang. Nur direkt übergebene Stücke reduzieren den Lagerbestand. Bestellte Stücke bleiben offen. Rechnungen werden noch nicht erstellt.</p>
+        <p class="hinweis">Die API speichert den Vorgang. Nur direkt übergebene Stücke reduzieren den Lagerbestand. Bestellte Stücke bleiben offen. Die Zahlungsbestätigung wird nach Anpassung der Verkaufs-API dauerhaft gespeichert.</p>
       </aside>
     </div>
   {/if}
@@ -677,6 +689,7 @@
   .riegenliste { display: flex; flex-wrap: wrap; gap: 8px 16px; }
   .checkzeile { display: flex; align-items: center; gap: 8px; font-weight: 500; margin: 8px 0; }
   .checkzeile input { width: auto; flex: 0 0 auto; }
+  .zahlung-bestaetigung { margin-bottom: 4px; }
   .rabattbereich { border-top: 1px solid #e2e8f0; padding: 12px 0; }
   .rabattbereich h3 { font-size: 15px; color: #172b4d; }
   .felder { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }

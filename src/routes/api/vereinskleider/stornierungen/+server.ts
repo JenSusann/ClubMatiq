@@ -1,0 +1,249 @@
+import { json } from '@sveltejs/kit';
+import { ObjectId, type Document } from 'mongodb';
+import { client, db } from '../../../../lib/server/mongodb';
+import { pruefeBerechtigung } from '../../../../lib/server/berechtigungen';
+import type { RequestHandler } from './$types';
+
+type Position = {
+  artikelId: string;
+  groesseId: string | null;
+  artikelname?: string;
+  verkaufsart: 'direkt' | 'bestellung';
+  menge: number;
+  einzelpreis: number;
+  positionsbetrag: number;
+  uebergebenMenge?: number;
+  reserviertMenge?: number;
+  storniertMenge?: number;
+};
+type Verkauf = Document & {
+  vereinId: string;
+  positionen: Position[];
+  status: string;
+  endbetrag: number;
+  zwischentotal: number;
+  rabattTotal: number;
+  direktMenge?: number;
+  bestellMenge?: number;
+  bezahltBetrag?: number;
+  zahlungen?: { betrag: number }[];
+  rechnungId?: string;
+  aktualisiertAm?: Date;
+  rabatte?: { betrag: number }[];
+  zusaetzlicherRabatt?: number;
+  stornierungen?: { positionsIndex: number; menge: number; grund: string; storniertAm: Date }[];
+};
+type Rechnung = Document & {
+  vereinId: string;
+  verkaufId: string;
+  rechnungsnummer: string;
+  gesamtbetrag: number;
+  bezahltBetrag: number;
+  gutgeschriebenBetrag?: number;
+  status: 'offen' | 'teilweise_bezahlt' | 'bezahlt' | 'storniert';
+  positionen: Position[];
+  aktualisiertAm?: Date;
+};
+class Stornierungsfehler extends Error {
+  constructor(message: string, readonly statusCode = 400) { super(message); }
+}
+const idGueltig = (wert: unknown): wert is string => typeof wert === 'string' && /^[0-9a-f]{24}$/i.test(wert);
+const rappen = (wert: number) => Math.round(wert * 100);
+const gueltigeRappen = (wert: unknown): wert is number =>
+  typeof wert === 'number' && Number.isFinite(wert) && wert >= 0 &&
+  Number.isSafeInteger(Math.round(wert * 100)) &&
+  Math.abs(wert * 100 - Math.round(wert * 100)) < 0.000001;
+
+// Storniert ausschliesslich nicht übergebene Bestellmengen ohne Rabatte.
+// Bei bereits ausgestellten Belegen wird eine separate Gutschrift erzeugt.
+// Bereits bezahlte Beträge bleiben erhalten; Rückerstattungen werden vorgemerkt.
+// Ein PDF für die Gutschrift und die Auszahlung sind separate Folgeschritte.
+export const POST: RequestHandler = async ({ request, locals }) => {
+  const zugriff = pruefeBerechtigung(locals.benutzer, 'verkauf:verwalten');
+  if (zugriff) return zugriff;
+  const roh: unknown = await request.json().catch(() => null);
+  if (!roh || typeof roh !== 'object' || Array.isArray(roh)) {
+    return json({ fehler: 'Ungültige Stornierungsdaten.' }, { status: 400 });
+  }
+  const eingabe = roh as Record<string, unknown>;
+  if (!idGueltig(eingabe.verkaufId) || !Number.isSafeInteger(eingabe.positionsIndex) ||
+      (eingabe.positionsIndex as number) < 0 || !Number.isSafeInteger(eingabe.menge) ||
+      (eingabe.menge as number) < 1 || (eingabe.menge as number) > 10000 ||
+      typeof eingabe.grund !== 'string' || !eingabe.grund.trim() || eingabe.grund.length > 1000) {
+    return json({ fehler: 'Verkauf, Position, Menge oder Stornierungsgrund ungültig.' }, { status: 400 });
+  }
+  const verkaufId = new ObjectId(eingabe.verkaufId);
+  const index = eingabe.positionsIndex as number;
+  const menge = eingabe.menge as number;
+  const grund = eingabe.grund.trim();
+  const vereinId = locals.benutzer!.vereinId;
+  const session = client.startSession();
+  try {
+    const ergebnis = await session.withTransaction(async () => {
+      const sammlung = db.collection<Verkauf>('vereinskleider_verkaeufe');
+      const verkauf = await sammlung.findOne({ _id: verkaufId, vereinId }, { session });
+      if (!verkauf) throw new Stornierungsfehler('Verkauf nicht gefunden.', 404);
+      if (verkauf.status === 'storniert') throw new Stornierungsfehler('Der Verkauf ist bereits storniert.', 409);
+      // Ohne Beleg bleibt der bisherige Schutz für bereits bezahlte Verkäufe bestehen.
+      if (!verkauf.rechnungId && ((verkauf.bezahltBetrag ?? 0) > 0 ||
+          (verkauf.zahlungen ?? []).some((z) => z.betrag > 0))) {
+        throw new Stornierungsfehler('Für bezahlte Verkäufe ohne Beleg ist zuerst eine Belegkorrektur erforderlich.', 409);
+      }
+      if ((verkauf.rabatte ?? []).some((r) => r.betrag > 0) || (verkauf.zusaetzlicherRabatt ?? 0) > 0 || verkauf.rabattTotal !== 0) {
+        throw new Stornierungsfehler('Für Verkäufe mit Rabatten muss zuerst die anteilige Rabattkorrektur umgesetzt werden.', 409);
+      }
+      if (!Array.isArray(verkauf.positionen)) throw new Stornierungsfehler('Verkaufspositionen fehlen.', 409);
+      const position = verkauf.positionen[index];
+      if (!position || position.verkaufsart !== 'bestellung') {
+        throw new Stornierungsfehler('Aktuell können nur noch nicht übergebene Bestellartikel storniert werden.', 409);
+      }
+      const uebergeben = position.uebergebenMenge ?? 0;
+      const reserviert = position.reserviertMenge ?? 0;
+      if (!Number.isSafeInteger(position.menge) || position.menge < 1 ||
+          !Number.isSafeInteger(uebergeben) || uebergeben < 0 || uebergeben > position.menge ||
+          !Number.isSafeInteger(reserviert) || reserviert < 0 || reserviert > position.menge - uebergeben ||
+          !Number.isFinite(position.einzelpreis) || !Number.isFinite(position.positionsbetrag)) {
+        throw new Stornierungsfehler('Bestellmengen oder Preise sind inkonsistent.', 409);
+      }
+      const offen = position.menge - uebergeben;
+      if (menge > offen) throw new Stornierungsfehler(`Nur ${offen} nicht übergebene Stück können storniert werden.`, 409);
+      // Die reservierte Menge wird zuerst freigegeben. Der physische Bestand
+      // bleibt unverändert, da die Ware noch nicht übergeben wurde.
+      const freigegebeneReserve = Math.min(menge, reserviert);
+      const neuerPositionsbetrag = rappen(position.einzelpreis) * (position.menge - menge);
+      const alterPositionsbetrag = rappen(position.positionsbetrag);
+      const differenz = alterPositionsbetrag - neuerPositionsbetrag;
+      if (differenz < 0 || !Number.isSafeInteger(differenz) ||
+          rappen(verkauf.endbetrag) < differenz || rappen(verkauf.zwischentotal) < differenz) {
+        throw new Stornierungsfehler('Der Verkaufsbetrag ist inkonsistent.', 409);
+      }
+      const rechnungen = db.collection<Rechnung>('vereinskleider_rechnungen');
+      let rechnung: Rechnung | null = null;
+      let gutgeschriebenVorher = 0;
+      let bezahlt = 0;
+      let gesamt = 0;
+      if (verkauf.rechnungId) {
+        if (!idGueltig(verkauf.rechnungId)) throw new Stornierungsfehler('Ungültige Belegreferenz.', 409);
+        rechnung = await rechnungen.findOne({
+          _id: new ObjectId(verkauf.rechnungId), vereinId, verkaufId: verkaufId.toString()
+        }, { session });
+        if (!rechnung || rechnung.status === 'storniert') {
+          throw new Stornierungsfehler('Rechnung fehlt oder ist bereits storniert.', 409);
+        }
+        if (!gueltigeRappen(rechnung.gesamtbetrag) || !gueltigeRappen(rechnung.bezahltBetrag) ||
+            !gueltigeRappen(rechnung.gutgeschriebenBetrag ?? 0)) {
+          throw new Stornierungsfehler('Die Rechnungsbeträge sind ungültig.', 409);
+        }
+        gesamt = rappen(rechnung.gesamtbetrag);
+        bezahlt = rappen(rechnung.bezahltBetrag);
+        gutgeschriebenVorher = rappen(rechnung.gutgeschriebenBetrag ?? 0);
+        if (bezahlt > gesamt || gutgeschriebenVorher > gesamt ||
+            differenz > gesamt - gutgeschriebenVorher) {
+          throw new Stornierungsfehler('Gutschrift übersteigt den verbleibenden Rechnungsbetrag.', 409);
+        }
+        const belegPosition = rechnung.positionen?.[index];
+        if (!belegPosition || belegPosition.artikelId !== position.artikelId ||
+            belegPosition.groesseId !== position.groesseId ||
+            belegPosition.verkaufsart !== position.verkaufsart ||
+            rappen(belegPosition.einzelpreis) !== rappen(position.einzelpreis)) {
+          throw new Stornierungsfehler('Rechnungsposition und Bestellposition stimmen nicht überein.', 409);
+        }
+      }
+      const jetzt = new Date();
+      let gutschriftId: string | null = null;
+      let rueckerstattungOffen = 0;
+      if (rechnung) {
+        const gutgeschriebenNeu = gutgeschriebenVorher + differenz;
+        const netto = gesamt - gutgeschriebenNeu;
+        rueckerstattungOffen = Math.max(0, bezahlt - netto) / 100;
+        const neuerRechnungsstatus: Rechnung['status'] = netto === 0
+          ? 'storniert' : bezahlt >= netto ? 'bezahlt' : bezahlt > 0 ? 'teilweise_bezahlt' : 'offen';
+        const aktualisierteRechnung = await rechnungen.updateOne(
+          { _id: rechnung._id, vereinId, status: rechnung.status,
+            gutgeschriebenBetrag: rechnung.gutgeschriebenBetrag === undefined
+              ? { $exists: false } : rechnung.gutgeschriebenBetrag,
+            bezahltBetrag: rechnung.bezahltBetrag },
+          { $set: { gutgeschriebenBetrag: gutgeschriebenNeu / 100,
+            rueckerstattungOffen, status: neuerRechnungsstatus, aktualisiertAm: jetzt } },
+          { session }
+        );
+        if (aktualisierteRechnung.modifiedCount !== 1) {
+          throw new Stornierungsfehler('Die Rechnung wurde zwischenzeitlich geändert. Bitte neu laden.', 409);
+        }
+        const gutschrift = new ObjectId();
+        gutschriftId = gutschrift.toString();
+        await db.collection('vereinskleider_gutschriften').insertOne({
+          _id: gutschrift, vereinId, verkaufId: verkaufId.toString(),
+          rechnungId: rechnung._id.toString(), rechnungsnummer: rechnung.rechnungsnummer,
+          gutschriftnummer: `GS-${gutschrift.toString().slice(-12).toUpperCase()}`,
+          positionsIndex: index, artikelId: position.artikelId,
+          groesseId: position.groesseId, artikelname: position.artikelname ?? '',
+          menge, einzelpreis: position.einzelpreis, betrag: differenz / 100,
+          grund, erstelltAm: jetzt, status: 'erstellt',
+          pdfStatus: 'ausstehend', clubdeskExportStatus: 'nicht_exportiert'
+        }, { session });
+      }
+      const neuePositionen = verkauf.positionen.map((p, i) => i === index ? {
+        ...p,
+        menge: p.menge - menge,
+        positionsbetrag: neuerPositionsbetrag / 100,
+        reserviertMenge: reserviert - freigegebeneReserve,
+        storniertMenge: (p.storniertMenge ?? 0) + menge
+      } : p);
+      const aktivePositionen = neuePositionen.filter((p) => p.menge > 0);
+      const nochOffen = aktivePositionen.some((p) => p.verkaufsart === 'bestellung' &&
+        p.menge > (p.uebergebenMenge ?? 0));
+      const allesStorniert = aktivePositionen.length === 0;
+      const aktualisiert = await sammlung.updateOne(
+        { _id: verkaufId, vereinId, aktualisiertAm: verkauf.aktualisiertAm },
+        { $set: {
+          positionen: neuePositionen,
+          zwischentotal: (rappen(verkauf.zwischentotal) - differenz) / 100,
+          endbetrag: (rappen(verkauf.endbetrag) - differenz) / 100,
+          bestellMenge: neuePositionen.filter((p) => p.verkaufsart === 'bestellung').reduce((s, p) => s + p.menge, 0),
+          status: allesStorniert ? 'storniert' : nochOffen ? 'offen' : 'abgeschlossen',
+          aktualisiertAm: jetzt,
+          stornierungen: [
+            ...(verkauf.stornierungen ?? []),
+            { positionsIndex: index, menge, grund, storniertAm: jetzt }
+          ]
+        } },
+        { session }
+      );
+      if (aktualisiert.modifiedCount !== 1) throw new Stornierungsfehler('Verkauf wurde zwischenzeitlich geändert. Bitte neu laden.', 409);
+      return { verkaufId: eingabe.verkaufId, positionsIndex: index, storniert: menge,
+        freigegebeneReserve, gutschriftId, gutschriftBetrag: gutschriftId ? differenz / 100 : 0,
+        rueckerstattungOffen, status: allesStorniert ? 'storniert' : nochOffen ? 'offen' : 'abgeschlossen' };
+    });
+    return json({ erfolg: true, stornierung: ergebnis });
+  } catch (fehler) {
+    if (fehler instanceof Stornierungsfehler) return json({ fehler: fehler.message }, { status: fehler.statusCode });
+    console.error('Stornierung Vereinskleider:', fehler);
+    return json({ fehler: 'Stornierung konnte nicht gespeichert werden.' }, { status: 500 });
+  } finally {
+    await session.endSession();
+  }
+};
+
+
+// Gutschriften für die Verrechnungsübersicht laden.
+export const GET: RequestHandler = async ({ locals }) => {
+  const zugriff = pruefeBerechtigung(locals.benutzer, 'verkauf:verwalten');
+  if (zugriff) return zugriff;
+  try {
+    const vereinId = locals.benutzer!.vereinId;
+    const gutschriften = await db.collection('vereinskleider_gutschriften')
+      .find({ vereinId })
+      .sort({ erstelltAm: -1 })
+      .limit(1000)
+      .project({ rechnungId: 1, gutschriftnummer: 1, artikelname: 1, menge: 1, betrag: 1, grund: 1, erstelltAm: 1 })
+      .toArray();
+    return json({
+      gutschriften: gutschriften.map((g) => ({ ...g, _id: g._id.toString() })),
+      begrenzt: gutschriften.length === 1000
+    });
+  } catch (fehler) {
+    console.error('Gutschriften laden:', fehler);
+    return json({ fehler: 'Gutschriften konnten nicht geladen werden.' }, { status: 500 });
+  }
+};

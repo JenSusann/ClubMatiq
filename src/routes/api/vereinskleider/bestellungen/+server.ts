@@ -12,7 +12,10 @@ type Bestellposition = {
   verkaufsart: 'direkt' | 'bestellung';
   uebergebenMenge?: number;
   reserviertMenge?: number;
+  storniertMenge?: number;
 };
+
+type Positionsstatus = 'offen' | 'teilweise' | 'abgeschlossen' | 'storniert';
 
 export const GET: RequestHandler = async ({ locals, url }) => {
   const zugriff = pruefeBerechtigung(locals.benutzer, 'verkauf:verwalten');
@@ -21,7 +24,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
   const vereinId = locals.benutzer!.vereinId;
   const suche = (url.searchParams.get('suche') ?? '').trim().toLocaleLowerCase('de-CH');
   const status = url.searchParams.get('status') ?? 'offen';
-  if (!['alle', 'offen', 'teilweise', 'abgeschlossen'].includes(status)) {
+  if (!['alle', 'offen', 'teilweise', 'abgeschlossen', 'storniert'].includes(status)) {
     return json({ fehler: 'Ungültiger Statusfilter.' }, { status: 400 });
   }
 
@@ -36,16 +39,24 @@ export const GET: RequestHandler = async ({ locals, url }) => {
       const positionen = (Array.isArray(vorgang.positionen) ? vorgang.positionen : []) as Bestellposition[];
       return positionen.flatMap((position, index) => {
         if (position.verkaufsart !== 'bestellung') return [];
+
+        // Nach einer Stornierung enthält menge nur noch die aktive Bestellmenge.
+        // storniertMenge dokumentiert die bereits stornierten Stücke separat.
         const bestellt = Number(position.menge);
         const uebergeben = Number(position.uebergebenMenge ?? 0);
         const reserviert = Number(position.reserviertMenge ?? 0);
-        if (!Number.isSafeInteger(bestellt) || bestellt < 1 ||
+        const storniert = Number(position.storniertMenge ?? 0);
+        if (!Number.isSafeInteger(bestellt) || bestellt < 0 ||
+            !Number.isSafeInteger(storniert) || storniert < 0 ||
+            bestellt + storniert < 1 || !Number.isSafeInteger(bestellt + storniert) ||
             !Number.isSafeInteger(uebergeben) || uebergeben < 0 || uebergeben > bestellt ||
             !Number.isSafeInteger(reserviert) || reserviert < 0 || reserviert > bestellt - uebergeben) return [];
 
         const offen = bestellt - uebergeben;
         const nochFehlend = offen - reserviert;
-        const positionsstatus = offen === 0 ? 'abgeschlossen' : uebergeben > 0 ? 'teilweise' : 'offen';
+        const positionsstatus: Positionsstatus = bestellt === 0
+          ? 'storniert'
+          : offen === 0 ? 'abgeschlossen' : uebergeben > 0 ? 'teilweise' : 'offen';
         const eintrag = {
           vorgangId: vorgang._id.toString(),
           positionsIndex: index,
@@ -58,6 +69,9 @@ export const GET: RequestHandler = async ({ locals, url }) => {
           artikelname: position.artikelname,
           groesseId: position.groesseId,
           bestellt,
+          urspruenglichBestellt: bestellt + storniert,
+          storniert,
+          storniertMenge: storniert,
           uebergeben,
           reserviert,
           reserviertMenge: reserviert,
@@ -66,8 +80,10 @@ export const GET: RequestHandler = async ({ locals, url }) => {
           einzelpreis: position.einzelpreis,
           status: positionsstatus
         };
-        if (status !== 'alle' && status !== positionsstatus && !(status === 'offen' && positionsstatus === 'teilweise')) return [];
-        if (suche && ![eintrag.kaeufer, eintrag.artikelname, ...eintrag.riegen].some((wert) => String(wert).toLocaleLowerCase('de-CH').includes(suche))) return [];
+        if (status !== 'alle' && status !== positionsstatus &&
+            !(status === 'offen' && positionsstatus === 'teilweise')) return [];
+        if (suche && ![eintrag.kaeufer, eintrag.artikelname, ...eintrag.riegen]
+          .some((wert) => String(wert).toLocaleLowerCase('de-CH').includes(suche))) return [];
         return [eintrag];
       });
     });
