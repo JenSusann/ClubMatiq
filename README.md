@@ -7,7 +7,7 @@
 | Projekttitel | ClubMatiq – Digitale Material-, Inventar- und Vereinskleiderverwaltung |
 | Verfasser/in | Jennifer Mentner, WIN-03-23HS-TZDSRH *(Angabe aus bisheriger README; vor Abgabe prüfen)* |
 | GitHub-Repository | https://github.com/JenSusann/ClubMatiq |
-| Aktuelle App | **Noch ergänzen:** öffentlich erreichbare Deployment-URL; aus dem Repository allein nicht verifiziert |
+| Aktuelle App | clubmatiq.netlify.app|
 | Getestete Version | **Noch ergänzen:** URL der separat deployten Testversion und Commit/Tag. Dokumentationsbasis: [`9f2e7bc`](https://github.com/JenSusann/ClubMatiq/commit/9f2e7bc816b91b1f3878c4c269f2403f143fc4f9), 17.11.2026; dies ist **kein Nachweis einer getesteten Version**. |
 | Testzugänge | **Noch ergänzen:** Bereitstellungsweg für eigens angelegte Testkonten je Rolle; keine Passwörter im öffentlichen Repository |
 | Figma / Referenz-Mockup | **Noch ergänzen:** direkter Link zum Referenz-Mockup |
@@ -66,20 +66,25 @@ Das Projekt folgt dem phasenorientierten Prototyping-Prozess. Die nachfolgenden 
   - Wenige, verständliche Bedienungsschritte sind für ehrenamtliche Nutzung wichtig.
 
 **Leitfrage:** Wie kann eine zentrale, einfach bedienbare Anwendung den Überblick über Vereinsinventar und Materialbewegungen verbessern und zugleich die Verwaltungsarbeit reduzieren?
-
+**Artefakt:** [Problemraumanalyse und Ideenfindung](docs/konzeption/problemraumanalyse.pdf)
 
 ### 3.2 Sketch
 
 - **Variantenüberblick:** In der Ideensammlung wurden unter anderem eine zentrale Startseite, Inventarlisten, Artikeldetails, eine Materialsuche, QR-Code-Zugriffe und einfache Ausleihprozesse betrachtet. Die Ideen wurden über Crazy 8s und anschliessende Skizzen konkretisiert.
 - **Skizzen:** Das Artefakt [Crazy 8s](docs/images/crazy8s.png) dokumentiert den frühen Entwurf. Die Varianten unterscheiden sich insbesondere darin, ob der Einstieg über Funktionen, Materialsuche oder einzelne Artikel erfolgt. **Noch ergänzen:** weitere Handskizzen bzw. eine kurze Bildlegende, sofern in der Abgabe verlangt.
 
+**Artefakt:** [Proto-Personas, Crazy 8s, Skizzen und User Journey](docs/konzeption/sketch-personas-entscheidung.pdf)
+
 ![Crazy-8s-Skizzen](docs/images/crazy8s.png)
+
 
 ### 3.3 Decide
 
 - **Gewählte Variante & Begründung:** Gewählt wurde eine funktionsorientierte Webanwendung mit einer zentralen Startseite und separaten Bereichen. Das unterstützt unterschiedliche Aufgaben und ermöglicht eine schrittweise Erweiterung. Ein gemeinsamer Artikelbestand dient als Grundlage für Inventar, Ausleihen, Inventur und Vereinskleider.
 - **End-to-End-Ablauf:** Beispiel: Eine Leiterin sucht Material, prüft die Artikeldetails und erfasst eine Ausleihe; bei der Rückgabe wird die Ausleihe aktualisiert. Ein weiterer Ablauf umfasst die Auswahl von Vereinskleidern, die Erfassung einer Bestellung bzw. eines Verkaufs und die spätere Übergabe und Verrechnung. Die frühe [User Journey Map](docs/images/user-journey.png) dokumentiert die Nutzerperspektive; der zweite Ablauf ist eine spätere funktionale Erweiterung.
 - **Mockup:** Link siehe «Figma / Referenz-Mockup» in der [Projektübersicht](#projektübersicht--zugänge). **Noch ergänzen:** Referenz-Mockup und Screenshots mit kurzen Bildbeschreibungen.
+
+**Nachweis:** [Entscheidungsreflexion, Seite 6](docs/konzeption/sketch-personas-entscheidung.pdf#page=6)
 
 ![User Journey Map](docs/images/user-journey.png)
 
