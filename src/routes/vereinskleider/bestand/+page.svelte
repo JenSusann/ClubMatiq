@@ -29,6 +29,7 @@
     einzelwert: number;
     beschreibung?: string;
     hatGroessen: boolean;
+    istVereinskleidung?: boolean;
     varianten?: Variante[];
   };
 
@@ -320,22 +321,10 @@
       groessen = await groessenAntwort.json();
       preise = await preiseAntwort.json();
 
-      const kategorie = kategorien.find(
-        (eintrag) =>
-          eintrag.name.trim().toLowerCase() ===
-          'vereinskleider'
-      );
-
-      if (!kategorie) {
-        return;
-      }
-
-      kategorieGefunden = true;
-
       const kleiderArtikel = alleArtikel.filter(
-        (eintrag) =>
-          eintrag.kategorieId === kategorie._id
+        (eintrag) => eintrag.istVereinskleidung === true
       );
+      kategorieGefunden = kleiderArtikel.length > 0;
 
       artikel = await Promise.all(
         kleiderArtikel.map(async (eintrag) => {
@@ -488,8 +477,8 @@
     </section>
   {:else if !kategorieGefunden}
     <section class="meldung">
-      Bitte erstelle zuerst die Kategorie
-      «Vereinskleider» in der Inventarverwaltung.
+      Noch keine Vereinskleider erfasst. Markiere einen Artikel in der
+      <a href="/inventar">Inventarverwaltung</a> als Vereinskleidung.
     </section>
   {:else}
     <section class="kennzahlen">
