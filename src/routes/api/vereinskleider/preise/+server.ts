@@ -202,22 +202,11 @@ export const PUT: RequestHandler = async ({
       );
     }
 
-    const kategorie = await db
-      .collection('kategorien')
-      .findOne({
-        _id: new ObjectId(artikel.kategorieId),
-        vereinId
-      });
-
-    if (
-      !kategorie ||
-      kategorie.name.trim().toLowerCase() !==
-        'vereinskleider'
-    ) {
+    if (artikel.istVereinskleidung !== true) {
       return json(
         {
           fehler:
-            'Der Artikel gehört nicht zur Kategorie Vereinskleider.'
+            'Der Artikel ist nicht als Vereinskleidung gekennzeichnet.'
         },
         { status: 400 }
       );
