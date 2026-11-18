@@ -83,6 +83,8 @@
   let von = $state('');
   let bis = $state('');
   let filterAktiv = $state(false);
+  let exportLaden = $state(false);
+  let aktiveFilter = $state('');
 
   const groessenName = (id: string | null | undefined) =>
     !id ? "–" : groessen.find((g) => g._id === id)?.bezeichnung ?? "Unbekannte Grösse";
@@ -145,18 +147,49 @@
     laden = true;
     fehler = '';
     try {
-      const antwort = await fetch(`/api/vereinskleider?${parameter(gewSeite).toString()}`);
+      const filterParameter = parameter(gewSeite);
+      const antwort = await fetch(`/api/vereinskleider?${filterParameter.toString()}`);
       const daten: Antwort = await antwort.json();
       if (!antwort.ok) throw new Error(daten.fehler || 'Verkäufe konnten nicht geladen werden.');
       verkaeufe = daten.verkaeufe ?? [];
       seite = daten.seite ?? gewSeite;
       seiten = daten.seiten ?? 0;
       gesamt = daten.gesamt ?? 0;
+      filterParameter.delete('seite');
+      aktiveFilter = filterParameter.toString();
       offen = [];
     } catch (e) {
       fehler = e instanceof Error ? e.message : 'Unbekannter Fehler';
     } finally {
       laden = false;
+    }
+  }
+
+  async function excelExportieren() {
+    if (exportLaden || laden || gesamt === 0) return;
+    exportLaden = true;
+    fehler = '';
+    try {
+      // Nur die zuletzt erfolgreich angewendeten Filter exportieren.
+      const url = `/api/vereinskleider/export${aktiveFilter ? `?${aktiveFilter}` : ''}`;
+      const antwort = await fetch(url);
+      if (!antwort.ok) {
+        const daten: { fehler?: string } = await antwort.json().catch(() => ({}));
+        throw new Error(daten.fehler || 'Excel-Export konnte nicht erstellt werden.');
+      }
+      const datei = await antwort.blob();
+      const downloadUrl = URL.createObjectURL(datei);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `ClubMatiq_Verkaufshistorie_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+    } catch (e) {
+      fehler = e instanceof Error ? e.message : 'Excel-Export konnte nicht erstellt werden.';
+    } finally {
+      exportLaden = false;
     }
   }
 
@@ -215,7 +248,12 @@
       <h1>Verkaufshistorie</h1>
       <p>Alle erfassten Vereinskleiderverkäufe und Bestellungen nachvollziehen.</p>
     </div>
-    <button class="sekundaer" onclick={aktualisieren} disabled={laden}>Aktualisieren</button>
+    <div class="kopfaktionen">
+      <button class="sekundaer" onclick={aktualisieren} disabled={laden || exportLaden}>Aktualisieren</button>
+      <button class="sekundaer" onclick={excelExportieren} disabled={laden || exportLaden || gesamt === 0}>
+        {exportLaden ? 'Excel wird erstellt …' : 'Excel exportieren'}
+      </button>
+    </div>
   </header>
 
   <form class="werkzeuge" aria-label="Verkäufe filtern" onsubmit={(event) => { event.preventDefault(); filterAnwenden(); }}>
@@ -368,6 +406,7 @@
 <style>
   .seite{max-width:1450px;margin:0 auto;padding:1.5rem;color:var(--text-color,inherit)}
   .zurueck{display:inline-block;margin-bottom:1rem;color:#2563eb;text-decoration:none;font-weight:600}.zurueck:hover{text-decoration:underline}
+  .kopfaktionen{display:flex;gap:.6rem;flex-wrap:wrap}
   .kopf,.detailkopf,.seitenwahl{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
   h1{font-size:1.8rem;margin:0 0 .35rem}h2{font-size:1.15rem;margin:0}h3{font-size:1rem;margin:.8rem 0}
   .kopf p,.hinweis{color:#697586;font-size:.9rem;margin:.25rem 0}
