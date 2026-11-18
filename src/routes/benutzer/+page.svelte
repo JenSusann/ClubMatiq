@@ -49,6 +49,7 @@
   let email = $state('');
   let rolle = $state<Benutzerrolle>('mitglied');
   let speichern = $state(false);
+  let erneutSendenId = $state<string | null>(null);
 
   // Meldungen
   let fehlermeldung = $state('');
@@ -232,6 +233,24 @@
           : 'Ein unbekannter Fehler ist aufgetreten.';
     } finally {
       speichern = false;
+    }
+  }
+
+  async function erneutSenden(id: string) {
+    if (erneutSendenId) return;
+    erneutSendenId = id;
+    fehlermeldung = '';
+    erfolgsmeldung = '';
+    try {
+      const antwort = await fetch(`/api/benutzer/einladen/${encodeURIComponent(id)}/erneut`, { method: 'POST' });
+      const daten = await antwort.json();
+      if (!antwort.ok) throw new Error(daten.fehler ?? 'Einladung konnte nicht versendet werden.');
+      erfolgsmeldung = daten.nachricht ?? 'Einladung versendet.';
+      await ladeEinladungen();
+    } catch (error) {
+      fehlermeldung = error instanceof Error ? error.message : 'Versand fehlgeschlagen.';
+    } finally {
+      erneutSendenId = null;
     }
   }
 
@@ -486,6 +505,7 @@
               <th>Gültig bis</th>
               <th>Versand</th>
               <th>Status</th>
+              <th>Aktion</th>
             </tr>
           </thead>
 
@@ -524,6 +544,13 @@
                   >
                     {statusname(einladung.status)}
                   </span>
+                </td>
+                <td>
+                  {#if einladung.status === 'offen'}
+                    <button type="button" class="sekundaer" disabled={erneutSendenId !== null} onclick={() => erneutSenden(einladung.id)}>
+                      {erneutSendenId === einladung.id ? 'Wird gesendet …' : 'Erneut senden'}
+                    </button>
+                  {/if}
                 </td>
               </tr>
             {/each}
