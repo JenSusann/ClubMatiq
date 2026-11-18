@@ -7,7 +7,7 @@
 | Projekttitel | ClubMatiq – Digitale Material-, Inventar- und Vereinskleiderverwaltung |
 | Verfasser/in | Jennifer Mentner, WIN-03-23HS-TZDSRH *(Angabe aus bisheriger README; vor Abgabe prüfen)* |
 | GitHub-Repository | https://github.com/JenSusann/ClubMatiq |
-| Aktuelle App | clubmatiq.netlify.app|
+| Aktuelle App | https://clubmatiq.netlify.app |
 | Getestete Version | **Noch ergänzen:** URL der separat deployten Testversion und Commit/Tag. Dokumentationsbasis: [`9f2e7bc`](https://github.com/JenSusann/ClubMatiq/commit/9f2e7bc816b91b1f3878c4c269f2403f143fc4f9), 17.11.2026; dies ist **kein Nachweis einer getesteten Version**. |
 | Testzugänge | **Noch ergänzen:** Bereitstellungsweg für eigens angelegte Testkonten je Rolle; keine Passwörter im öffentlichen Repository |
 | Figma / Referenz-Mockup | **Noch ergänzen:** direkter Link zum Referenz-Mockup |
@@ -198,24 +198,38 @@ Für die Datenbankanbindung wird eine lokale `.env` mit `MONGODB_URI` benötigt.
 
 #### 4.2.1 GitHub-basiertes Issue- und Änderungsmanagement
 - **Beschreibung & Nutzen:** Anforderungen und Änderungswünsche werden in GitHub Issues gesammelt. Sprechende Commits mit Issue-Referenzen unterstützen die Rückverfolgbarkeit von Implementierungen.
+
 - **Abgrenzung zum Mindestumfang:** Kann über die reine Codeabgabe hinausgehen, wenn ein dokumentierter Issue-/Commit-Prozess nicht bereits Pflicht ist.
+
 - **Umsetzung:** Verwendung von GitHub Issues und Commit-Nachrichten mit Referenzen wie `Refs #34`; beispielsweise bei den Vereinskleidererweiterungen vom 17.11.2026.
+
 - **Nachweise:** [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34) · [Commit-Historie](https://github.com/JenSusann/ClubMatiq/commits/main) · [Referenzierungs-Commit](https://github.com/JenSusann/ClubMatiq/commit/d2bb9add55531cbf6bf880512c96ccb22c3b0af7) · **Screenshot der Issue-Übersicht ergänzen**.
+
 - **Bezug zur Evaluation:** Nein; der Prozess dient bisher der Entwicklungsorganisation, nicht nachweislich der Auswertung einer Nutzerevaluation.
 
-#### 4.2.2 Strukturierter Ki-gestützter Entwicklungsworkflow
-- **Beschreibung & Nutzen:** _[Was wurde zusätzlich erarbeitet oder verbessert und welchen Mehrwert bietet es?]_
-- **Abgrenzung zum Mindestumfang:** _[Was geht konkret über die verbindlichen Anforderungen hinaus?]_
-- **Umsetzung:** _[Wie wurde vorgegangen und was ist das Ergebnis?]_
-- **Nachweise:** _[Screenshot(s) mit Erläuterung; Links auf Artefakte, Konfigurationen oder andere Ergebnisse; bei Code zusätzlich Referenzen auf die relevanten Codestellen]_
-- **Bezug zur Evaluation:** _[Wurde die Erweiterung aus der Evaluation abgeleitet? Falls ja: auf die betreffende Beobachtung bzw. das Issue verweisen. Andernfalls: «Nein».]_
+#### 4.2.2 Strukturierter KI-gestützter Entwicklungsworkflow
+
+- **Beschreibung & Nutzen:** Während der Entwicklung von ClubMatiq wurde ChatGPT als unterstützendes Werkzeug für die Konzeption, Implementierung, Fehlersuche und Dokumentation eingesetzt. Dadurch konnten technische Lösungsansätze schneller erarbeitet, Fehler systematisch analysiert und neue Funktionen schrittweise umgesetzt werden.
+
+- **Abgrenzung zum Mindestumfang:** Über die reine Verwendung von KI zur Codegenerierung hinaus wurde ein iterativer Entwicklungsprozess angewendet. KI-generierte Lösungsvorschläge wurden in die bestehende Projektstruktur integriert, lokal überprüft und bei Bedarf angepasst. Die Entwicklungsschritte wurden über Git-Commits und GitHub-Issues nachvollziehbar dokumentiert.
+
+- **Umsetzung:** Neue Funktionen wurden zunächst fachlich definiert und in GitHub-Issues mit Anforderungen und Akzeptanzkriterien festgehalten. Anschliessend wurden mithilfe von ChatGPT Implementierungsvorschläge für SvelteKit, TypeScript und MongoDB erarbeitet. Die vorgeschlagenen Änderungen wurden schrittweise in Visual Studio Code übernommen, auf Fehler überprüft und über Git auf GitHub übertragen. Bei auftretenden Problemen wurden Fehlermeldungen und betroffene Codeabschnitte analysiert und korrigiert. Bereits implementierte Funktionen wurden zudem mit offenen Issues abgeglichen, um Doppelentwicklungen zu vermeiden.
+
+- **Nachweise:** [GitHub-Issues](https://github.com/JenSusann/ClubMatiq/issues) · [Commit-Historie](https://github.com/JenSusann/ClubMatiq/commits/main) · [Quellcode](https://github.com/JenSusann/ClubMatiq)
+
+- **Bezug zur Evaluation:** Nein. Der KI-gestützte Entwicklungsworkflow wurde während der technischen Umsetzung eingesetzt und ist nicht aus einer durchgeführten Nutzerevaluation hervorgegangen.
 
 #### 4.2.3 Datenmodell
-- **Beschreibung & Nutzen:** _[Was wurde zusätzlich erarbeitet oder verbessert und welchen Mehrwert bietet es?]_
-- **Abgrenzung zum Mindestumfang:** _[Was geht konkret über die verbindlichen Anforderungen hinaus?]_
-- **Umsetzung:** _[Wie wurde vorgegangen und was ist das Ergebnis?]_
-- **Nachweise:** _[Screenshot(s) mit Erläuterung; Links auf Artefakte, Konfigurationen oder andere Ergebnisse; bei Code zusätzlich Referenzen auf die relevanten Codestellen]_
-- **Bezug zur Evaluation:** _[Wurde die Erweiterung aus der Evaluation abgeleitet? Falls ja: auf die betreffende Beobachtung bzw. das Issue verweisen. Andernfalls: «Nein».]_
+
+- **Beschreibung & Nutzen:** Zur Dokumentation der Datenbankarchitektur wurde ein logisches Entity-Relationship-Diagramm (ER-Diagramm) erstellt. Es visualisiert die wichtigsten MongoDB-Collections, deren Attribute und Beziehungen. Dadurch werden die Zusammenhänge zwischen Vereinsverwaltung, Inventar, Ausleihen, Inventuren, Vereinskleiderverkäufen und Rechnungsstellung nachvollziehbar dargestellt.
+
+- **Abgrenzung zum Mindestumfang:** Zusätzlich zur technischen Implementierung wurde die Datenstruktur grafisch dokumentiert. Das Diagramm erleichtert die Analyse der Datenbeziehungen, die Wartung sowie die spätere Erweiterung der Anwendung. Da MongoDB dokumentenorientiert arbeitet, werden sowohl logische Referenzen als auch eingebettete Datenstrukturen berücksichtigt.
+
+- **Umsetzung:** Das Datenmodell wurde anhand der implementierten MongoDB-Collections und API-Endpunkte analysiert und mit dbdiagram.io als ER-Diagramm visualisiert. Die Darstellung umfasst zentrale Entitäten wie Vereine, Benutzer, Artikel, Artikelvarianten, Kategorien, Lagerorte, Ausleihen, Inventuren, Verkäufe und Rechnungen.
+
+- **Nachweise:** [ER-Diagramm](docs/images/ER-Diagram_ClubMatiq.png) · [MongoDB-Anbindung](src/lib/server/mongodb.ts) · [API-Endpunkte](src/routes/api)
+
+- **Bezug zur Evaluation:** Nein. Das ER-Diagramm wurde zur technischen Dokumentation und besseren Nachvollziehbarkeit der Datenbankstruktur erstellt und ist nicht aus einer Nutzerevaluation hervorgegangen.
 
 #### 4.2.4 Systematische Testmatrix und Testprotokolle
 - **Beschreibung & Nutzen:** _[Was wurde zusätzlich erarbeitet oder verbessert und welchen Mehrwert bietet es?]_
@@ -232,11 +246,39 @@ Für die Datenbankanbindung wird eine lokale `.env` mit `MONGODB_URI` benötigt.
 - **Bezug zur Evaluation:** _[Wurde die Erweiterung aus der Evaluation abgeleitet? Falls ja: auf die betreffende Beobachtung bzw. das Issue verweisen. Andernfalls: «Nein».]_
 
 #### 4.2.6 Rollenbasiertes Berechtigungskonzept
-- **Beschreibung & Nutzen:** _[Was wurde zusätzlich erarbeitet oder verbessert und welchen Mehrwert bietet es?]_
-- **Abgrenzung zum Mindestumfang:** _[Was geht konkret über die verbindlichen Anforderungen hinaus?]_
-- **Umsetzung:** _[Wie wurde vorgegangen und was ist das Ergebnis?]_
-- **Nachweise:** _[Screenshot(s) mit Erläuterung; Links auf Artefakte, Konfigurationen oder andere Ergebnisse; bei Code zusätzlich Referenzen auf die relevanten Codestellen]_
-- **Bezug zur Evaluation:** _[Wurde die Erweiterung aus der Evaluation abgeleitet? Falls ja: auf die betreffende Beobachtung bzw. das Issue verweisen. Andernfalls: «Nein».]_
+
+**Beschreibung & Nutzen:** ClubMatiq verwendet ein rollenbasiertes Berechtigungskonzept (Role-Based Access Control, RBAC), um den Zugriff auf Funktionen und Vereinsdaten zu steuern. Benutzer erhalten abhängig von ihrer Rolle unterschiedliche Lese-, Bearbeitungs- und Verwaltungsrechte. Dadurch wird sichergestellt, dass beispielsweise Leitende Material ausleihen können, während die Verwaltung von Inventarbeständen und Vereinskleiderverkäufen berechtigten Personen vorbehalten bleibt.
+
+**Abgrenzung zum Mindestumfang:** Neben der Benutzeranmeldung wurde eine zentrale Berechtigungsstruktur mit vier Rollen und zwölf definierten Einzelberechtigungen implementiert. Die Berechtigungen werden nicht ausschliesslich über die Benutzeroberfläche gesteuert, sondern können auch serverseitig durch API-Endpunkte geprüft werden. Zusätzlich werden Vereinsdaten über die jeweilige Vereins-ID voneinander abgegrenzt.
+
+**Umsetzung:**
+
+Das Berechtigungskonzept umfasst vier Rollen:
+
+- **Administrator (`admin`):** Vollständiger Zugriff auf sämtliche zentral definierten Berechtigungen, einschliesslich Benutzerverwaltung.
+- **Materialverantwortliche (`materialverantwortlich`):** Verwaltung von Inventar, Stammdaten, Ausleihen, Inventuren, Rabatten und Vereinskleiderverkäufen. Keine Benutzerverwaltung.
+- **Leitende (`leiter`):** Inventar und Inventuren einsehen, Materialausleihen verwalten und bei Inventuren zählen.
+- **Mitglieder (`mitglied`):** Lesender Zugriff auf die Inventarverwaltung.
+
+Die Rechte sind zentral in `src/lib/server/berechtigungen.ts` definiert. Die Funktionen `hatBerechtigung()` und `pruefeBerechtigung()` ermöglichen eine einheitliche Überprüfung.
+
+Die Authentifizierung erfolgt über serverseitig gespeicherte Sessions. Bei jeder Anfrage wird das Session-Cookie überprüft und der zugehörige aktive Benutzer geladen. Ungültige oder abgelaufene Sessions werden nicht akzeptiert.
+
+Nicht angemeldete Benutzer werden bei geschützten Seiten zur Anmeldung weitergeleitet. API-Anfragen ohne gültige Anmeldung erhalten HTTP 401. Fehlt einem angemeldeten Benutzer die erforderliche Berechtigung, liefert die zentrale Berechtigungsprüfung HTTP 403.
+
+Die Datenzugriffe berücksichtigen die `vereinId` des angemeldeten Benutzers. Dadurch können Benutzer beispielsweise nur die Benutzerkonten ihres eigenen Vereins abrufen.
+
+Für die Benutzeroberfläche existiert zusätzlich eine Rollenvorschau, mit der Administratoren die Darstellung verschiedener Rollen simulieren können. Diese Vorschau verändert nicht die tatsächlichen serverseitigen Berechtigungen.
+
+**Nachweise:**
+
+- [Zentrale Berechtigungsdefinition](src/lib/server/berechtigungen.ts)
+- [Authentifizierung und Session-Prüfung](src/hooks.server.ts)
+- [Benutzerverwaltung](src/routes/api/benutzer/+server.ts)
+- [Benutzereinladungen](src/routes/api/benutzer/einladen/+server.ts)
+- [Rollenvorschau](src/lib/rollenVorschau.svelte.ts)
+
+**Bezug zur Evaluation:** Das Berechtigungskonzept wurde im Rahmen der technischen Umsetzung entwickelt und nicht aus einer dokumentierten Nutzerevaluation abgeleitet. Eine systematische Prüfung sämtlicher Rollen und geschützter API-Endpunkte ist separat nachzuweisen.
 
 ## 5. Projektorganisation [Optional]
 

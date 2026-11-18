@@ -1,5 +1,7 @@
 
 import { json } from '@sveltejs/kit';
+import 'dotenv/config';
+import { versendeEinladung } from '../../../../lib/server/email';
 import type { RequestHandler } from './$types';
 import { db } from '../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../lib/server/berechtigungen';
@@ -144,7 +146,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       );
     }
 
-    const { tokenHash } = erstelleEinladungstoken();
+    const { token, tokenHash } = erstelleEinladungstoken();
 
     const einladung: Einladung = {
       vereinId,
@@ -158,21 +160,44 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       status: 'offen'
     };
 
-    const ergebnis =
-      await einladungen.insertOne(einladung);
+    const basisUrl = process.env.PUBLIC_APP_URL?.replace(/\/$/, '') || new URL(request.url).origin;
+    const einladungsLink = `${basisUrl}/einladung?token=${encodeURIComponent(token)}`;
+    const verein = await db.collection('vereine').findOne({
+      _id: new (await import('mongodb')).ObjectId(vereinId)
+    });
+    const vereinsname = typeof verein?.name === 'string' ? verein.name : 'deinem Verein';
+
+    const ergebnis = await einladungen.insertOne(einladung);
+    let versendet = false;
+    let versandFehler = false;
+    try {
+      const versand = await versendeEinladung({
+        email, vorname, verein: vereinsname, link: einladungsLink,
+        ablaufdatum: einladung.ablaufdatum
+      });
+      await einladungen.updateOne(
+        { _id: ergebnis.insertedId, vereinId },
+        { $set: { versendetAm: new Date(), resendId: versand.id } }
+      );
+      versendet = true;
+    } catch (error) {
+      versandFehler = true;
+      console.error('Einladungs-E-Mail fehlgeschlagen:', error);
+    }
 
     return json(
       {
         erfolg: true,
         nachricht:
-          'Die Einladung wurde gespeichert. Der E-Mail-Versand ist noch nicht eingerichtet.',
+          versendet ? 'Die Einladung wurde per E-Mail versendet.' : 'Die Einladung wurde gespeichert, aber die E-Mail konnte nicht versendet werden.',
         einladung: {
           id: ergebnis.insertedId.toString(),
           email,
           rolle,
           status: 'offen',
-          versendet: false
-        }
+          versendet
+        },
+        versandFehler
       },
       { status: 201 }
     );
@@ -227,7 +252,8 @@ export const GET: RequestHandler = async ({ locals }) => {
           : einladung.status,
       erstelltAm: einladung.erstelltAm,
       ablaufdatum: einladung.ablaufdatum,
-      versendet: false
+      versendet: Boolean(einladung.versendetAm),
+      versendetAm: einladung.versendetAm ?? null
     }));
 
     return json(ergebnis);
