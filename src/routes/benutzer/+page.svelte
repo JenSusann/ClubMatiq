@@ -102,7 +102,7 @@
   function statusname(status: Einladungsstatus): string {
     switch (status) {
       case 'offen':
-        return 'Vorbereitet';
+        return 'Offen';
 
       case 'abgelaufen':
         return 'Abgelaufen';
@@ -215,9 +215,7 @@
         );
       }
 
-      erfolgsmeldung =
-        'Die Einladung wurde erfolgreich vorbereitet. ' +
-        'Der E-Mail-Versand ist noch nicht eingerichtet.';
+      erfolgsmeldung = daten.nachricht ?? 'Einladung gespeichert.';
 
       // Formular zurücksetzen
       vorname = '';
@@ -259,8 +257,7 @@
       <p class="untertitel">Vereinsverwaltung</p>
       <h1>Benutzerverwaltung</h1>
       <p>
-        Verwalte die Benutzer deines Vereins und
-        bereite Einladungen für neue Personen vor.
+        Verwalte die Benutzer deines Vereins und versende Einladungen per E-Mail.
       </p>
     </div>
   </header>
@@ -291,9 +288,7 @@
     <div class="hinweis">
       <span class="hinweis-symbol">ⓘ</span>
       <span>
-        Einladungen werden aktuell nur gespeichert.
-        Der automatische E-Mail-Versand wird
-        in einem späteren Schritt eingerichtet.
+        Einladungen werden über Resend per E-Mail verschickt. Der Versand erfordert einen konfigurierten Absender.
       </span>
     </div>
 
@@ -354,8 +349,8 @@
           disabled={speichern}
         >
           {speichern
-            ? 'Wird gespeichert ...'
-            : 'Einladung vorbereiten'}
+            ? 'Wird versendet ...'
+            : 'Einladung senden'}
         </button>
       </div>
     </form>
@@ -451,8 +446,7 @@
       <div>
         <h2>Einladungen</h2>
         <p class="beschreibung">
-          Übersicht aller vorbereiteten und
-          bisherigen Einladungen.
+          Übersicht der Einladungen und ihres Versandstatus.
         </p>
       </div>
 
@@ -490,6 +484,7 @@
               <th>Rolle</th>
               <th>Erstellt</th>
               <th>Gültig bis</th>
+              <th>Versand</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -517,6 +512,8 @@
                 <td>
                   {formatiereDatum(einladung.ablaufdatum)}
                 </td>
+
+                <td>{einladung.versendet ? 'Versendet' : 'Nicht versendet'}</td>
 
                 <td>
                   <span
