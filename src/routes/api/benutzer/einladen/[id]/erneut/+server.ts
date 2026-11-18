@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
-import { env } from '$env/dynamic/private';
+import 'dotenv/config';
 import { db } from '../../../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../../../lib/server/berechtigungen';
 import { erstelleEinladungstoken, berechneAblaufdatum, type Einladung } from '../../../../../../lib/server/einladungen';
@@ -20,7 +20,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
   }
   const { token, tokenHash } = erstelleEinladungstoken();
   const ablaufdatum = berechneAblaufdatum();
-  const basisUrl = env.PUBLIC_APP_URL?.replace(/\/$/, '') || new URL(request.url).origin;
+  const basisUrl = process.env.PUBLIC_APP_URL?.replace(/\/$/, '') || new URL(request.url).origin;
   const verein = await db.collection('vereine').findOne({ _id: new ObjectId(vereinId) });
   try {
     const versand = await versendeEinladung({

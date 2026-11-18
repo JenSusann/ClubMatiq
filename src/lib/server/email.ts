@@ -1,4 +1,4 @@
-import { env } from '$env/dynamic/private';
+import 'dotenv/config';
 
 function escapeHtml(wert: string): string {
   return wert.replace(/[&<>"']/g, (zeichen) => ({
@@ -13,8 +13,8 @@ export async function versendeEinladung(daten: {
   link: string;
   ablaufdatum: Date;
 }): Promise<{ id: string }> {
-  const apiKey = env.RESEND_API_KEY;
-  const absender = env.RESEND_FROM_EMAIL;
+  const apiKey = process.env.RESEND_API_KEY;
+  const absender = process.env.RESEND_FROM_EMAIL;
   if (!apiKey || !absender) {
     throw new Error('RESEND_API_KEY oder RESEND_FROM_EMAIL fehlt.');
   }

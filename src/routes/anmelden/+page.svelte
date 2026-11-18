@@ -45,7 +45,7 @@
       passwort = '';
 
       // Zur Startseite wechseln
-      await goto('/', { invalidateAll: true });
+      await goto('/dashboard', { invalidateAll: true });
     } catch (error) {
       console.error('Anmeldefehler:', error);
 

@@ -1,6 +1,6 @@
 
 import { json } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
+import 'dotenv/config';
 import { versendeEinladung } from '../../../../lib/server/email';
 import type { RequestHandler } from './$types';
 import { db } from '../../../../lib/server/mongodb';
@@ -160,7 +160,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       status: 'offen'
     };
 
-    const basisUrl = env.PUBLIC_APP_URL?.replace(/\/$/, '') || new URL(request.url).origin;
+    const basisUrl = process.env.PUBLIC_APP_URL?.replace(/\/$/, '') || new URL(request.url).origin;
     const einladungsLink = `${basisUrl}/einladung?token=${encodeURIComponent(token)}`;
     const verein = await db.collection('vereine').findOne({
       _id: new (await import('mongodb')).ObjectId(vereinId)
