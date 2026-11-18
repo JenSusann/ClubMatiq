@@ -49,6 +49,11 @@
   let auswertung = $state<'kategorie' | 'lagerort'>('kategorie');
   let standVom = $state<Date | null>(null);
 
+  const exportUrl = $derived('/api/export/inventar?' + new URLSearchParams({
+    modus: 'bewertung', suche, kategorie: kategorieFilter,
+    lagerort: lagerortFilter, nurFehlende: String(nurFehlende)
+  }).toString());
+
   const chf = (wert: number) => wert.toLocaleString('de-CH', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -232,7 +237,10 @@
     {/if}
 
     <section class="bereich">
-      <h2>Bewertungspositionen</h2>
+      <div class="export-zeile">
+        <h2>Bewertungspositionen</h2>
+        <a class="export-button" href={exportUrl}>CSV exportieren (aktuelle Filter)</a>
+      </div>
       <div class="filter">
         <div class="feld">
           <label for="suche">Suchen</label>
@@ -364,8 +372,8 @@
     </section>
 
     <p class="hinweis">
-      <strong>Export:</strong> Der CSV-Export für die Buchhaltung wird separat in
-      Issue #52 umgesetzt. Diese Seite exportiert noch keine Daten.
+      <strong>CSV-Export:</strong> Der Download enthält aktuelle Daten und das Exportdatum,
+      keine historische Stichtagsbewertung. Fehlende Preise bleiben im Export leer.
     </p>
   {/if}
 </main>
@@ -392,6 +400,10 @@
   .kennzahl.warnung { border-color:#fdba74; }
   .bereich { background:white; border:1px solid #e2e8f0; border-radius:12px;
     padding:24px; margin-top:24px; }
+  .export-zeile { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-bottom:22px; }
+  .export-zeile h2 { margin:0; }
+  .export-button { background:#166534; color:white; text-decoration:none; padding:11px 16px; border-radius:8px; font-size:14px; font-weight:600; white-space:nowrap; }
+  .export-button:hover { background:#14532d; }
   .filter { display:grid; grid-template-columns:2fr 1fr 1fr; gap:16px; }
   .feld { display:flex; flex-direction:column; gap:8px; }
   .feld label { font-size:14px; font-weight:600; color:#334155; }
@@ -421,7 +433,7 @@
   }
   @media (max-width:650px) {
     main { margin:16px auto; padding:12px; }
-    .kopf,.gruppen-kopf { flex-direction:column; align-items:stretch; }
+    .kopf,.gruppen-kopf,.export-zeile { flex-direction:column; align-items:stretch; }
     .kennzahlen,.filter { grid-template-columns:1fr; }
     .filter .feld:first-child { grid-column:auto; }
     .bereich { padding:14px; }

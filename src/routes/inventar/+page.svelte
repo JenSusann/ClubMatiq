@@ -42,6 +42,10 @@
   let fehlermeldung = $state('');
   let wirdGeloescht = $state<string | null>(null);
 
+  const exportUrl = $derived('/api/export/inventar?' + new URLSearchParams({
+    modus: 'inventar', suche, kategorie: kategorieFilter, lagerort: lagerortFilter
+  }).toString());
+
   function lieferantenName(a: Artikel): string {
     const id = artikelLieferanten[a._id] ?? a.lieferantId;
     return lieferanten.find((l) => l._id === id)?.name ?? 'Nicht zugeordnet';
@@ -162,6 +166,11 @@
     </div>
 
     <section class="bereich">
+      {#if darfBearbeiten}
+        <div class="export-zeile">
+          <a class="export-button" href={exportUrl}>CSV exportieren (aktuelle Filter)</a>
+        </div>
+      {/if}
       <div class="filter">
         <div class="feld">
           <label for="suche">Artikel suchen</label>
@@ -284,6 +293,9 @@
   .kennzahl span { color:#64748b; font-size:14px; }
   .kennzahl strong { font-size:26px; color:#172b4d; }
   .bereich { background:white; border:1px solid #e2e8f0; border-radius:12px; padding:25px; }
+  .export-zeile { display:flex; justify-content:flex-end; margin-bottom:18px; }
+  .export-button { background:#166534; color:white; text-decoration:none; padding:11px 16px; border-radius:8px; font-size:14px; font-weight:600; }
+  .export-button:hover { background:#14532d; }
   .filter { display:grid; grid-template-columns:2fr 1fr 1fr; gap:20px; margin-bottom:25px; }
   .feld { display:flex; flex-direction:column; gap:8px; }
   .feld label { font-size:14px; font-weight:500; }
