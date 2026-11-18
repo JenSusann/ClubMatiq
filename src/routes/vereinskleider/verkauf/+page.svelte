@@ -11,6 +11,7 @@
     menge: number;
     einzelwert: number;
     hatGroessen: boolean;
+    istVereinskleidung?: boolean;
     varianten?: Variante[];
   };
   type Preis = {
@@ -344,13 +345,8 @@
     groessen = await groessenAntwort.json();
     preise = await preiseAntwort.json();
     rabattregeln = await rabatteAntwort.json();
-    const kategorie = kategorien.find((k) => k.name.trim().toLowerCase() === 'vereinskleider');
-    kategorieGefunden = !!kategorie;
-    if (!kategorie) {
-      artikel = [];
-      return;
-    }
-    const kleider = alleArtikel.filter((a) => a.kategorieId === kategorie._id);
+    const kleider = alleArtikel.filter((a) => a.istVereinskleidung === true);
+    kategorieGefunden = kleider.length > 0;
     artikel = await Promise.all(kleider.map(async (a) => {
       if (!a.hatGroessen) return a;
       const antwort = await fetch(`/api/artikel/${a._id}`);
@@ -446,7 +442,7 @@
   {:else if fehler}
     <section class="karte fehler" role="alert">{fehler}</section>
   {:else if !kategorieGefunden}
-    <section class="karte">Bitte erstelle zuerst die Kategorie «Vereinskleider».</section>
+    <section class="karte">Noch keine Vereinskleider erfasst. Markiere einen Artikel in der <a href="/inventar">Inventarverwaltung</a> als Vereinskleidung.</section>
   {:else}
     <div class="layout">
       <div class="hauptspalte">
