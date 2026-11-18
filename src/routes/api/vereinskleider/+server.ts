@@ -348,60 +348,121 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 };
 
 
-// Verkaufshistorie: bestehende Verkäufe lesen, ohne die Verkaufslogik zu verändern.
+// Verkaufshistorie: serverseitige Suche und Filter, ohne die Verkaufslogik zu verändern.
 export const GET: RequestHandler = async ({ locals, url }) => {
   const berechtigungsfehler = pruefeBerechtigung(locals.benutzer, 'verkauf:verwalten');
   if (berechtigungsfehler) return berechtigungsfehler;
 
   const vereinId = locals.benutzer!.vereinId;
-  const seiteText = url.searchParams.get('seite') ?? '1';
-  if (!/^[1-9]\d*$/.test(seiteText)) {
+  const parameter = url.searchParams;
+  const seiteText = parameter.get('seite') ?? '1';
+  if (!/^[1-9]\d*$/.test(seiteText) || !Number.isSafeInteger(Number(seiteText)) || Number(seiteText) > 10000) {
     return json({ fehler: 'Ungültige Seitennummer.' }, { status: 400 });
   }
   const seite = Number(seiteText);
-  if (!Number.isSafeInteger(seite) || seite > 10000) {
-    return json({ fehler: 'Ungültige Seitennummer.' }, { status: 400 });
+  const suche = (parameter.get('suche') ?? '').trim();
+  const art = parameter.get('art') ?? 'alle';
+  const zahlung = parameter.get('zahlung') ?? 'alle';
+  const riege = (parameter.get('riege') ?? '').trim();
+  const von = parameter.get('von') ?? '';
+  const bis = parameter.get('bis') ?? '';
+  if (suche.length > 120 || riege.length > 100 || !['alle', 'direkt', 'bestellung', 'gemischt'].includes(art) ||
+      !['alle', 'bezahlt', 'offen', 'gutschrift'].includes(zahlung) ||
+      (von && !/^\d{4}-\d{2}-\d{2}$/.test(von)) || (bis && !/^\d{4}-\d{2}-\d{2}$/.test(bis))) {
+    return json({ fehler: 'Ungültige Such- oder Filterparameter.' }, { status: 400 });
   }
+  const datumGueltig = (wert: string) => !wert || (!Number.isNaN(Date.parse(`${wert}T00:00:00Z`)) &&
+    new Date(`${wert}T00:00:00Z`).toISOString().slice(0, 10) === wert);
+  if (!datumGueltig(von) || !datumGueltig(bis) || (von && bis && von > bis)) {
+    return json({ fehler: 'Ungültiger Datumsbereich.' }, { status: 400 });
+  }
+
   const limit = 100;
-
   try {
-    const filter = { vereinId };
     const collection = db.collection('vereinskleider_verkaeufe');
-    const [gesamt, verkaeufe] = await Promise.all([
-      collection.countDocuments(filter),
-      collection.find(filter)
-        .sort({ erstelltAm: -1, _id: -1 })
-        .skip((seite - 1) * limit)
-        .limit(limit)
-        .toArray()
-    ]);
+    const rechnungsCollection = db.collection('vereinskleider_rechnungen');
+    const filter: Record<string, unknown> = { vereinId };
+    if (art !== 'alle') filter.verkaufsart = art;
+    if (riege) filter.riegen = riege;
+    if (von || bis) {
+      const bereich: Record<string, Date> = {};
+      if (von) bereich.$gte = new Date(`${von}T00:00:00.000Z`);
+      if (bis) {
+        const ende = new Date(`${bis}T00:00:00.000Z`);
+        ende.setUTCDate(ende.getUTCDate() + 1);
+        bereich.$lt = ende;
+      }
+      filter.erstelltAm = bereich;
+    }
+    if (suche) {
+      const escaped = suche.replace(/[^a-zA-Z0-9äöüÄÖÜéèàÉÈÀ\s-]/g, (zeichen) => `\\${zeichen}`);
+      const regex = new RegExp(escaped, 'i');
+      const passendeRechnungen = await rechnungsCollection.find({ vereinId, rechnungsnummer: regex })
+        .project({ verkaufId: 1 }).toArray();
+      const rechnungsVerkaufIds = passendeRechnungen.map((r) => r.verkaufId).filter((id): id is string => typeof id === 'string');
+      const sucheOder: Record<string, unknown>[] = [
+        { kaeufer: regex }, { 'positionen.artikelname': regex }, { rechnungId: { $in: [] } },
+        { _id: { $in: rechnungsVerkaufIds.filter((id) => /^[0-9a-f]{24}$/i.test(id)).map((id) => new ObjectId(id)) } }
+      ];
+      sucheOder.splice(2, 1);
+      if (/^[0-9a-f]{24}$/i.test(suche)) sucheOder.push({ _id: new ObjectId(suche) });
+      filter.$or = sucheOder;
+    }
 
-    const ids = verkaeufe.map((v) => v._id);
-    const rechnungen = ids.length
-      ? await db.collection('vereinskleider_rechnungen')
-          .find({ vereinId, verkaufId: { $in: ids.map((id) => id.toString()) } })
-          .project({ verkaufId: 1, rechnungsnummer: 1, status: 1, gesamtbetrag: 1,
-            bezahltBetrag: 1, gutgeschriebenBetrag: 1, rueckerstattungOffen: 1 })
-          .toArray()
-      : [];
-    const rechnungenNachVerkauf = new Map(rechnungen.map((r) => [String(r.verkaufId), {
-      _id: r._id.toString(), rechnungsnummer: r.rechnungsnummer, status: r.status,
-      gesamtbetrag: r.gesamtbetrag, bezahltBetrag: r.bezahltBetrag,
-      gutgeschriebenBetrag: r.gutgeschriebenBetrag,
-      rueckerstattungOffen: r.rueckerstattungOffen
-    }]));
-
-    return json({
-      verkaeufe: verkaeufe.map((v) => ({
+    // Zahlungsstatus wird anhand des aktuellen Rechnungsstands ermittelt.
+    // Die Aggregation vermeidet falsche Treffer nach Gutschriften/Stornierungen.
+    const pipeline: Record<string, unknown>[] = [
+      { $match: filter },
+      { $lookup: {
+        from: 'vereinskleider_rechnungen',
+        let: { verkaufSchluessel: { $toString: '$_id' }, verein: '$vereinId' },
+        pipeline: [
+          { $match: { $expr: { $and: [
+            { $eq: ['$verkaufId', '$$verkaufSchluessel'] }, { $eq: ['$vereinId', '$$verein'] }
+          ] } } },
+          { $project: { rechnungsnummer: 1, status: 1, gesamtbetrag: 1, bezahltBetrag: 1,
+            gutgeschriebenBetrag: 1, rueckerstattungOffen: 1 } },
+          { $limit: 1 }
+        ], as: 'rechnungsTreffer'
+      } },
+      { $set: { rechnung: { $arrayElemAt: ['$rechnungsTreffer', 0] } } },
+      { $set: {
+        nettoFilter: { $max: [0, { $subtract: [
+          { $ifNull: ['$rechnung.gesamtbetrag', '$endbetrag'] },
+          { $ifNull: ['$rechnung.gutgeschriebenBetrag', 0] }
+        ] }] },
+        bezahltFilter: { $ifNull: ['$rechnung.bezahltBetrag', { $ifNull: ['$bezahltBetrag', 0] }] }
+      } }
+    ];
+    if (zahlung === 'gutschrift') pipeline.push({ $match: { 'rechnung.gutgeschriebenBetrag': { $gt: 0 } } });
+    if (zahlung === 'bezahlt') pipeline.push({ $match: { $expr: { $lte: [
+      { $subtract: ['$nettoFilter', '$bezahltFilter'] }, 0.005
+    ] } } });
+    if (zahlung === 'offen') pipeline.push({ $match: { $expr: { $gt: [
+      { $subtract: ['$nettoFilter', '$bezahltFilter'] }, 0.005
+    ] } } });
+    pipeline.push({ $facet: {
+      eintraege: [
+        { $sort: { erstelltAm: -1, _id: -1 } },
+        { $skip: (seite - 1) * limit }, { $limit: limit },
+        { $project: { rechnungsTreffer: 0, nettoFilter: 0, bezahltFilter: 0 } }
+      ],
+      zaehler: [{ $count: 'anzahl' }]
+    } });
+    const [resultat] = await collection.aggregate<{
+      eintraege: Record<string, unknown>[];
+      zaehler: { anzahl: number }[];
+    }>(pipeline).toArray();
+    const gesamt = resultat?.zaehler?.[0]?.anzahl ?? 0;
+    const verkaeufe = (resultat?.eintraege ?? []).map((v) => {
+      const rechnung = v.rechnung as Record<string, unknown> | undefined;
+      return {
         ...v,
-        _id: v._id.toString(),
-        rechnung: rechnungenNachVerkauf.get(v._id.toString()) ?? null
-      })),
-      seite,
-      proSeite: limit,
-      gesamt,
-      seiten: Math.ceil(gesamt / limit)
+        _id: String(v._id),
+        rechnung: rechnung ? { ...rechnung, _id: String(rechnung._id) } : null
+      };
     });
+    return json({ verkaeufe, seite, proSeite: limit, gesamt, seiten: Math.ceil(gesamt / limit) });
   } catch (error) {
     console.error('Fehler beim Laden der Verkaufshistorie:', error);
     return json({ fehler: 'Verkaufshistorie konnte nicht geladen werden.' }, { status: 500 });

@@ -11,7 +11,23 @@
     positionsbetrag?: number;
     verkaufsart?: string;
   };
+  type Groesse = { _id: string; bezeichnung: string };
   type Rabatt = { name?: string; betrag?: number };
+  type Gutschrift = {
+    _id: string;
+    rechnungId: string;
+    gutschriftnummer: string;
+    artikelname: string;
+    menge: number;
+    betrag: number;
+    grund: string;
+    erstelltAm: string;
+  };
+  type GutschriftenAntwort = {
+    gutschriften?: Gutschrift[];
+    begrenzt?: boolean;
+    fehler?: string;
+  };
   type Rechnung = {
     _id: string;
     rechnungsnummer?: string;
@@ -39,7 +55,7 @@
     positionen?: Position[];
     rabatte?: Rabatt[];
     rechnung?: Rechnung | null;
-    stornierungen?: Array<{ menge?: number; grund?: string; datum?: string; erstelltAm?: string }>;
+    stornierungen?: Array<{ menge?: number; grund?: string; datum?: string; erstelltAm?: string; storniertAm?: string }>;
   };
   type Antwort = {
     verkaeufe?: Verkauf[];
@@ -50,6 +66,10 @@
   };
 
   let verkaeufe = $state<Verkauf[]>([]);
+  let groessen = $state<Groesse[]>([]);
+  let gutschriften = $state<Gutschrift[]>([]);
+  let gutschriftenBegrenzt = $state(false);
+  let gutschriftenFehler = $state('');
   let laden = $state(true);
   let fehler = $state('');
   let seite = $state(1);
@@ -59,7 +79,20 @@
   let art = $state('alle');
   let zahlung = $state('alle');
   let offen = $state<string[]>([]);
+  let riege = $state('');
+  let von = $state('');
+  let bis = $state('');
+  let filterAktiv = $state(false);
 
+  const groessenName = (id: string | null | undefined) =>
+    !id ? "–" : groessen.find((g) => g._id === id)?.bezeichnung ?? "Unbekannte Grösse";
+  const gutschriftenZu = (rechnungId: string | undefined) =>
+    rechnungId ? gutschriften.filter((g) => g.rechnungId === rechnungId) : [];
+  const rechnungsstatus = (wert: string | undefined) =>
+    wert === 'teilweise_bezahlt' ? 'Teilweise bezahlt'
+    : wert === 'bezahlt' ? 'Bezahlt'
+    : wert === 'storniert' ? 'Storniert'
+    : wert === 'offen' ? 'Offen' : (wert || '–');
   const chf = (wert: number | undefined) =>
     new Intl.NumberFormat('de-CH', { style: 'currency', currency: 'CHF' }).format(Number(wert ?? 0));
   const datum = (wert: string | undefined) =>
@@ -74,24 +107,45 @@
     : Number(v.rechnung?.gutgeschriebenBetrag ?? 0) > 0 ? 'Gutschrift vorhanden'
     : offenBetrag(v) <= 0.005 ? 'Bezahlt' : bezahlt(v) > 0 ? 'Teilweise bezahlt' : 'Offen';
 
-  let sichtbar = $derived(verkaeufe.filter((v) => {
-    const s = suche.trim().toLocaleLowerCase('de-CH');
-    const passtSuche = !s || [v.kaeufer, v._id, v.rechnung?.rechnungsnummer,
-      ...(v.positionen ?? []).map((p) => p.artikelname)]
-      .some((x) => String(x ?? '').toLocaleLowerCase('de-CH').includes(s));
-    const passtArt = art === 'alle' || v.verkaufsart === art;
-    const passtZahlung = zahlung === 'alle'
-      || (zahlung === 'bezahlt' && offenBetrag(v) <= 0.005)
-      || (zahlung === 'offen' && offenBetrag(v) > 0.005)
-      || (zahlung === 'gutschrift' && Number(v.rechnung?.gutgeschriebenBetrag ?? 0) > 0);
-    return passtSuche && passtArt && passtZahlung;
-  }));
+  // Die Daten sind bereits vollständig auf dem Server gefiltert.
+  let sichtbar = $derived(verkaeufe);
+
+  function parameter(gewSeite: number) {
+    const params = new URLSearchParams({ seite: String(gewSeite) });
+    if (suche.trim()) params.set('suche', suche.trim());
+    if (art !== 'alle') params.set('art', art);
+    if (zahlung !== 'alle') params.set('zahlung', zahlung);
+    if (riege.trim()) params.set('riege', riege.trim());
+    if (von) params.set('von', von);
+    if (bis) params.set('bis', bis);
+    return params;
+  }
+
+  function filterAnwenden() {
+    if (von && bis && von > bis) {
+      fehler = 'Das Startdatum darf nicht nach dem Enddatum liegen.';
+      return;
+    }
+    filterAktiv = true;
+    void lade(1);
+  }
+
+  function filterZuruecksetzen() {
+    suche = '';
+    art = 'alle';
+    zahlung = 'alle';
+    riege = '';
+    von = '';
+    bis = '';
+    filterAktiv = false;
+    void lade(1);
+  }
 
   async function lade(gewSeite: number) {
     laden = true;
     fehler = '';
     try {
-      const antwort = await fetch(`/api/vereinskleider?seite=${gewSeite}`);
+      const antwort = await fetch(`/api/vereinskleider?${parameter(gewSeite).toString()}`);
       const daten: Antwort = await antwort.json();
       if (!antwort.ok) throw new Error(daten.fehler || 'Verkäufe konnten nicht geladen werden.');
       verkaeufe = daten.verkaeufe ?? [];
@@ -106,11 +160,47 @@
     }
   }
 
+  async function ladeGutschriften() {
+    gutschriftenFehler = '';
+    try {
+      const antwort = await fetch('/api/vereinskleider/stornierungen');
+      const daten: GutschriftenAntwort = await antwort.json();
+      if (!antwort.ok) throw new Error(daten.fehler || 'Gutschriften konnten nicht geladen werden.');
+      gutschriften = daten.gutschriften ?? [];
+      gutschriftenBegrenzt = daten.begrenzt ?? false;
+    } catch (e) {
+      gutschriftenFehler = e instanceof Error ? e.message : 'Gutschriften konnten nicht geladen werden.';
+    }
+  }
+
+  function aktualisieren() {
+    void lade(seite);
+    void ladeGutschriften();
+  }
+
   function details(id: string) {
     offen = offen.includes(id) ? offen.filter((x) => x !== id) : [...offen, id];
   }
 
-  onMount(() => { void lade(1); });
+  onMount(() => {
+    void lade(1);
+    void ladeGutschriften();
+    void (async () => {
+      try {
+        const antwort = await fetch("/api/groessen");
+        if (!antwort.ok) return;
+        const daten: unknown = await antwort.json();
+        if (Array.isArray(daten)) {
+          groessen = daten.filter((g): g is Groesse =>
+            typeof g === "object" && g !== null &&
+            typeof g._id === "string" && typeof g.bezeichnung === "string"
+          );
+        }
+      } catch {
+        // Die Verkaufshistorie bleibt auch bei einem Fehler der Grössenabfrage nutzbar.
+      }
+    })();
+  });
 </script>
 
 <svelte:head>
@@ -125,12 +215,12 @@
       <h1>Verkaufshistorie</h1>
       <p>Alle erfassten Vereinskleiderverkäufe und Bestellungen nachvollziehen.</p>
     </div>
-    <button class="sekundaer" onclick={() => lade(seite)} disabled={laden}>Aktualisieren</button>
+    <button class="sekundaer" onclick={aktualisieren} disabled={laden}>Aktualisieren</button>
   </header>
 
-  <section class="werkzeuge" aria-label="Verkäufe filtern">
+  <form class="werkzeuge" aria-label="Verkäufe filtern" onsubmit={(event) => { event.preventDefault(); filterAnwenden(); }}>
     <label>Suche
-      <input type="search" bind:value={suche} placeholder="Mitglied, Artikel, Rechnungsnummer …" />
+      <input type="search" bind:value={suche} maxlength="120" placeholder="Mitglied, Artikel, Rechnungsnummer …" />
     </label>
     <label>Verkaufsart
       <select bind:value={art}>
@@ -148,15 +238,34 @@
         <option value="gutschrift">Mit Gutschrift</option>
       </select>
     </label>
-  </section>
+    <label>Riege (genaue Bezeichnung)
+      <input type="text" bind:value={riege} maxlength="100" placeholder="z. B. Aktivriege" />
+    </label>
+    <label>Von
+      <input type="date" bind:value={von} max={bis || undefined} />
+    </label>
+    <label>Bis
+      <input type="date" bind:value={bis} min={von || undefined} />
+    </label>
+    <div class="filteraktionen">
+      <button class="sekundaer" type="submit" disabled={laden}>Filter anwenden</button>
+      <button class="sekundaer" type="button" onclick={filterZuruecksetzen} disabled={laden}>Zurücksetzen</button>
+    </div>
+  </form>
 
   {#if fehler}
     <div class="meldung fehler" role="alert">{fehler}</div>
   {/if}
+  {#if gutschriftenFehler}
+    <div class="meldung fehler" role="alert">Gutschriften: {gutschriftenFehler}</div>
+  {/if}
+  {#if gutschriftenBegrenzt}
+    <p class="hinweis">Es werden maximal 1000 Gutschriften geladen. Ältere Einträge sind möglicherweise nicht in dieser Ansicht enthalten.</p>
+  {/if}
   {#if laden}
     <p class="meldung">Verkäufe werden geladen …</p>
   {:else if sichtbar.length === 0}
-    <p class="meldung">Keine passenden Verkäufe auf dieser Seite gefunden.</p>
+    <p class="meldung">Keine passenden Verkäufe gefunden.</p>
   {:else}
     <div class="tabellenrahmen">
       <table>
@@ -197,12 +306,12 @@
                     <p><strong>Verkaufs-ID:</strong> {v._id} · <strong>Bestellstatus:</strong> {v.status || '–'} · <strong>Zahlungsart:</strong> {v.zahlungsart || '–'}</p>
                     <div class="positionen">
                       <table>
-                        <thead><tr><th>Artikel</th><th>Grösse-ID</th><th>Art</th><th class="rechts">Menge</th><th class="rechts">Einzelpreis</th><th class="rechts">Total</th></tr></thead>
+                        <thead><tr><th>Artikel</th><th>Grösse</th><th>Art</th><th class="rechts">Menge</th><th class="rechts">Einzelpreis</th><th class="rechts">Total</th></tr></thead>
                         <tbody>
                           {#each v.positionen ?? [] as p, i (i)}
                             <tr>
                               <td>{p.artikelname || p.artikelId || '–'}{#if Number(p.storniertMenge ?? 0) > 0}<small>Storniert: {p.storniertMenge}</small>{/if}</td>
-                              <td>{p.groesseId || '–'}</td>
+                              <td>{groessenName(p.groesseId)}</td>
                               <td>{artName(p.verkaufsart)}</td>
                               <td class="rechts">{p.menge ?? 0}</td>
                               <td class="rechts">{chf(p.einzelpreis)}</td>
@@ -232,7 +341,7 @@
                     {#if (v.stornierungen ?? []).length > 0}
                       <h3>Stornierungen</h3>
                       {#each v.stornierungen ?? [] as s, i (i)}
-                        <p>{s.menge ?? 0} Stück · {s.grund || 'Keine Begründung'} · {datum(s.datum ?? s.erstelltAm)}</p>
+                        <p>{s.menge ?? 0} Stück · {s.grund || 'Keine Begründung'} · {datum(s.storniertAm ?? s.datum ?? s.erstelltAm)}</p>
                       {/each}
                     {/if}
                     {#if v.bemerkung}<p><strong>Bemerkung:</strong> {v.bemerkung}</p>{/if}
@@ -247,13 +356,13 @@
   {/if}
 
   <footer class="seitenwahl">
-    <span>{gesamt} Verkäufe insgesamt · Seite {seite} von {Math.max(1, seiten)}</span>
+    <span>{gesamt} {filterAktiv ? 'Treffer' : 'Verkäufe insgesamt'} · Seite {seite} von {Math.max(1, seiten)}</span>
     <div>
       <button class="sekundaer" disabled={laden || seite <= 1} onclick={() => lade(seite - 1)}>Zurück</button>
       <button class="sekundaer" disabled={laden || seite >= seiten} onclick={() => lade(seite + 1)}>Weiter</button>
     </div>
   </footer>
-  <p class="hinweis">Suche und Filter gelten für die aktuell geladene Seite (maximal 100 Verkäufe).</p>
+  <p class="hinweis">Suche und Filter werden über alle Verkäufe ausgeführt. Pro Seite werden maximal 100 Treffer angezeigt. Änderungen an den Filtern mit «Filter anwenden» bestätigen.</p>
 </main>
 
 <style>
@@ -262,7 +371,7 @@
   .kopf,.detailkopf,.seitenwahl{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
   h1{font-size:1.8rem;margin:0 0 .35rem}h2{font-size:1.15rem;margin:0}h3{font-size:1rem;margin:.8rem 0}
   .kopf p,.hinweis{color:#697586;font-size:.9rem;margin:.25rem 0}
-  .werkzeuge{display:grid;grid-template-columns:minmax(230px,2fr) repeat(2,minmax(160px,1fr));gap:1rem;margin:1.5rem 0}
+  .werkzeuge{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:1rem;margin:1.5rem 0}.filteraktionen{display:flex;align-items:end;gap:.6rem;flex-wrap:wrap}
   label{display:flex;flex-direction:column;gap:.35rem;font-size:.88rem;font-weight:600}
   input,select{width:100%;padding:.7rem;border:1px solid #cbd5e1;border-radius:8px;background:var(--background,#fff);color:inherit;font:inherit}
   button{cursor:pointer;font:inherit}.sekundaer{border:1px solid #cbd5e1;background:transparent;color:inherit;border-radius:8px;padding:.6rem .9rem}

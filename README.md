@@ -4,14 +4,14 @@
 
 | Angabe | Inhalt |
 |---|---|
-| Projekttitel | ClubMatiq – Digitale Material- und Inventarverwaltung für Vereine |
-| Verfasser/in | Jennifer Mentner – **WIN-03-23HS-TZDSRH** |
-| GitHub-Repository | **https://github.com/JenSusann/ClubMatiq** |
-| Aktuelle App | Noch nicht öffentlich bereitgestellt; derzeit lokale Entwicklungsumgebung |
-| Getestete Version | Lokaler Entwicklungsstand vom 11. November 2026; **[Commit/Tag nach dem Push ergänzen]** |
-| Testzugänge | Registrierung und Anmeldung implementiert; separate Testzugänge für Dozierende vor der Abgabe sicher bereitstellen |
-| Figma / Referenz-Mockup | **[Link ergänzen, sobald vorhanden]** |
-| Weitere Artefakte [Optional] | **[Links zu Abgaben, Skizzen, User Journey Map und Projektunterlagen ergänzen]** |
+| Projekttitel | ClubMatiq – Digitale Material-, Inventar- und Vereinskleiderverwaltung |
+| Verfasser/in | Jennifer Mentner, WIN-03-23HS-TZDSRH *(Angabe aus bisheriger README; vor Abgabe prüfen)* |
+| GitHub-Repository | https://github.com/JenSusann/ClubMatiq |
+| Aktuelle App | **Noch ergänzen:** öffentlich erreichbare Deployment-URL; aus dem Repository allein nicht verifiziert |
+| Getestete Version | **Noch ergänzen:** URL der separat deployten Testversion und Commit/Tag. Dokumentationsbasis: [`9f2e7bc`](https://github.com/JenSusann/ClubMatiq/commit/9f2e7bc816b91b1f3878c4c269f2403f143fc4f9), 17.11.2026; dies ist **kein Nachweis einer getesteten Version**. |
+| Testzugänge | **Noch ergänzen:** Bereitstellungsweg für eigens angelegte Testkonten je Rolle; keine Passwörter im öffentlichen Repository |
+| Figma / Referenz-Mockup | **Noch ergänzen:** direkter Link zum Referenz-Mockup |
+| Weitere Artefakte [Optional] | [Crazy 8s](docs/images/crazy8s.png) · [User Journey Map](docs/images/user-journey.png) · [GitHub Issues](https://github.com/JenSusann/ClubMatiq/issues) |
 
 > **Zugriff:** Vor der Abgabe sicherstellen, dass die Dozierenden auf Repository, App und verlinkte Artefakte zugreifen können.
 
