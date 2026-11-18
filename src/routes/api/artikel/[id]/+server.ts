@@ -134,6 +134,7 @@ export const PATCH: RequestHandler = async ({
     einzelwert,
     beschreibung,
     hatGroessen,
+    istVereinskleidung,
     varianten,
     mindestbestand
   } = daten;
@@ -173,6 +174,9 @@ export const PATCH: RequestHandler = async ({
     );
   }
 
+  if (istVereinskleidung !== undefined && typeof istVereinskleidung !== 'boolean') {
+    return json({ fehler: 'Ungültige Vereinskleider-Kennzeichnung.' }, { status: 400 });
+  }
   if (
     typeof hatGroessen !== 'boolean' ||
     (beschreibung !== undefined &&
@@ -405,6 +409,7 @@ export const PATCH: RequestHandler = async ({
               $set: {
                 name: name.trim(),
                 kategorieId,
+                ...(istVereinskleidung !== undefined ? { istVereinskleidung } : {}),
                 lagerortId,
                 // Bei älteren Clients ohne Feld bleibt die Zuordnung unverändert.
                 ...(lieferantId !== undefined

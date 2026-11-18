@@ -53,7 +53,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   const eingabe = daten as Record<string, unknown>;
   const {
     name, kategorieId, lagerortId, menge, einzelwert,
-    beschreibung, hatGroessen, varianten, lieferantId, mindestbestand
+    beschreibung, hatGroessen, varianten, lieferantId, mindestbestand, istVereinskleidung
   } = eingabe;
 
   // ========================================
@@ -72,6 +72,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     return json({ fehler: 'Bitte einen gültigen Einzelwert eingeben.' }, { status: 400 });
   }
 
+  if (istVereinskleidung !== undefined && typeof istVereinskleidung !== 'boolean') {
+    return json({ fehler: 'Ungültige Vereinskleider-Kennzeichnung.' }, { status: 400 });
+  }
   if (typeof hatGroessen !== 'boolean') {
     return json({ fehler: 'Ungültige Angabe zu Grössenvarianten.' }, { status: 400 });
   }
@@ -171,6 +174,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       einzelwert: hatGroessen ? 0 : einzelwert,
       beschreibung: (beschreibung ?? '').toString().trim(),
       hatGroessen,
+      istVereinskleidung: istVereinskleidung === true,
       erstelltAm: new Date()
     });
 

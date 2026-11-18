@@ -128,8 +128,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       for (const position of eingabe.positionen) {
         const artikel = await artikelCollection.findOne({ _id: new ObjectId(position.artikelId), vereinId }, { session });
         if (!artikel) throw new Verkaufsfehler('Ein Artikel wurde nicht gefunden.', 404);
-        const kategorie = await db.collection('kategorien').findOne({ _id: new ObjectId(artikel.kategorieId), vereinId }, { session });
-        if (!kategorie || kategorie.name.trim().toLowerCase() !== 'vereinskleider') {
+        if (artikel.istVereinskleidung !== true) {
           throw new Verkaufsfehler('Ein Artikel gehört nicht zu den Vereinskleidern.');
         }
         if (artikel.hatGroessen !== (position.groesseId !== null)) {
