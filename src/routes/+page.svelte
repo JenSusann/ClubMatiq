@@ -1,125 +1,42 @@
 <script lang="ts">
-  import { invalidate } from '$app/navigation';
   import type { PageData } from './$types';
-  import { verwendeRollenVorschau, type Rolle } from '../lib/rollenVorschau.svelte';
-
   let { data }: { data: PageData } = $props();
-  const rollenVorschau = verwendeRollenVorschau();
-  const echteRolle: Rolle = $derived(data.rolle);
-  const angezeigteRolle = $derived(echteRolle === 'admin' ? rollenVorschau.rolle : echteRolle);
-  let wirdAktualisiert = $state(false);
-
-  const funktionen: { titel: string; beschreibung: string; icon: string; link: string; rollen: Rolle[] }[] = [
-    { titel: 'Inventar-Dashboard', beschreibung: 'Bestände, Materialien und Lagerorte suchen und verwalten', icon: '📦', link: '/inventar', rollen: ['admin', 'materialverantwortlich', 'leiter', 'mitglied'] },
-    { titel: 'QR-Code', beschreibung: 'Material über QR-Code aufrufen', icon: '📱', link: '/qr-code', rollen: ['admin', 'materialverantwortlich', 'leiter', 'mitglied'] },
-    { titel: 'Materialausleihe', beschreibung: 'Material ausleihen und zurückgeben', icon: '🔄', link: '/ausleihen', rollen: ['admin', 'materialverantwortlich', 'leiter'] },
-    { titel: 'Vereinskleider', beschreibung: 'Kleiderverkäufe und Rechnungen verwalten', icon: '👕', link: '/vereinskleider', rollen: ['admin', 'materialverantwortlich'] },
-    { titel: 'Inventur', beschreibung: 'Bestände kontrollieren und korrigieren', icon: '📋', link: '/inventur', rollen: ['admin', 'materialverantwortlich'] },
-    { titel: 'Inventarbewertung', beschreibung: 'Inventarwerte für die Buchhaltung berechnen', icon: '💰', link: '/inventarbewertung', rollen: ['admin', 'materialverantwortlich'] },
-    { titel: 'Schadensmeldungen', beschreibung: 'Schäden und Materialbedarf melden', icon: '🔧', link: '/meldungen', rollen: ['admin', 'materialverantwortlich', 'leiter', 'mitglied'] },
-    { titel: 'Benutzerverwaltung', beschreibung: 'Benutzer einladen und Vereinsmitglieder verwalten', icon: '👥', link: '/benutzer', rollen: ['admin'] }
+  const funktionen = [
+    { icon:'📦', titel:'Inventarverwaltung', text:'Material, Bestände, Lagerorte und Mindestbestände im Blick.' },
+    { icon:'🔄', titel:'Materialausleihe', text:'Ausleihen und Rückgaben übersichtlich organisieren.' },
+    { icon:'👕', titel:'Vereinskleider', text:'Grössen, Verkäufe und Bestellungen verwalten.' },
+    { icon:'📋', titel:'Inventur & Bewertung', text:'Bestände kontrollieren und Inventarwerte auswerten.' },
+    { icon:'🔧', titel:'Schadensmeldungen', text:'Materialschäden einfach erfassen und bearbeiten.' },
+    { icon:'👥', titel:'Vereinsorganisation', text:'Rollen, Stammdaten und ClubDesk-Mitgliederimport.' }
   ];
-
-  const sichtbareFunktionen = $derived(funktionen.filter((f) => f.rollen.includes(angezeigteRolle)));
-  const darfAusleihenSehen = $derived(angezeigteRolle !== 'mitglied');
-  const darfBestellungenSehen = $derived(angezeigteRolle === 'admin' || angezeigteRolle === 'materialverantwortlich');
-
-  const kennzahlKarten = $derived([
-    { titel: 'Artikel', wert: data.kennzahlen?.artikel, zusatz: 'Erfasste Inventarartikel', link: '/inventar', sichtbar: true },
-    { titel: 'Verfügbarer Bestand', wert: data.kennzahlen?.bestand, zusatz: 'Stück im Inventar', link: '/inventar', sichtbar: true },
-    { titel: 'Offene Ausleihen', wert: data.kennzahlen?.ausleihen, zusatz: 'Noch nicht abgeschlossene Ausleihen', link: '/ausleihen', sichtbar: darfAusleihenSehen },
-    { titel: 'Offene Schadensmeldungen', wert: data.kennzahlen?.meldungen, zusatz: darfBestellungenSehen ? 'Offen oder in Bearbeitung' : 'Eigene offene Meldungen', link: '/meldungen', sichtbar: true },
-    { titel: 'Unter Mindestbestand', wert: data.kennzahlen?.unterMindestbestand, zusatz: 'Artikel mit unterschrittener Warnschwelle', link: '/inventar?mindestbestand=1', sichtbar: true },
-    { titel: 'Offene Kleiderbestellungen', wert: data.kennzahlen?.bestellungen, zusatz: 'Noch nicht vollständig übergebene Bestellpositionen', link: '/vereinskleider/bestellungen', sichtbar: darfBestellungenSehen }
-  ].filter((k) => k.sichtbar));
-
-  async function aktualisieren() {
-    wirdAktualisiert = true;
-    try { await invalidate('clubmatiq:dashboard'); }
-    finally { wirdAktualisiert = false; }
-  }
 </script>
-
-<svelte:head><title>Dashboard – ClubMatiq</title></svelte:head>
-
+<svelte:head>
+  <title>ClubMatiq – Digitale Materialverwaltung für Vereine</title>
+  <meta name="description" content="ClubMatiq unterstützt Vereine bei Inventar, Materialausleihe, Vereinskleidern und Inventur." />
+</svelte:head>
 <main>
-  <div class="welcome">
-    <h1>Willkommen bei ClubMatiq</h1>
-    <p>Was möchtest du heute erledigen?</p>
-  </div>
-
-  {#if data.kennzahlen || data.kennzahlenFehler}
-    <section class="uebersicht" aria-label="Vereinskennzahlen">
-      <div class="bereich-kopf">
-        <div><h2>Vereinsübersicht</h2><p>Aktuelle Zahlen deines Vereins</p></div>
-        <button onclick={aktualisieren} disabled={wirdAktualisiert}>
-          {wirdAktualisiert ? 'Aktualisiere ...' : '↻ Aktualisieren'}
-        </button>
+  <section class="hero">
+    <div class="hero-inner">
+      <span class="eyebrow">DIGITALE VEREINSVERWALTUNG</span>
+      <h1>Dein Verein.<br /><span>Dein Material.</span><br />Alles im Blick.</h1>
+      <p>Weniger Tabellen, mehr Überblick: Verwalte Inventar, Materialausleihen, Vereinskleider und Bestände an einem zentralen Ort.</p>
+      <div class="aktionen">
+        <a class="primaer" href={data.angemeldet ? '/dashboard' : '/registrieren'}>{data.angemeldet ? 'Zum Dashboard' : 'Verein registrieren'} →</a>
+        <a class="sekundaer" href="/docs">Dokumentation entdecken</a>
       </div>
-      {#if data.kennzahlenFehler}
-        <p class="fehler" role="alert">{data.kennzahlenFehler}</p>
-      {:else}
-        <div class="kennzahlen-grid">
-          {#each kennzahlKarten as k (k.titel)}
-            <a class="kennzahl" href={k.link}>
-              <span>{k.titel}</span>
-              <strong>{k.wert ?? '–'}</strong>
-              <small>{k.zusatz}</small>
-              <span class="mehr">Zur Übersicht →</span>
-            </a>
-          {/each}
-        </div>
-        {#if data.kennzahlen?.artikel === 0}
-          <p class="leer">Noch keine Inventarartikel vorhanden. Erfasse deinen ersten Artikel in der Inventarverwaltung.</p>
-        {/if}
-        <p class="hinweis">Die Kacheln führen zu den bestehenden Übersichten. Dort kannst du die entsprechenden Einträge prüfen.</p>
-      {/if}
-    </section>
-  {/if}
-
-  <section aria-label="Funktionen">
-    <h2 class="funktionen-titel">Schnellzugriffe</h2>
-    <div class="kachel-grid">
-      {#each sichtbareFunktionen as funktion (funktion.link)}
-        <a href={funktion.link} class="kachel">
-          <div class="icon">{funktion.icon}</div>
-          <h3>{funktion.titel}</h3>
-          <p>{funktion.beschreibung}</p>
-          <span class="pfeil">→</span>
-        </a>
-      {/each}
+      <div class="merkmale"><span>✓ Vereinsbezogene Daten</span><span>✓ Rollen & Berechtigungen</span><span>✓ Übersichtliche Abläufe</span></div>
+    </div>
+    <div class="vorschau" aria-label="Beispielhafte Funktionsübersicht">
+      <div class="vorschau-kopf"><strong>📦 ClubMatiq</strong><span>Vereinsübersicht</span></div>
+      <div class="mini-grid"><div><span>📦</span><strong>Inventar</strong><small>Bestände verwalten</small></div><div><span>🔄</span><strong>Ausleihen</strong><small>Material verfolgen</small></div><div><span>👕</span><strong>Vereinskleider</strong><small>Grössen & Bestellungen</small></div><div><span>📋</span><strong>Inventur</strong><small>Bestände prüfen</small></div></div>
+      <p>Eine Anwendung für die wichtigsten Materialprozesse deines Vereins.</p>
     </div>
   </section>
+  <section class="bereich" id="funktionen"><div class="einleitung"><span class="eyebrow dunkel">FUNKTIONEN</span><h2>Alles, was dein Verein für die Materialverwaltung braucht</h2><p>Von der Erfassung bis zur Inventur – ClubMatiq verbindet die wichtigsten Abläufe.</p></div>
+    <div class="karten">{#each funktionen as funktion}<article class="karte"><div class="symbol">{funktion.icon}</div><h3>{funktion.titel}</h3><p>{funktion.text}</p></article>{/each}</div>
+  </section>
+  <section class="cta"><div><h2>Neu bei ClubMatiq?</h2><p>In unserem Hilfe-Center findest du Anleitungen für die ersten Schritte und alle wichtigen Funktionen.</p></div><a href="/docs">Zum Hilfe-Center →</a></section>
 </main>
-
 <style>
-  main { max-width:1200px; margin:40px auto; padding:20px; }
-  .welcome { margin-bottom:30px; }
-  h1 { font-size:32px; color:#172b4d; margin-bottom:10px; }
-  .welcome p { color:#64748b; font-size:16px; }
-  .uebersicht { margin-bottom:35px; }
-  .bereich-kopf { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:18px; }
-  .bereich-kopf h2,.funktionen-titel { color:#172b4d; font-size:21px; margin:0 0 7px; }
-  .bereich-kopf p { margin:0; color:#64748b; font-size:14px; }
-  .bereich-kopf button { padding:10px 15px; border-radius:8px; border:1px solid #cbd5e1; background:white; color:#172b4d; font:inherit; cursor:pointer; }
-  .bereich-kopf button:disabled { opacity:.6; cursor:wait; }
-  .kennzahlen-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
-  .kennzahl { display:flex; flex-direction:column; gap:8px; background:white; border:1px solid #e2e8f0; border-radius:12px; padding:20px; text-decoration:none; color:#172b4d; }
-  .kennzahl:hover,.kachel:hover { border-color:#2563eb; box-shadow:0 8px 25px rgba(0,0,0,.08); }
-  .kennzahl>span:first-child { font-size:14px; color:#64748b; }
-  .kennzahl strong { font-size:30px; }
-  .kennzahl small { color:#64748b; font-size:12px; }
-  .kennzahl .mehr { color:#2563eb; font-size:12px; font-weight:600; margin-top:auto; }
-  .hinweis,.leer { font-size:13px; color:#64748b; margin:14px 0 0; }
-  .fehler { padding:16px; border-radius:8px; background:#fee2e2; color:#991b1b; }
-  .funktionen-titel { margin-bottom:18px; }
-  .kachel-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; }
-  .kachel { position:relative; display:block; min-height:175px; padding:24px; background:white; border:1px solid #e2e8f0; border-radius:14px; text-decoration:none; color:#1e293b; transition:.2s; }
-  .kachel:hover { transform:translateY(-4px); }
-  .icon { display:inline-flex; padding:12px; background:#eff6ff; border-radius:10px; font-size:26px; }
-  h3 { font-size:18px; margin:18px 0 8px; }
-  .kachel p { font-size:14px; color:#64748b; line-height:1.5; }
-  .pfeil { position:absolute; right:20px; bottom:16px; font-size:22px; color:#2563eb; }
-  @media (max-width:1000px) { .kachel-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .kennzahlen-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-  @media (max-width:600px) { main { margin:20px auto; padding:12px; } .kachel-grid,.kennzahlen-grid { grid-template-columns:1fr; } .bereich-kopf { align-items:flex-start; flex-direction:column; } }
+  main{max-width:1250px;margin:auto;padding:22px 20px 65px;color:#172b4d}.hero{display:grid;grid-template-columns:1.15fr 1fr;align-items:center;gap:55px;padding:75px 10px 95px}.eyebrow{font-size:12px;letter-spacing:.14em;font-weight:800;color:#60a5fa}.eyebrow.dunkel{color:#2563eb}h1{font-size:clamp(42px,5vw,70px);line-height:1.09;letter-spacing:-.045em;margin:18px 0 24px}h1 span{color:#2563eb}.hero-inner>p{font-size:18px;color:#64748b;line-height:1.7;max-width:540px}.aktionen{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}.aktionen a,.cta a{padding:15px 20px;border-radius:11px;text-decoration:none;font-weight:700}.primaer,.cta a{background:#2563eb;color:white}.sekundaer{border:1px solid #cbd5e1;color:#172b4d;background:white}.merkmale{display:flex;flex-wrap:wrap;gap:15px;margin-top:28px;font-size:12px;color:#64748b}.vorschau{background:white;border:1px solid #e2e8f0;border-radius:24px;padding:25px;box-shadow:0 22px 65px #172b4d15;transform:rotate(1deg)}.vorschau-kopf{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #e2e8f0;padding-bottom:20px}.vorschau-kopf span{font-size:13px;color:#64748b}.mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px;margin:20px 0}.mini-grid div{display:flex;flex-direction:column;gap:9px;background:#f1f5f9;padding:20px;border-radius:14px}.mini-grid span{font-size:27px}.mini-grid small,.vorschau>p{color:#64748b}.vorschau>p{font-size:13px}.bereich{padding:35px 0}.einleitung{text-align:center;max-width:680px;margin:0 auto 36px}h2{font-size:clamp(28px,3vw,38px);letter-spacing:-.025em}.einleitung p,.karte p,.cta p{color:#64748b;line-height:1.6}.karten{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.karte{background:white;border:1px solid #e2e8f0;border-radius:16px;padding:25px}.symbol{font-size:30px;background:#eff6ff;display:inline-flex;padding:12px;border-radius:12px}.karte h3{margin:18px 0 8px}.karte p{font-size:14px;margin:0}.cta{background:#eaf2ff;border-radius:20px;padding:35px;display:flex;align-items:center;justify-content:space-between;gap:25px;margin-top:55px}.cta h2{margin:0}.cta p{margin-bottom:0}.cta a{white-space:nowrap}@media(max-width:850px){.hero{grid-template-columns:1fr;padding:35px 0 60px;gap:35px}.vorschau{transform:none}.karten{grid-template-columns:repeat(2,1fr)}}@media(max-width:580px){.karten{grid-template-columns:1fr}.cta{flex-direction:column;align-items:flex-start}.mini-grid div{padding:13px}}
 </style>

@@ -13,6 +13,7 @@ export type Berechtigung =
   | 'inventur:zaehlen'
   | 'rabatte:verwalten'
   | 'verkauf:verwalten'
+  | 'mitglieder:verwalten'
   | 'inventur:abschliessen';
 
 const rollenBerechtigungen: Record<
@@ -31,6 +32,7 @@ const rollenBerechtigungen: Record<
     'inventur:zaehlen',
     'inventur:abschliessen',
     'rabatte:verwalten',
+    'mitglieder:verwalten',
     'verkauf:verwalten',
   ],
 
