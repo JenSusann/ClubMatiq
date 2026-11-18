@@ -32,6 +32,7 @@
     mindestbestand?: number;
     beschreibung: string;
     hatGroessen: boolean;
+    istVereinskleidung?: boolean;
     varianten: Variante[];
   };
 
@@ -48,6 +49,7 @@
   let einzelwert = $state(0);
   let beschreibung = $state('');
   let hatGroessen = $state(false);
+  let istVereinskleidung = $state(false);
 
   let groessenBestaende = $state<Record<string, number>>({});
   let groessenEinzelwerte = $state<Record<string, number>>({});
@@ -156,6 +158,7 @@
       einzelwert = artikel.einzelwert;
       beschreibung = artikel.beschreibung ?? '';
       hatGroessen = artikel.hatGroessen;
+      istVereinskleidung = artikel.istVereinskleidung === true;
 
       groessenBestaende = Object.fromEntries(
         groessen.map((groesse) => [groesse._id, 0])
@@ -265,6 +268,7 @@
           einzelwert: hatGroessen ? 0 : Number(einzelwert),
           beschreibung,
           hatGroessen,
+          istVereinskleidung,
           varianten
         })
       });
@@ -361,6 +365,11 @@
 
       <section class="bereich">
         <h2>Bestand und Inventarwert</h2>
+
+        <label class="checkbox-zeile">
+          <input type="checkbox" bind:checked={istVereinskleidung} />
+          Vereinskleidung (im Verkauf verfügbar)
+        </label>
 
         {#if hatGroessen}
           <p>
