@@ -3,8 +3,8 @@ import { ObjectId } from 'mongodb';
 import { redirect } from '@sveltejs/kit';
 import { db } from './lib/server/mongodb';
 
-const oeffentlicheSeiten = new Set(['/', '/anmelden', '/registrieren', '/funktionen']);
-const oeffentlicheAPIs = new Set(['/api/anmelden', '/api/registrieren']);
+const oeffentlicheSeiten = new Set(['/', '/anmelden', '/registrieren', '/funktionen', '/einladung']);
+const oeffentlicheAPIs = new Set(['/api/anmelden', '/api/registrieren', '/api/einladung']);
 
 type ClubMatiqEvent = {
   url: URL;
