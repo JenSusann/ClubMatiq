@@ -8,6 +8,7 @@ type Variante = {
   groesseId: string;
   menge: number;
   einzelwert: number;
+  mindestbestand: number;
 };
 
 // ========================================
@@ -52,7 +53,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   const eingabe = daten as Record<string, unknown>;
   const {
     name, kategorieId, lagerortId, menge, einzelwert,
-    beschreibung, hatGroessen, varianten, lieferantId
+    beschreibung, hatGroessen, varianten, lieferantId, mindestbestand
   } = eingabe;
 
   // ========================================
@@ -88,6 +89,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     return json({ fehler: 'Bitte einen gültigen Lieferanten wählen.' }, { status: 400 });
   }
 
+  if (typeof mindestbestand !== 'number' || !Number.isSafeInteger(mindestbestand) || mindestbestand < 0) {
+    return json({ fehler: 'Ungültiger Mindestbestand.' }, { status: 400 });
+  }
+
   // ========================================
   // Bestand und Grössen prüfen
   // ========================================
@@ -104,7 +109,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           typeof variante.groesseId !== 'string' || !ObjectId.isValid(variante.groesseId) ||
           typeof variante.menge !== 'number' || !Number.isInteger(variante.menge) || variante.menge < 0 ||
           typeof variante.einzelwert !== 'number' || !Number.isFinite(variante.einzelwert) ||
-          variante.einzelwert < 0) {
+          variante.einzelwert < 0 ||
+          typeof variante.mindestbestand !== 'number' || !Number.isSafeInteger(variante.mindestbestand) || variante.mindestbestand < 0) {
         return json({ fehler: 'Ungültige Grössenbestände oder Einzelwerte.' }, { status: 400 });
       }
     }
@@ -161,6 +167,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       lagerortId,
       lieferantId: normalisierteLieferantId,
       menge: gesamtmenge,
+      mindestbestand: hatGroessen ? 0 : mindestbestand,
       einzelwert: hatGroessen ? 0 : einzelwert,
       beschreibung: (beschreibung ?? '').toString().trim(),
       hatGroessen,
@@ -178,6 +185,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             artikelId: ergebnis.insertedId.toString(),
             groesseId: variante.groesseId,
             menge: variante.menge,
+            mindestbestand: variante.mindestbestand,
             einzelwert: variante.einzelwert
           }))
         );

@@ -16,8 +16,6 @@
   let kategorien = $state<Stammdatum[]>([]);
   let lagerorte = $state<Stammdatum[]>([]);
   let groessen = $state<Groesse[]>([]);
-  let lieferanten = $state<Stammdatum[]>([]);
-  let lieferantId = $state('');
   let ausgewaehlteGroessen = $state<string[]>([]);
 
   let aktiveGroessen = $derived(
@@ -28,6 +26,8 @@
   let kategorieId = $state('');
   let lagerortId = $state('');
   let menge = $state(0);
+  let mindestbestand = $state(0);
+  let groessenMindestbestaende = $state<Record<string, number>>({});
   let einzelwert = $state(0);
   let beschreibung = $state('');
   let hatGroessen = $state(false);
@@ -105,22 +105,20 @@
       const antworten = await Promise.all([
         fetch('/api/kategorien'),
         fetch('/api/lagerorte'),
-        fetch('/api/groessen'),
-        fetch('/api/lieferanten')
+        fetch('/api/groessen')
       ]);
 
       if (antworten.some((antwort) => !antwort.ok)) {
         throw new Error('Stammdaten konnten nicht geladen werden.');
       }
 
-      const [k, l, g, lie] = await Promise.all(
+      const [k, l, g] = await Promise.all(
         antworten.map((antwort) => antwort.json())
       );
 
       kategorien = k;
       lagerorte = l;
       groessen = g;
-      lieferanten = Array.isArray(lie) ? lie : lie.lieferanten ?? [];
 
       groessenBestaende = Object.fromEntries(
         groessen.map((groesse) => [groesse._id, 0])
@@ -190,12 +188,19 @@
       }
     }
 
+    if (!Number.isInteger(mindestbestand) || mindestbestand < 0 ||
+      aktiveGroessen.some((g) => !Number.isInteger(groessenMindestbestaende[g._id] ?? 0) || (groessenMindestbestaende[g._id] ?? 0) < 0)) {
+      fehlermeldung = 'Mindestbestände müssen ganze Zahlen ab 0 sein.';
+      return;
+    }
+
     wirdGespeichert = true;
 
     try {
       const varianten = hatGroessen
         ? aktiveGroessen.map((groesse) => ({
             groesseId: groesse._id,
+            mindestbestand: Number(groessenMindestbestaende[groesse._id] ?? 0),
             menge: Number(
               groessenBestaende[groesse._id] ?? 0
             ),
@@ -214,8 +219,8 @@
           name: name.trim(),
           kategorieId,
           lagerortId,
-          lieferantId: lieferantId || null,
           menge: gesamtmenge,
+          mindestbestand: hatGroessen ? 0 : Number(mindestbestand),
           einzelwert: hatGroessen ? 0 : Number(einzelwert),
           beschreibung,
           hatGroessen,
@@ -239,6 +244,8 @@
       kategorieId = '';
       lagerortId = '';
       menge = 0;
+      mindestbestand = 0;
+      groessenMindestbestaende = {};
       einzelwert = 0;
       standardEinzelwert = 0;
       beschreibung = '';
@@ -331,19 +338,6 @@
         </div>
 
         <div class="feld">
-          <label for="lieferant">Standardlieferant (optional)</label>
-          <select id="lieferant" bind:value={lieferantId}>
-            <option value="">Kein Lieferant zugeordnet</option>
-            {#each lieferanten as lieferant (lieferant._id)}
-              <option value={lieferant._id}>{lieferant.name}</option>
-            {/each}
-          </select>
-          {#if lieferanten.length === 0}
-            <p>Es sind noch keine Lieferanten erfasst. <a href="/stammdaten/lieferanten">Lieferanten verwalten</a></p>
-          {/if}
-        </div>
-
-        <div class="feld">
           <label for="beschreibung">Beschreibung</label>
           <textarea
             id="beschreibung"
@@ -422,6 +416,7 @@
                 <tr>
                   <th>Grösse</th>
                   <th>Bestand</th>
+                  <th>Mindestbestand</th>
                   <th>Einzelwert (CHF)</th>
                   <th>Gesamtwert (CHF)</th>
                 </tr>
@@ -441,6 +436,13 @@
                         step="1"
                         aria-label="Bestand {groesse.bezeichnung}"
                         bind:value={groessenBestaende[groesse._id]}
+                      />
+                    </td>
+
+                    <td>
+                      <input type="number" min="0" step="1"
+                        aria-label="Mindestbestand {groesse.bezeichnung}"
+                        bind:value={groessenMindestbestaende[groesse._id]}
                       />
                     </td>
 
@@ -489,6 +491,10 @@
                 bind:value={einzelwert}
               />
             </div>
+          </div>
+          <div class="feld">
+            <label for="mindestbestand">Mindestbestand (0 = keine Warnung)</label>
+            <input id="mindestbestand" type="number" min="0" step="1" bind:value={mindestbestand} />
           </div>
         {/if}
 

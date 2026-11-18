@@ -18,6 +18,7 @@
     groesseId: string;
     menge: number;
     einzelwert: number;
+    mindestbestand?: number;
     aktiv?: boolean;
   };
 
@@ -26,9 +27,9 @@
     name: string;
     kategorieId: string;
     lagerortId: string;
-    lieferantId?: string | null;
     menge: number;
     einzelwert: number;
+    mindestbestand?: number;
     beschreibung: string;
     hatGroessen: boolean;
     varianten: Variante[];
@@ -36,14 +37,14 @@
 
   let kategorien = $state<Stammdatum[]>([]);
   let lagerorte = $state<Stammdatum[]>([]);
-  let lieferanten = $state<Stammdatum[]>([]);
   let groessen = $state<Groesse[]>([]);
 
   let name = $state('');
   let kategorieId = $state('');
   let lagerortId = $state('');
-  let lieferantId = $state('');
   let menge = $state(0);
+  let mindestbestand = $state(0);
+  let groessenMindestbestaende = $state<Record<string, number>>({});
   let einzelwert = $state(0);
   let beschreibung = $state('');
   let hatGroessen = $state(false);
@@ -132,7 +133,6 @@
         fetch('/api/kategorien'),
         fetch('/api/lagerorte'),
         fetch('/api/groessen'),
-        fetch('/api/lieferanten'),
         fetch(`/api/artikel/${artikelId}`)
       ]);
 
@@ -140,22 +140,19 @@
         throw new Error('Artikeldaten konnten nicht geladen werden.');
       }
 
-    const [k, l, g, lieferantenAntwort, artikel] = await Promise.all(
+    const [k, l, g, artikel] = await Promise.all(
         antworten.map((antwort) => antwort.json())
-    ) as [Stammdatum[], Stammdatum[], Groesse[], Stammdatum[] | { lieferanten: Stammdatum[] }, Artikel];
+    ) as [Stammdatum[], Stammdatum[], Groesse[], Artikel];
 
       kategorien = k;
       lagerorte = l;
       groessen = g;
-      lieferanten = Array.isArray(lieferantenAntwort)
-        ? lieferantenAntwort
-        : lieferantenAntwort.lieferanten;
 
       name = artikel.name;
       kategorieId = artikel.kategorieId;
       lagerortId = artikel.lagerortId;
-      lieferantId = artikel.lieferantId ?? '';
       menge = artikel.menge;
+      mindestbestand = artikel.mindestbestand ?? 0;
       einzelwert = artikel.einzelwert;
       beschreibung = artikel.beschreibung ?? '';
       hatGroessen = artikel.hatGroessen;
@@ -174,6 +171,7 @@
 
       for (const variante of artikel.varianten) {
         groessenBestaende[variante.groesseId] = variante.menge;
+        groessenMindestbestaende[variante.groesseId] = variante.mindestbestand ?? 0;
         groessenEinzelwerte[variante.groesseId] =
           variante.einzelwert;
       }
@@ -236,9 +234,16 @@
     wirdGespeichert = true;
 
     try {
+      if (!Number.isInteger(mindestbestand) || mindestbestand < 0 ||
+        aktiveGroessen.some((g) => !Number.isInteger(groessenMindestbestaende[g._id] ?? 0) || (groessenMindestbestaende[g._id] ?? 0) < 0)) {
+        fehlermeldung = 'Mindestbestände müssen ganze Zahlen ab 0 sein.';
+        return;
+      }
+
       const varianten = hatGroessen
         ? aktiveGroessen.map((groesse) => ({
             groesseId: groesse._id,
+            mindestbestand: Number(groessenMindestbestaende[groesse._id] ?? 0),
             menge: Number(groessenBestaende[groesse._id] ?? 0),
             einzelwert: Number(
               groessenEinzelwerte[groesse._id] ?? 0
@@ -255,8 +260,8 @@
           name: name.trim(),
           kategorieId,
           lagerortId,
-          lieferantId: lieferantId || null,
           menge: gesamtmenge,
+          mindestbestand: hatGroessen ? 0 : Number(mindestbestand),
           einzelwert: hatGroessen ? 0 : Number(einzelwert),
           beschreibung,
           hatGroessen,
@@ -345,19 +350,6 @@
         </div>
 
         <div class="feld">
-          <label for="lieferant">Standardlieferant</label>
-          <select id="lieferant" bind:value={lieferantId} disabled={wirdGespeichert}>
-            <option value="">Kein Lieferant zugeordnet</option>
-            {#each lieferanten as lieferant (lieferant._id)}
-              <option value={lieferant._id}>{lieferant.name}</option>
-            {/each}
-          </select>
-          {#if lieferanten.length === 0}
-            <p class="hinweis">Noch keine Lieferanten vorhanden. <a href="/stammdaten/lieferanten">Lieferanten verwalten</a></p>
-          {/if}
-        </div>
-
-        <div class="feld">
           <label for="beschreibung">Beschreibung</label>
           <textarea
             id="beschreibung"
@@ -422,6 +414,7 @@
                 <tr>
                   <th>Grösse</th>
                   <th>Bestand</th>
+                  <th>Mindestbestand</th>
                   <th>Einzelwert (CHF)</th>
                   <th>Gesamtwert (CHF)</th>
                 </tr>
@@ -439,6 +432,13 @@
                         step="1"
                         aria-label="Bestand {groesse.bezeichnung}"
                         bind:value={groessenBestaende[groesse._id]}
+                      />
+                    </td>
+
+                    <td>
+                      <input type="number" min="0" step="1"
+                        aria-label="Mindestbestand {groesse.bezeichnung}"
+                        bind:value={groessenMindestbestaende[groesse._id]}
                       />
                     </td>
 
@@ -486,6 +486,10 @@
                 bind:value={einzelwert}
               />
             </div>
+          </div>
+          <div class="feld">
+            <label for="mindestbestand">Mindestbestand (0 = keine Warnung)</label>
+            <input id="mindestbestand" type="number" min="0" step="1" bind:value={mindestbestand} />
           </div>
         {/if}
 
@@ -563,12 +567,6 @@
     font: inherit;
     width: 100%;
     box-sizing: border-box;
-  }
-
-  .hinweis {
-    color: #64748b;
-    font-size: 14px;
-    margin: 0;
   }
 
   .zweispaltig {

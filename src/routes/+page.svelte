@@ -29,7 +29,7 @@
     { titel: 'Verfügbarer Bestand', wert: data.kennzahlen?.bestand, zusatz: 'Stück im Inventar', link: '/inventar', sichtbar: true },
     { titel: 'Offene Ausleihen', wert: data.kennzahlen?.ausleihen, zusatz: 'Noch nicht abgeschlossene Ausleihen', link: '/ausleihen', sichtbar: darfAusleihenSehen },
     { titel: 'Offene Schadensmeldungen', wert: data.kennzahlen?.meldungen, zusatz: darfBestellungenSehen ? 'Offen oder in Bearbeitung' : 'Eigene offene Meldungen', link: '/meldungen', sichtbar: true },
-    { titel: 'Unter Mindestbestand', wert: data.kennzahlen?.unterMindestbestand, zusatz: 'Artikel mit definiertem Mindestbestand', link: '/inventar', sichtbar: true },
+    { titel: 'Unter Mindestbestand', wert: data.kennzahlen?.unterMindestbestand, zusatz: 'Artikel mit unterschrittener Warnschwelle', link: '/inventar?mindestbestand=1', sichtbar: true },
     { titel: 'Offene Kleiderbestellungen', wert: data.kennzahlen?.bestellungen, zusatz: 'Noch nicht vollständig übergebene Bestellpositionen', link: '/vereinskleider/bestellungen', sichtbar: darfBestellungenSehen }
   ].filter((k) => k.sichtbar));
 
@@ -45,6 +45,7 @@
 <main>
   <div class="welcome">
     <h1>Willkommen bei ClubMatiq</h1>
+    <p>Was möchtest du heute erledigen?</p>
   </div>
 
   {#if data.kennzahlen || data.kennzahlenFehler}

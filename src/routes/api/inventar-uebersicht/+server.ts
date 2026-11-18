@@ -44,7 +44,9 @@ export const GET: RequestHandler = async ({ locals }) => {
           sortierung: groessenNamen.get(v.groesseId)?.sortierung ?? 9999,
           menge: v.menge ?? 0,
           einzelwert: preisVorhanden(v.einzelwert) ? v.einzelwert : 0,
-          preisFehlt: !preisVorhanden(v.einzelwert)
+          preisFehlt: !preisVorhanden(v.einzelwert),
+          mindestbestand: Number.isSafeInteger(v.mindestbestand) && v.mindestbestand > 0 ? v.mindestbestand : 0,
+          unterMindestbestand: v.aktiv !== false && Number.isSafeInteger(v.mindestbestand) && v.mindestbestand > 0 && v.menge < v.mindestbestand
         }))
         .sort((a, b) => a.sortierung - b.sortierung);
 
@@ -71,6 +73,10 @@ export const GET: RequestHandler = async ({ locals }) => {
         beschreibung: eintrag.beschreibung ?? '',
         hatGroessen: eintrag.hatGroessen,
         gesamtmenge,
+        mindestbestand: Number.isSafeInteger(eintrag.mindestbestand) && eintrag.mindestbestand > 0 ? eintrag.mindestbestand : 0,
+        unterMindestbestand: eintrag.hatGroessen
+          ? artikelVarianten.some((v) => v.unterMindestbestand)
+          : Number.isSafeInteger(eintrag.mindestbestand) && eintrag.mindestbestand > 0 && gesamtmenge < eintrag.mindestbestand,
         inventarwert,
         einzelwert,
         preisFehlt,

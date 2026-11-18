@@ -14,6 +14,8 @@
     sortierung: number;
     menge: number;
     einzelwert: number;
+    mindestbestand?: number;
+    unterMindestbestand?: boolean;
   };
   type Artikel = {
     _id: string;
@@ -25,6 +27,8 @@
     beschreibung: string;
     hatGroessen: boolean;
     gesamtmenge: number;
+    mindestbestand?: number;
+    unterMindestbestand?: boolean;
     inventarwert: number;
     einzelwert: number;
     varianten: Variante[];
@@ -37,6 +41,7 @@
   let suche = $state('');
   let kategorieFilter = $state('');
   let lagerortFilter = $state('');
+  let nurUnterMindestbestand = $state(false);
   let ausgeklappteArtikel = $state<string[]>([]);
   let wirdGeladen = $state(true);
   let fehlermeldung = $state('');
@@ -62,7 +67,7 @@
       ].some((wert) => wert.toLocaleLowerCase('de-CH').includes(suchtext));
       const passtZurKategorie = !kategorieFilter || a.kategorie === kategorieFilter;
       const passtZumLagerort = !lagerortFilter || a.lagerort === lagerortFilter;
-      return passtZurSuche && passtZurKategorie && passtZumLagerort;
+      return passtZurSuche && passtZurKategorie && passtZumLagerort && (!nurUnterMindestbestand || a.unterMindestbestand === true);
     })
   );
 
@@ -136,7 +141,10 @@
     }
   }
 
-  onMount(() => { artikelLaden(); });
+  onMount(() => {
+    nurUnterMindestbestand = new URLSearchParams(window.location.search).get('mindestbestand') === '1';
+    artikelLaden();
+  });
 </script>
 
 <svelte:head><title>Inventarverwaltung – ClubMatiq</title></svelte:head>
@@ -198,6 +206,7 @@
         </div>
       </div>
 
+      <label class="mindest-filter"><input type="checkbox" bind:checked={nurUnterMindestbestand} /> Nur Artikel unter Mindestbestand anzeigen</label>
       <div class="tabellen-container">
         <table>
           <thead>
@@ -210,11 +219,11 @@
           <tbody>
             {#each gefilterteArtikel as a (a._id)}
               <tr>
-                <td><strong>{a.name}</strong></td>
+                <td><strong>{a.name}</strong>{#if a.unterMindestbestand}<span class="bestandswarnung">Unter Mindestbestand</span>{/if}</td>
                 <td>{a.kategorie}</td>
                 <td>{a.lagerort}</td>
                 <td>{lieferantenName(a)}</td>
-                <td>{a.gesamtmenge} Stück</td>
+                <td>{a.gesamtmenge} Stück{#if !a.hatGroessen && (a.mindestbestand ?? 0) > 0}<small>Minimum: {a.mindestbestand}</small>{/if}</td>
                 <td>CHF {formatiereCHF(a.inventarwert)}</td>
                 <td>
                   <div class="artikel-aktionen">
@@ -248,10 +257,10 @@
                             <tr><th>Grösse</th><th>Bestand</th><th>Einzelwert</th><th>Gesamtwert</th></tr>
                           </thead>
                           <tbody>
-                            {#each a.varianten.filter((variante) => variante.menge > 0) as variante (variante.groesseId)}
+                            {#each a.varianten.filter((variante) => variante.menge > 0 || variante.unterMindestbestand) as variante (variante.groesseId)}
                               <tr>
                                 <td>{variante.groesse}</td>
-                                <td>{variante.menge} Stück</td>
+                                <td>{variante.menge} Stück{#if (variante.mindestbestand ?? 0) > 0}<small>Minimum: {variante.mindestbestand}</small>{/if}{#if variante.unterMindestbestand}<span class="bestandswarnung">Zu wenig Bestand</span>{/if}</td>
                                 <td>CHF {formatiereCHF(variante.einzelwert)}</td>
                                 <td>CHF {formatiereCHF(variante.menge * variante.einzelwert)}</td>
                               </tr>
@@ -324,6 +333,10 @@
   .varianten-tabelle { max-width:700px; background:white; }
   .varianten-tabelle th { background:#e2e8f0; }
   .kein-bestand { color:#64748b; font-style:italic; }
+  .mindest-filter { display:flex; gap:10px; align-items:center; margin:0 0 20px; }
+  .mindest-filter input { width:auto; }
+  .bestandswarnung { display:block; color:#b45309; font-size:12px; font-weight:700; margin-top:5px; }
+  td small { display:block; color:#64748b; }
   .leer { text-align:center; padding:30px; color:#64748b; }
   .meldung { padding:12px; border-radius:8px; margin-bottom:20px; }
   .fehler { background:#fee2e2; color:#991b1b; }

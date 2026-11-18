@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
   try {
     const [artikel, varianten, ausleihen, meldungen, verkaufe] = await Promise.all([
       db.collection('artikel').find({ vereinId }, { projection: { _id: 1, menge: 1, hatGroessen: 1, mindestbestand: 1, mindestBestand: 1 } }).toArray(),
-      db.collection('artikelvarianten').find({ vereinId }, { projection: { artikelId: 1, menge: 1 } }).toArray(),
+      db.collection('artikelvarianten').find({ vereinId }, { projection: { artikelId: 1, menge: 1, mindestbestand: 1, aktiv: 1 } }).toArray(),
       darfAusleihenSehen
         ? db.collection('ausleihen').find({ vereinId, status: 'offen' }, { projection: { _id: 1 } }).toArray()
         : Promise.resolve(null),
@@ -36,9 +36,11 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
     ]);
 
     const variantenMengen = new Map<string, number>();
+    const variantenWarnungen = new Set<string>();
     for (const variante of varianten) {
       const id = String(variante.artikelId);
       variantenMengen.set(id, (variantenMengen.get(id) ?? 0) + (Number(variante.menge) || 0));
+      if (variante.aktiv !== false && typeof variante.mindestbestand === 'number' && variante.mindestbestand > 0 && Number(variante.menge) < variante.mindestbestand) variantenWarnungen.add(id);
     }
 
     let bestand = 0;
@@ -49,7 +51,8 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
         : (Number(eintrag.menge) || 0);
       bestand += menge;
       const minimum = eintrag.mindestbestand ?? eintrag.mindestBestand;
-      if (typeof minimum === 'number' && Number.isFinite(minimum) && minimum > 0 && menge < minimum) {
+      if (eintrag.hatGroessen ? variantenWarnungen.has(eintrag._id.toString()) :
+        (typeof minimum === 'number' && Number.isFinite(minimum) && minimum > 0 && menge < minimum)) {
         unterMindestbestand++;
       }
     }

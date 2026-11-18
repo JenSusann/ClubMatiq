@@ -9,6 +9,7 @@ type Variante = {
   groesseId: string;
   menge: number;
   einzelwert: number;
+  mindestbestand: number;
 };
 
 // ========================================
@@ -69,6 +70,7 @@ export const GET: RequestHandler = async ({
         groesseId: variante.groesseId,
         menge: variante.menge,
         einzelwert: variante.einzelwert ?? 0,
+        mindestbestand: variante.mindestbestand ?? 0,
         aktiv: variante.aktiv !== false
       }))
     });
@@ -132,8 +134,13 @@ export const PATCH: RequestHandler = async ({
     einzelwert,
     beschreibung,
     hatGroessen,
-    varianten
+    varianten,
+    mindestbestand
   } = daten;
+
+  if (typeof mindestbestand !== 'number' || !Number.isSafeInteger(mindestbestand) || mindestbestand < 0) {
+    return json({ fehler: 'Ungültiger Mindestbestand.' }, { status: 400 });
+  }
 
   // Allgemeine Angaben prüfen
   if (typeof name !== 'string' || !name.trim()) {
@@ -215,7 +222,8 @@ export const PATCH: RequestHandler = async ({
         variante.menge < 0 ||
         typeof variante.einzelwert !== 'number' ||
         !Number.isFinite(variante.einzelwert) ||
-        variante.einzelwert < 0
+        variante.einzelwert < 0 ||
+        typeof variante.mindestbestand !== 'number' || !Number.isSafeInteger(variante.mindestbestand) || variante.mindestbestand < 0
       ) {
         return json(
           {
@@ -403,6 +411,7 @@ export const PATCH: RequestHandler = async ({
                   ? { lieferantId: lieferantIdNeu || null }
                   : {}),
                 menge: gesamtmenge,
+                mindestbestand: hatGroessen ? 0 : mindestbestand,
                 einzelwert: hatGroessen ? 0 : einzelwert,
                 beschreibung: (beschreibung ?? '').trim(),
                 aktualisiertAm: new Date()
@@ -457,6 +466,7 @@ export const PATCH: RequestHandler = async ({
               {
                 $set: {
                   menge: variante.menge,
+                  mindestbestand: variante.mindestbestand,
                   einzelwert: variante.einzelwert,
                   aktiv: true
                 },
