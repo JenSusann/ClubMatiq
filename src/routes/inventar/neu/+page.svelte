@@ -31,6 +31,7 @@
   let einzelwert = $state(0);
   let beschreibung = $state('');
   let hatGroessen = $state(false);
+  let istVereinskleidung = $state(false);
 
   // Bestände und Einzelwerte pro Grösse
   let groessenBestaende = $state<Record<string, number>>({});
@@ -224,6 +225,7 @@
           einzelwert: hatGroessen ? 0 : Number(einzelwert),
           beschreibung,
           hatGroessen,
+          istVereinskleidung,
           varianten
         })
       });
@@ -250,6 +252,7 @@
       standardEinzelwert = 0;
       beschreibung = '';
       hatGroessen = false;
+      istVereinskleidung = false;
       ausgewaehlteGroessen = [];
 
       groessenBestaende = Object.fromEntries(
@@ -350,6 +353,11 @@
 
       <section class="bereich">
         <h2>Bestand und Inventarwert</h2>
+
+        <label class="checkbox-zeile">
+          <input type="checkbox" bind:checked={istVereinskleidung} />
+          Vereinskleidung (im Verkauf verfügbar)
+        </label>
 
         <label class="checkbox-zeile">
           <input type="checkbox" bind:checked={hatGroessen} />
