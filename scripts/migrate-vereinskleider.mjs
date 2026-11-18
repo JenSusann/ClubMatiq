@@ -17,7 +17,7 @@ try {
   await client.connect();
   const db = client.db('clubmatiq');
   const kategorien = await db.collection('kategorien')
-    .find({ name: { $regex: /^\\s*vereinskleider\\s*$/i } })
+    .find({ name: { $regex: /^\s*vereinskleider\s*$/i } })
     .project({ _id: 1, vereinId: 1, name: 1 }).toArray();
   let gesamt = 0;
   for (const kategorie of kategorien) {
