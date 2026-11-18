@@ -17,6 +17,8 @@ export type Einladung = {
   erstelltAm: Date;
   ablaufdatum: Date;
   status: Einladungsstatus;
+  versendetAm?: Date;
+  resendId?: string;
 };
 
 export function erstelleEinladungstoken(): {
