@@ -1,7 +1,7 @@
 
 import adapter from '@sveltejs/adapter-netlify';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [
@@ -17,5 +17,31 @@ export default defineConfig({
       // Netlify-Adapter für das Deployment
       adapter: adapter()
     })
-  ]
+  ],
+
+  test: {
+    environment: 'node',
+
+    include: ['tests/unit/**/*.test.ts'],
+
+    coverage: {
+      provider: 'v8',
+
+      reporter: ['text', 'html', 'json-summary'],
+
+      include: [
+        'src/routes/api/**/*.ts',
+        'src/lib/server/**/*.ts',
+        'src/hooks.server.ts'
+      ],
+
+      exclude: [
+        '**/*.d.ts',
+        '**/*.test.ts',
+        '**/*.spec.ts'
+      ],
+
+      reportsDirectory: './coverage'
+    }
+  }
 });

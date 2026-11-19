@@ -113,7 +113,10 @@ Das Projekt folgt dem phasenorientierten Prototyping-Prozess. Die nachfolgenden 
   | Migration | [`scripts/migration-verein.mjs`](https://github.com/JenSusann/ClubMatiq/blob/main/scripts/migration-verein.mjs) |
 
 - **Daten & Schnittstellen:** MongoDB speichert die Anwendungsdaten. SvelteKit-Serverrouten übernehmen den Zugriff über HTTP-Endpunkte. Die API-Struktur umfasst Artikel, Kategorien, Lagerorte, Grössen, Ausleihen, Inventuren, Benutzer, Mitglieder, Lieferanten, Rabatte, Meldungen und Vereinskleiderprozesse. Authentifizierungs- und Berechtigungslogik befindet sich serverseitig. Die Cloudinary-Abhängigkeit und ein Upload-Endpunkt sind vorhanden; die konkrete Konfiguration ist für den Zielbetrieb separat zu prüfen.
-- **Deployment:** Link siehe «Aktuelle App» in der [Projektübersicht](#projektübersicht--zugänge). **Noch offen:** öffentliche URL und funktionsfähiges Deployment belegen. Das Vorhandensein eines Netlify-Adapters ist kein Nachweis für eine laufende App.
+
+**Benutzerverwaltung und E-Mail-Einladungen:** ClubMatiq unterstützt die vereinsbezogene Benutzerverwaltung mit rollenbasierten Berechtigungen. Administratoren können neue Benutzer per E-Mail einladen. Der Versand erfolgt über den externen E-Mail-Dienst Resend. Eingeladene Personen erhalten einen zeitlich begrenzten Einladungslink und können damit ihr Benutzerkonto durch Vergabe eines Passworts aktivieren. Einladungen können erneut versendet werden. Die Authentifizierung erfolgt über serverseitig verwaltete Sessions. Nach erfolgreicher Anmeldung werden Benutzer automatisch auf das Dashboard weitergeleitet. 
+
+- **Deployment:** Link siehe «Aktuelle App» in der [Projektübersicht](#projektübersicht--zugänge).
 - **Besondere Entscheidungen:** MongoDB unterstützt flexible Artikeldaten und Grössenvarianten. Die Trennung zwischen Benutzeroberfläche, API und Datenbanklogik erleichtert Erweiterungen. Für Verrechnung und Sammelbestellungen wurden eigene Prozesse eingeführt, statt sie direkt mit dem allgemeinen Inventarformular zu vermischen.
 
 **Lokale Ausführung (Entwicklungsumgebung):**
@@ -124,6 +127,11 @@ npm run dev
 npm run check
 npm run build
 ```
+
+MONGODB_URI=...
+RESEND_API_KEY=...
+RESEND_FROM_EMAIL="ClubMatiq <onboarding@resend.dev>"
+PUBLIC_APP_URL=http://localhost:5173
 
 Für die Datenbankanbindung wird eine lokale `.env` mit `MONGODB_URI` benötigt. Zusätzliche Umgebungsvariablen für aktivierte externe Dienste sind anhand des Codes und der Deployment-Konfiguration zu prüfen. Geheimnisse dürfen nicht committed werden.
 
@@ -182,11 +190,16 @@ Für die Datenbankanbindung wird eine lokale `.env` mit `MONGODB_URI` benötigt.
 - **Bezug zur Evaluation:** Nein; kein entsprechender Testnachweis vorhanden.
 
 #### 4.1.5 Anmeldung, Benutzerverwaltung und Berechtigungen
-- **Beschreibung & Nutzen:** Benutzer können sich anmelden; Einladungs- und Berechtigungslogik schaffen die Grundlage für rollenbezogenen Zugriff und eine vereinsbezogene Nutzung.
-- **Abgrenzung zum Mindestumfang:** Ergänzt die reine Fachanwendung um Benutzer- und Zugriffsverwaltung, sofern nicht bereits verpflichtend.
-- **Umsetzung:** Anmelde- und Registrierungsrouten, Benutzerverwaltung, Einladungslogik und serverseitige Berechtigungsfunktionen.
-- **Nachweise:** [Benutzerverwaltung](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/benutzer/%2Bpage.svelte) · [Berechtigungslogik](https://github.com/JenSusann/ClubMatiq/blob/main/src/lib/server/berechtigungen.ts) · [Server-Hooks](https://github.com/JenSusann/ClubMatiq/blob/main/src/hooks.server.ts) · **Screenshot und Rechte-Testprotokoll ergänzen**.
-- **Bezug zur Evaluation:** Nein; die systematische Prüfung aller Rollen und Endpunkte ist noch nachzuweisen.
+
+**Beschreibung & Nutzen:** ClubMatiq verfügt über eine vereinsbezogene Benutzerverwaltung mit Authentifizierung, rollenbasierten Berechtigungen und E-Mail-Einladungen. Neue Benutzer können durch berechtigte Personen eingeladen werden und ihr Konto selbstständig aktivieren. Dadurch wird die Benutzerverwaltung vereinfacht und der Zugriff auf Vereinsdaten kontrolliert.
+
+**Abgrenzung zum Mindestumfang:** Zusätzlich zur fachlichen Materialverwaltung wurden eine zentrale Benutzerverwaltung, serverseitige Berechtigungsprüfungen und ein vollständiger Einladungsprozess mit externem E-Mail-Versand umgesetzt.
+
+**Umsetzung:** Die Authentifizierung erfolgt über SvelteKit-API-Endpunkte und Sessions. Passwörter werden mit Argon2 gehasht. Einladungen werden über Resend versendet und über zeitlich begrenzte Tokens verarbeitet. Die Benutzerrollen und Einzelberechtigungen werden zentral verwaltet und bei geschützten API-Aufrufen geprüft.
+
+**Nachweise:** [Benutzerverwaltung](https://github.com/JenSusann/ClubMatiq/tree/main/src/routes/benutzer) · [Berechtigungslogik](https://github.com/JenSusann/ClubMatiq/blob/main/src/lib/server/berechtigungen.ts) · [Resend-Einrichtung](https://github.com/JenSusann/ClubMatiq/blob/main/docs/resend-einladungen.md) · [Pull Request #59](https://github.com/JenSusann/ClubMatiq/pull/59)
+
+**Bezug zur Evaluation:** Die Funktion wurde während der technischen Umsetzung lokal getestet. Eine separate Nutzerevaluation ist dadurch nicht ersetzt.
 
 #### 4.1.6 QR-Code, Materialsuche und Inventarbewertung
 - **Beschreibung & Nutzen:** Zusätzliche Funktionen unterstützen den schnellen Zugriff auf Materialinformationen, das Auffinden von Artikeln und die finanzielle Übersicht des Inventars.
@@ -247,38 +260,12 @@ Für die Datenbankanbindung wird eine lokale `.env` mit `MONGODB_URI` benötigt.
 
 #### 4.2.6 Rollenbasiertes Berechtigungskonzept
 
-**Beschreibung & Nutzen:** ClubMatiq verwendet ein rollenbasiertes Berechtigungskonzept (Role-Based Access Control, RBAC), um den Zugriff auf Funktionen und Vereinsdaten zu steuern. Benutzer erhalten abhängig von ihrer Rolle unterschiedliche Lese-, Bearbeitungs- und Verwaltungsrechte. Dadurch wird sichergestellt, dass beispielsweise Leitende Material ausleihen können, während die Verwaltung von Inventarbeständen und Vereinskleiderverkäufen berechtigten Personen vorbehalten bleibt.
+- **Beschreibung & Nutzen:** ClubMatiq verwendet eine rollenbasierte Zugriffskontrolle mit vier Benutzerrollen und 13 Einzelberechtigungen. Dadurch werden administrative, operative und lesende Zugriffe voneinander getrennt.
+- **Abgrenzung zum Mindestumfang:** Zusätzlich zur Benutzeranmeldung wurden zentrale Berechtigungsprüfungen, eine vereinsbezogene Datenzuordnung und eine rollenabhängige Navigation implementiert.
+- **Umsetzung:** Die Rechte werden serverseitig über eine zentrale Berechtigungsdefinition geprüft. Die Authentifizierung erfolgt über Sessions. Eine Rollenvorschau ermöglicht Administratoren, unterschiedliche Benutzeransichten zu simulieren.
+- **Nachweise:** [Benutzer- und Berechtigungskonzept](docs/architektur/ClubMatiq_Benutzer_Berechtigungskonzept.pdf) · [Berechtigungslogik](src/lib/server/berechtigungen.ts) · [Session-Verwaltung](src/hooks.server.ts).
+- **Bezug zur Evaluation:** Nein. Das Konzept entstand im Rahmen der technischen Umsetzung. Die systematische Validierung der Rollenrechte ist separat nachzuweisen.
 
-**Abgrenzung zum Mindestumfang:** Neben der Benutzeranmeldung wurde eine zentrale Berechtigungsstruktur mit vier Rollen und zwölf definierten Einzelberechtigungen implementiert. Die Berechtigungen werden nicht ausschliesslich über die Benutzeroberfläche gesteuert, sondern können auch serverseitig durch API-Endpunkte geprüft werden. Zusätzlich werden Vereinsdaten über die jeweilige Vereins-ID voneinander abgegrenzt.
-
-**Umsetzung:**
-
-Das Berechtigungskonzept umfasst vier Rollen:
-
-- **Administrator (`admin`):** Vollständiger Zugriff auf sämtliche zentral definierten Berechtigungen, einschliesslich Benutzerverwaltung.
-- **Materialverantwortliche (`materialverantwortlich`):** Verwaltung von Inventar, Stammdaten, Ausleihen, Inventuren, Rabatten und Vereinskleiderverkäufen. Keine Benutzerverwaltung.
-- **Leitende (`leiter`):** Inventar und Inventuren einsehen, Materialausleihen verwalten und bei Inventuren zählen.
-- **Mitglieder (`mitglied`):** Lesender Zugriff auf die Inventarverwaltung.
-
-Die Rechte sind zentral in `src/lib/server/berechtigungen.ts` definiert. Die Funktionen `hatBerechtigung()` und `pruefeBerechtigung()` ermöglichen eine einheitliche Überprüfung.
-
-Die Authentifizierung erfolgt über serverseitig gespeicherte Sessions. Bei jeder Anfrage wird das Session-Cookie überprüft und der zugehörige aktive Benutzer geladen. Ungültige oder abgelaufene Sessions werden nicht akzeptiert.
-
-Nicht angemeldete Benutzer werden bei geschützten Seiten zur Anmeldung weitergeleitet. API-Anfragen ohne gültige Anmeldung erhalten HTTP 401. Fehlt einem angemeldeten Benutzer die erforderliche Berechtigung, liefert die zentrale Berechtigungsprüfung HTTP 403.
-
-Die Datenzugriffe berücksichtigen die `vereinId` des angemeldeten Benutzers. Dadurch können Benutzer beispielsweise nur die Benutzerkonten ihres eigenen Vereins abrufen.
-
-Für die Benutzeroberfläche existiert zusätzlich eine Rollenvorschau, mit der Administratoren die Darstellung verschiedener Rollen simulieren können. Diese Vorschau verändert nicht die tatsächlichen serverseitigen Berechtigungen.
-
-**Nachweise:**
-
-- [Zentrale Berechtigungsdefinition](src/lib/server/berechtigungen.ts)
-- [Authentifizierung und Session-Prüfung](src/hooks.server.ts)
-- [Benutzerverwaltung](src/routes/api/benutzer/+server.ts)
-- [Benutzereinladungen](src/routes/api/benutzer/einladen/+server.ts)
-- [Rollenvorschau](src/lib/rollenVorschau.svelte.ts)
-
-**Bezug zur Evaluation:** Das Berechtigungskonzept wurde im Rahmen der technischen Umsetzung entwickelt und nicht aus einer dokumentierten Nutzerevaluation abgeleitet. Eine systematische Prüfung sämtlicher Rollen und geschützter API-Endpunkte ist separat nachzuweisen.
 
 ## 5. Projektorganisation [Optional]
 
