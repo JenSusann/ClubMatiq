@@ -141,7 +141,7 @@ describe('PATCH Sammelbestellung – Status bestellen', () => {
 });
 
 describe('PATCH Sammelbestellung – Wareneingang und Lager', () => {
-  const eingang = (p = { artikelId, groesseId: null, menge: 2 }) => ({ aktion: 'wareneingang', positionen: [p] });
+  const eingang = (p: { artikelId: string; groesseId: string | null; menge: number } = { artikelId, groesseId: null, menge: 2 }) => ({ aktion: 'wareneingang', positionen: [p] });
   it.each(['entwurf', 'geliefert'])('verbietet Wareneingang bei Status %s', async (status) => {
     mocks.sammelFindOne.mockResolvedValue(bestellung({ status }));
     await assertError(await call(eingang()), 409, 'nur für bestellte');
