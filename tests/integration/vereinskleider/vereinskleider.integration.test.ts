@@ -289,3 +289,32 @@ describe('Integration: 19-zahlung-erfassen', () => {
   });
 });
 
+
+import * as preisOffenRoute from '../../../src/routes/api/vereinskleider/preise/+server';
+
+// Issue #68: Preis-offen-Konfiguration über die echte Preis-Route mit Rollenprüfung.
+describe('Integration: Preis-offen-Einstellung Vereinskleider', () => {
+  it('speichert eine verbindlich bestellbare Position ohne definitiven Verkaufspreis', async () => {
+    mocks.findOne.mockResolvedValue({ istVereinskleidung: true, hatGroessen: false });
+    mocks.updateOne.mockResolvedValue({ acknowledged: true, modifiedCount: 1 });
+    const response = await preisOffenRoute.PUT(event('PUT', {
+      artikelId: id, groesseId: null, preistyp: 'fix',
+      druckkosten: 0, verkaufspreis: null, preisOffen: true
+    }) as never);
+    expect(response.status).toBe(200);
+    expect(mocks.updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({ vereinId, artikelId: id }),
+      expect.objectContaining({ $set: expect.objectContaining({ preisOffen: true, verkaufspreis: null }) }),
+      { upsert: true }
+    );
+  });
+
+  it('verhindert Preisänderungen durch Mitglieder', async () => {
+    const response = await preisOffenRoute.PUT(event('PUT', {
+      artikelId: id, groesseId: null, preistyp: 'fix',
+      druckkosten: 0, verkaufspreis: null, preisOffen: true
+    }, 'mitglied') as never);
+    expect(response.status).toBe(403);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+});
