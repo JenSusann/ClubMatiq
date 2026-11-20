@@ -21,7 +21,7 @@ function event(payload: unknown, ident = id, benutzer: unknown = admin) {
   return {
     params: { id: ident },
     locals: { benutzer },
-    request: new Request('http://localhost/api/vereinskleider/verrechnung/testid/pdf', { method: 'GET', ...( 'GET' === 'POST' ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) } : {} ) }),
+    request: new Request('http://localhost/api/vereinskleider/verrechnung/testid/pdf', { method: 'GET',  }),
     url: new URL('http://localhost/api/vereinskleider/verrechnung/testid/pdf')
   } as never;
 }
