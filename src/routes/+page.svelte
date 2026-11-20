@@ -7,7 +7,8 @@
     { icon:'👕', titel:'Vereinskleider', text:'Grössen, Verkäufe und Bestellungen verwalten.' },
     { icon:'📋', titel:'Inventur & Bewertung', text:'Bestände kontrollieren und Inventarwerte auswerten.' },
     { icon:'🔧', titel:'Schadensmeldungen', text:'Materialschäden einfach erfassen und bearbeiten.' },
-    { icon:'👥', titel:'Vereinsorganisation', text:'Rollen, Stammdaten und ClubDesk-Mitgliederimport.' }
+    { icon:'👥', titel:'Vereinsorganisation', text:'Rollen, Stammdaten und ClubDesk-Mitgliederimport.' },
+    { icon:'✉️', titel:'E-Mail-Versand', text:'Microsoft 365, SMTP oder Resend für den Verein einrichten und den Versand testen – nur für Administratoren.' }
   ];
 </script>
 <svelte:head>
