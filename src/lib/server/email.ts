@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import nodemailer from 'nodemailer';
+import { entschluesseln, ladeMailKonfiguration } from './mail-einstellungen';
 
 function escapeHtml(wert: string): string {
   return wert.replace(/[&<>"']/g, (zeichen) => ({
@@ -12,7 +14,28 @@ export async function versendeEinladung(daten: {
   verein: string;
   link: string;
   ablaufdatum: Date;
+  vereinId?: string;
 }): Promise<{ id: string }> {
+  const textInhalt = `Hallo ${daten.vorname},\n\nDu wurdest zu ${daten.verein} auf ClubMatiq eingeladen.\n\nRegistriere dich hier: ${daten.link}\n\nDer Link ist bis ${daten.ablaufdatum.toLocaleDateString('de-CH')} gültig.\n\nClubMatiq`;
+  const htmlInhalt = `<p>Hallo ${escapeHtml(daten.vorname)},</p><p>Du wurdest zu <strong>${escapeHtml(daten.verein)}</strong> auf ClubMatiq eingeladen.</p><p><a href="${escapeHtml(daten.link)}">Einladung annehmen</a></p><p>Gültig bis ${daten.ablaufdatum.toLocaleDateString('de-CH')}.</p><p>ClubMatiq</p>`;
+  if (daten.vereinId) {
+    const mail = await ladeMailKonfiguration(daten.vereinId);
+    if (mail.methode === 'smtp') {
+      const smtp = mail.smtp;
+      if (!smtp?.geheimnis) throw new Error('SMTP-Konfiguration unvollständig.');
+      const transport = nodemailer.createTransport({
+        host: smtp.host, port: smtp.port, secure: smtp.secure,
+        auth: { user: smtp.benutzername, pass: entschluesseln(smtp.geheimnis) },
+        connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000
+      });
+      const ergebnis = await transport.sendMail({
+        from: smtp.absender, to: daten.email,
+        subject: `Einladung zu ${daten.verein} auf ClubMatiq`,
+        text: textInhalt, html: htmlInhalt
+      });
+      return { id: ergebnis.messageId };
+    }
+  }
   const apiKey = process.env.RESEND_API_KEY;
   const absender = process.env.RESEND_FROM_EMAIL;
   if (!apiKey || !absender) {
