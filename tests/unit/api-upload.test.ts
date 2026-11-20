@@ -10,7 +10,7 @@ const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0x01]);
 const PNG = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1]);
 const WEBP = Buffer.from('RIFF1234WEBPpayload');
 const benutzer = { id: 'user-1', vereinId: 'verein-1' };
-const file = (bytes: Uint8Array, type = 'image/jpeg') => new NodeFile([bytes], 'foto.jpg', { type });
+const file = (bytes: Uint8Array, type = 'image/jpeg') => new NodeFile([Uint8Array.from(bytes)], 'foto.jpg', { type });
 const context = (foto?: unknown, user: unknown = benutzer, formError = false) => ({
   locals: { benutzer: user },
   request: { formData: formError ? vi.fn().mockRejectedValue(new Error('form')) : vi.fn().mockImplementation(async () => {
