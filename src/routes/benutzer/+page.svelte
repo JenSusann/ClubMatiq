@@ -53,6 +53,8 @@
   let startpasswort = $state('');
   let erneutSendenId = $state<string | null>(null);
   let statusAendernId = $state<string | null>(null);
+  let loeschenId = $state<string | null>(null);
+  let widerrufenId = $state<string | null>(null);
 
   // Meldungen
   let fehlermeldung = $state('');
@@ -283,6 +285,36 @@
     }
   }
 
+  async function einladungWiderrufen(einladung: Einladung) {
+    if (widerrufenId || !confirm(`Einladung für ${einladung.email} wirklich widerrufen? Der Link wird ungültig.`)) return;
+    widerrufenId = einladung.id;
+    fehlermeldung = ''; erfolgsmeldung = '';
+    try {
+      const antwort = await fetch(`/api/benutzer/einladen/${encodeURIComponent(einladung.id)}`, { method: 'DELETE' });
+      const daten = await antwort.json();
+      if (!antwort.ok) throw new Error(daten.fehler ?? 'Einladung konnte nicht widerrufen werden.');
+      erfolgsmeldung = daten.nachricht ?? 'Einladung widerrufen.';
+      await ladeEinladungen();
+    } catch (error) {
+      fehlermeldung = error instanceof Error ? error.message : 'Widerruf fehlgeschlagen.';
+    } finally { widerrufenId = null; }
+  }
+
+  async function benutzerLoeschen(person: Benutzer) {
+    if (loeschenId || !confirm(`Benutzer ${person.vorname} ${person.nachname} endgültig löschen? Dies ist nur ohne gespeicherte Vereinsdaten möglich.`)) return;
+    loeschenId = person.id;
+    fehlermeldung = ''; erfolgsmeldung = '';
+    try {
+      const antwort = await fetch(`/api/benutzer/${encodeURIComponent(person.id)}`, { method: 'DELETE' });
+      const daten = await antwort.json();
+      if (!antwort.ok) throw new Error(daten.fehler ?? 'Benutzer konnte nicht gelöscht werden.');
+      erfolgsmeldung = daten.nachricht ?? 'Benutzer gelöscht.';
+      await ladeBenutzer();
+    } catch (error) {
+      fehlermeldung = error instanceof Error ? error.message : 'Löschen fehlgeschlagen.';
+    } finally { loeschenId = null; }
+  }
+
   // Daten beim Öffnen der Seite laden
   onMount(() => {
     void ladeBenutzer();
@@ -487,6 +519,9 @@
                   <button type="button" class="sekundaer" disabled={statusAendernId !== null} onclick={() => statusAendern(person)}>
                     {statusAendernId === person.id ? 'Wird gespeichert …' : person.aktiv ? 'Deaktivieren' : 'Reaktivieren'}
                   </button>
+                  <button type="button" class="sekundaer" style="margin-left:8px" disabled={loeschenId !== null} onclick={() => benutzerLoeschen(person)}>
+                    {loeschenId === person.id ? 'Wird gelöscht …' : 'Löschen'}
+                  </button>
                 </td>
               </tr>
             {/each}
@@ -593,6 +628,11 @@
                   {#if einladung.status === 'offen'}
                     <button type="button" class="sekundaer" disabled={erneutSendenId !== null} onclick={() => erneutSenden(einladung.id)}>
                       {erneutSendenId === einladung.id ? 'Wird gesendet …' : 'Erneut senden'}
+                    </button>
+                  {/if}
+                  {#if einladung.status !== 'angenommen' && einladung.status !== 'widerrufen'}
+                    <button type="button" class="sekundaer" style="margin-left:8px" disabled={widerrufenId !== null} onclick={() => einladungWiderrufen(einladung)}>
+                      {widerrufenId === einladung.id ? 'Wird widerrufen …' : 'Widerrufen'}
                     </button>
                   {/if}
                 </td>
