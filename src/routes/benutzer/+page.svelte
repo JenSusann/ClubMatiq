@@ -54,98 +54,6 @@
   let erneutSendenId = $state<string | null>(null);
   let statusAendernId = $state<string | null>(null);
 
-  // Vereinseigene E-Mail-Konfiguration (nur Admin-Zugriff auf diese Seite)
-  let mailMethode = $state<'resend' | 'smtp' | 'microsoft365'>('resend');
-  let m365TenantId = $state('');
-  let m365ClientId = $state('');
-  let m365Absender = $state('');
-  let m365ZertifikatServerseitig = $state(false);
-  let smtpHost = $state('');
-  let smtpPort = $state(587);
-  let smtpSecure = $state(false);
-  let smtpBenutzername = $state('');
-  let smtpAbsender = $state('');
-  let smtpPasswort = $state('');
-  let smtpPasswortHinterlegt = $state(false);
-  let mailSpeichern = $state(false);
-  let mailFehler = $state('');
-  let mailErfolg = $state('');
-  let mailTesten = $state(false);
-
-  async function ladeMailEinstellungen() {
-    try {
-      const antwort = await fetch('/api/mail-einstellungen');
-      const daten = await antwort.json();
-      if (!antwort.ok) throw new Error(daten.fehler ?? 'E-Mail-Einstellungen konnten nicht geladen werden.');
-      mailMethode = daten.methode;
-      if (daten.microsoft365) {
-        m365TenantId = daten.microsoft365.tenantId;
-        m365ClientId = daten.microsoft365.clientId;
-        m365Absender = daten.microsoft365.absender;
-        m365ZertifikatServerseitig = daten.microsoft365.zertifikatServerseitig;
-      }
-      if (daten.smtp) {
-        smtpHost = daten.smtp.host;
-        smtpPort = daten.smtp.port;
-        smtpSecure = daten.smtp.secure;
-        smtpBenutzername = daten.smtp.benutzername;
-        smtpAbsender = daten.smtp.absender;
-        smtpPasswortHinterlegt = daten.smtp.passwortHinterlegt;
-      }
-    } catch (error) {
-      mailFehler = error instanceof Error ? error.message : 'E-Mail-Einstellungen konnten nicht geladen werden.';
-    }
-  }
-
-  async function speichereMailEinstellungen(event: SubmitEvent) {
-    event.preventDefault();
-    mailSpeichern = true;
-    mailFehler = '';
-    mailErfolg = '';
-    try {
-      const antwort = await fetch('/api/mail-einstellungen', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          methode: mailMethode,
-          ...(mailMethode === 'microsoft365' ? { microsoft365: {
-            tenantId: m365TenantId, clientId: m365ClientId,
-            absender: m365Absender
-          } } : {}),
-          ...(mailMethode === 'smtp' ? { smtp: {
-            host: smtpHost, port: Number(smtpPort), secure: smtpSecure,
-            benutzername: smtpBenutzername, absender: smtpAbsender, passwort: smtpPasswort
-          } } : {})
-        })
-      });
-      const daten = await antwort.json();
-      if (!antwort.ok) throw new Error(daten.fehler ?? 'Speichern fehlgeschlagen.');
-      smtpPasswort = '';
-      mailErfolg = 'E-Mail-Einstellungen gespeichert.';
-      await ladeMailEinstellungen();
-    } catch (error) {
-      mailFehler = error instanceof Error ? error.message : 'Speichern fehlgeschlagen.';
-    } finally {
-      mailSpeichern = false;
-    }
-  }
-
-  async function testeMailEinstellungen() {
-    mailTesten = true;
-    mailFehler = '';
-    mailErfolg = '';
-    try {
-      const antwort = await fetch('/api/mail-einstellungen/test', { method: 'POST' });
-      const daten = await antwort.json();
-      if (!antwort.ok) throw new Error(daten.fehler ?? 'E-Mail-Test fehlgeschlagen.');
-      mailErfolg = daten.nachricht;
-    } catch (error) {
-      mailFehler = error instanceof Error ? error.message : 'E-Mail-Test fehlgeschlagen.';
-    } finally {
-      mailTesten = false;
-    }
-  }
-
   // Meldungen
   let fehlermeldung = $state('');
   let erfolgsmeldung = $state('');
@@ -379,7 +287,6 @@
   onMount(() => {
     void ladeBenutzer();
     void ladeEinladungen();
-    void ladeMailEinstellungen();
   });
 </script>
 
@@ -415,59 +322,6 @@
       {erfolgsmeldung}
     </div>
   {/if}
-
-  <section class="karte">
-    <div class="abschnitt-titel">
-      <h2>E-Mail-Einstellungen des Vereins</h2>
-      <p class="beschreibung">Nur Administratoren können die Versandmethode konfigurieren.</p>
-    </div>
-    {#if mailFehler}<div class="meldung fehler" role="alert">{mailFehler}</div>{/if}
-    {#if mailErfolg}<div class="meldung erfolg" role="status">{mailErfolg}</div>{/if}
-    <form onsubmit={speichereMailEinstellungen}>
-      <div class="formular-raster">
-        <label>Versandmethode
-          <select bind:value={mailMethode}>
-            <option value="resend">Resend (ClubMatiq)</option>
-            <option value="smtp">Eigener SMTP-Server</option>
-            <option value="microsoft365">Microsoft 365 (Graph OAuth2)</option>
-          </select>
-        </label>
-        {#if mailMethode === 'microsoft365'}
-          <label>Tenant-ID (Entra)<input bind:value={m365TenantId} required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" /></label>
-          <label>Client-ID (App-Registrierung)<input bind:value={m365ClientId} required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" /></label>
-          <label>Absender-E-Mail<input type="email" bind:value={m365Absender} required /></label>
-          <p class="beschreibung">Zertifikat: {m365ZertifikatServerseitig ? 'Serverseitig konfiguriert' : 'Noch nicht serverseitig konfiguriert'}. Der private Schlüssel wird ausschliesslich als Server-Umgebungsvariable hinterlegt.</p>
-        {/if}
-        {#if mailMethode === 'smtp'}
-          <label>SMTP-Server<input bind:value={smtpHost} placeholder="smtp.beispiel.ch" required /></label>
-          <label>Port<input type="number" bind:value={smtpPort} min="1" max="65535" required /></label>
-          <label>Benutzername<input bind:value={smtpBenutzername} required /></label>
-          <label>Absender-E-Mail<input type="email" bind:value={smtpAbsender} required /></label>
-          <label>SMTP-Passwort<input type="password" bind:value={smtpPasswort} autocomplete="new-password" placeholder={smtpPasswortHinterlegt ? 'Leer lassen, um Passwort beizubehalten' : 'SMTP-Passwort eingeben'} required={!smtpPasswortHinterlegt} /></label>
-          <label><span>SSL/TLS direkt beim Verbindungsaufbau (typisch Port 465)</span>
-            <input type="checkbox" bind:checked={smtpSecure} />
-          </label>
-        {/if}
-      </div>
-      {#if mailMethode === 'microsoft365'}
-        <p class="beschreibung">Microsoft Entra ID: Zertifikat (öffentlicher Teil) hochladen und Exchange Online Application RBAC mit der Rolle Application Mail.Send auf das gewünschte Postfach beschränken. Keine zusätzliche tenantweite Microsoft-Graph-Mail.Send-Berechtigung freigeben. Der private Schlüssel bleibt auf dem Server.</p>
-      {/if}
-      {#if mailMethode === 'smtp'}
-        <p class="beschreibung">Port 587 verwendet normalerweise STARTTLS. Microsoft 365 kann OAuth2 erfordern; die Passwort-Anmeldung funktioniert nicht in jedem Tenant.</p>
-      {/if}
-      <div class="formular-aktionen">
-        <button class="primaer" type="submit" disabled={mailSpeichern}>{mailSpeichern ? 'Speichert …' : 'E-Mail-Einstellungen speichern'}</button>
-      </div>
-    </form>
-    {#if mailMethode === 'smtp' || mailMethode === 'microsoft365'}
-      <div class="formular-aktionen" style="margin-top: 12px">
-        <button type="button" class="sekundaer" onclick={testeMailEinstellungen} disabled={mailTesten || mailSpeichern}>
-          {mailTesten ? 'Test läuft …' : mailMethode === 'microsoft365' ? 'Microsoft-365-Testmail senden' : 'Gespeicherte SMTP-Einstellungen testen'}
-        </button>
-      </div>
-      <p class="beschreibung" style="margin-top: 8px">Der Test versendet eine E-Mail an deine eigene Benutzeradresse. Änderungen vorher speichern.</p>
-    {/if}
-  </section>
 
   <!-- Neue Einladung -->
   <section class="karte">
