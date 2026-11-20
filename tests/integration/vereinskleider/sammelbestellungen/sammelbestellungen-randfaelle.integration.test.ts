@@ -4,7 +4,7 @@ import { ObjectId } from 'mongodb';
 const h = vi.hoisted(() => ({
   rows: {} as Record<string, any[]>,
   auth: vi.fn(() => null as Response | null),
-  insert: vi.fn(async () => ({ insertedId: { toString: () => 'aaaaaaaaaaaaaaaaaaaaaaaa' } })),
+  insert: vi.fn(async (_document: any) => ({ insertedId: { toString: () => 'aaaaaaaaaaaaaaaaaaaaaaaa' } })),
 }));
 vi.mock('../../../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: h.auth }));
 vi.mock('../../../../src/lib/server/mongodb', () => ({
