@@ -25,7 +25,7 @@ describe('Microsoft 365 Zertifikatsauthentifizierung', () => {
     delete process.env.M365_CERTIFICATE_BASE64;
     delete process.env.M365_PRIVATE_KEY_BASE64;
     const fetchMock = vi.spyOn(globalThis, 'fetch');
-    await expect(versendeMicrosoft365Mail(konfiguration, nachricht)).rejects.toThrow('serverseitig');
+    await expect(versendeMicrosoft365Mail(konfiguration, nachricht)).rejects.toThrow('Microsoft-365-Zertifikat für diesen Verein fehlt.');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
