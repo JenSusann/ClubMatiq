@@ -20,6 +20,7 @@
     preistyp: 'fix' | 'variabel';
     druckkosten: number;
     verkaufspreis: number | null;
+    preisOffen?: boolean;
   };
   type Rabattregel = {
     _id: string;
@@ -49,7 +50,8 @@
     artikelId: string;
     groesseId: string | null;
     menge: number;
-    einzelpreis: number;
+    einzelpreis: number | null;
+    preisOffen?: boolean;
   };
 
   let artikel = $state<Artikel[]>([]);
@@ -124,7 +126,8 @@
   let rabattregeln = $state<Rabattregel[]>([]);
   let rabattId = $state('');
 
-  const gesamtpreis = $derived(positionen.reduce((summe, p) => summe + p.menge * p.einzelpreis, 0));
+  const gesamtpreis = $derived(positionen.reduce((summe, p) => summe + p.menge * (p.einzelpreis ?? 0), 0));
+  const hatOffenePreise = $derived(positionen.some((p) => p.preisOffen));
   const gesamtmenge = $derived(positionen.reduce((summe, p) => summe + p.menge, 0));
   const bereit = $derived(positionen.length > 0 && kaeufer.trim().length > 0);
   const rabattZahl = $derived(Number(zusaetzlicherRabatt.replace(',', '.')));
@@ -144,19 +147,19 @@
   function rappen(wert: number): number { return Math.round((wert + Number.EPSILON) * 100); }
   function rabattBerechnen(regel: Rabattregel | undefined): number {
     if (!regel) return 0;
-    const passend = positionen.filter((p) => regel.geltungsbereich === 'warenkorb' ||
+    const passend = positionen.filter((p) => p.einzelpreis !== null && (regel.geltungsbereich === 'warenkorb' ||
       (regel.geltungsbereich === 'artikel' && regel.artikelIds.includes(p.artikelId)) ||
       (regel.geltungsbereich === 'kategorie' && regel.kategorieIds.includes(
         artikel.find((a) => a._id === p.artikelId)?.kategorieId ?? ''
-      )));
+      ))));
     let restmenge = regel.maximaleMenge ?? Number.MAX_SAFE_INTEGER;
     let basis = 0;
     let fixpreisRabatt = 0;
     for (const p of passend) {
       const anzahl = Math.min(restmenge, p.menge);
-      basis += anzahl * rappen(p.einzelpreis);
+      basis += anzahl * rappen(p.einzelpreis!);
       if (regel.rabattart === 'fixpreis') {
-        fixpreisRabatt += anzahl * Math.max(0, rappen(p.einzelpreis) - rappen(regel.wert));
+        fixpreisRabatt += anzahl * Math.max(0, rappen(p.einzelpreis!) - rappen(regel.wert));
       }
       restmenge -= anzahl;
       if (restmenge === 0) break;
@@ -204,7 +207,7 @@
     )
   );
   const stueckpreis = $derived(
-    preis?.preistyp === 'fix'
+    preis?.preisOffen ? null : preis?.preistyp === 'fix'
       ? preis.verkaufspreis
       : manuellerPreis.trim() !== ''
         ? Number(manuellerPreis.replace(',', '.'))
@@ -259,7 +262,7 @@
       positionsFehler = 'Bitte eine gültige Stückzahl eingeben.';
       return;
     }
-    if (!gueltigerPreis || stueckpreis === null) {
+    if (!preis?.preisOffen && (!gueltigerPreis || stueckpreis === null)) {
       positionsFehler = 'Bitte einen gültigen Verkaufspreis mit höchstens zwei Dezimalstellen angeben.';
       return;
     }
@@ -272,12 +275,13 @@
       artikelId,
       groesseId: ausgewaehlterArtikel.hatGroessen ? groesseId : null,
       menge,
-      einzelpreis: stueckpreis
+      einzelpreis: preis?.preisOffen ? null : stueckpreis,
+      preisOffen: preis?.preisOffen === true
     };
     const index = positionen.findIndex((p) =>
       p.artikelId === neuePosition.artikelId &&
       p.groesseId === neuePosition.groesseId &&
-      p.einzelpreis === neuePosition.einzelpreis
+      p.einzelpreis === neuePosition.einzelpreis && p.preisOffen === neuePosition.preisOffen
     );
     if (index >= 0) {
       positionen = positionen.map((p, i) => i === index ? { ...p, menge: p.menge + menge } : p);
@@ -356,7 +360,7 @@
   }
 
   async function vorgangSpeichern(): Promise<void> {
-    if (speichernLaeuft || !bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0) return;
+    if (speichernLaeuft || !bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart !== 'bestellung' || rabattId !== '' || rabattZahl !== 0))) return;
     speichernLaeuft = true;
     speichernFehler = '';
     speichernErfolg = '';
@@ -371,7 +375,7 @@
           zahlungErhalten: zahlungsart !== 'rechnung' && zahlungErhalten,
           bemerkung,
           riegen,
-          positionen,
+          positionen: positionen.map((p) => p.preisOffen ? { artikelId: p.artikelId, groesseId: p.groesseId, menge: p.menge, preisOffen: true } : p),
           rabattIds: rabattId ? [rabattId] : [],
           zusaetzlicherRabatt: rabattZahl
         })
@@ -553,7 +557,7 @@
               <label for="menge">Menge</label>
               <input id="menge" type="number" min="1" step="1" bind:value={menge} />
             </div>
-            {#if preis?.preistyp === 'variabel'}
+            {#if preis?.preistyp === 'variabel' && !preis.preisOffen}
               <div>
                 <label for="preis">Verkaufspreis pro Stück (CHF)</label>
                 <input id="preis" type="text" inputmode="decimal" placeholder="Preis eingeben" bind:value={manuellerPreis} />
@@ -567,6 +571,7 @@
               <span>Noch direkt verfügbar: <strong>{verkaufbar}</strong></span>
               <span>Stückpreis: <strong>{gueltigerPreis && stueckpreis !== null ? formatCHF(stueckpreis) : 'Offen'}</strong></span>
             </div>
+            {#if preis?.preisOffen}<p class="hinweis">Verkaufspreis noch offen – nur als Bestellung erfassbar.</p>{/if}
             {#if verkaufsart === 'automatisch' && Number.isInteger(menge) && menge > 0}
               <p class="aufteilung-hinweis">Für diese Auswahl: <strong>{direktNeueMenge} direkt</strong> · <strong>{bestellNeueMenge} Bestellung</strong></p>
             {/if}
@@ -591,8 +596,8 @@
                   <button type="button" class="entfernen" onclick={() => positionEntfernen(index)} aria-label={`Position ${artikelName(p.artikelId)} entfernen`}>Entfernen</button>
                 </div>
                 <div class="positionsdetails">
-                  <span>{groesseName(p.groesseId)} · {p.menge} × {formatCHF(p.einzelpreis)}</span>
-                  <strong>{formatCHF(p.menge * p.einzelpreis)}</strong>
+                  <span>{groesseName(p.groesseId)} · {p.menge} × {p.preisOffen ? 'Preis offen' : formatCHF(p.einzelpreis ?? 0)}</span>
+                  <strong>{p.preisOffen ? 'Noch nicht verrechnet' : formatCHF(p.menge * (p.einzelpreis ?? 0))}</strong>
                 </div>
                 <div class="positions-aufteilung">
                   {#if warenkorbAufteilung[index]?.direkt}
@@ -605,6 +610,9 @@
               </div>
             {/each}
           </div>
+          {#if hatOffenePreise}
+            <p class="hinweis">Offene Preispositionen werden verbindlich bestellt und noch nicht verrechnet. Bitte «Nur Bestellung» wählen. Rabatte sind für diese Bestellungen noch nicht möglich.</p>
+          {/if}
           <div class="rabattbereich">
             <h3>Rabatt</h3>
             <label for="rabattregel">Gespeicherte Rabattregel (optional)</label>
@@ -634,7 +642,7 @@
           <div class="zeile"><span>Zwischentotal</span><strong>{formatCHF(gesamtpreis)}</strong></div>
           {#if ausgewaehlterRabatt}<div class="zeile"><span>{ausgewaehlterRabatt.name}</span><strong>− {formatCHF(regelRabatt)}</strong></div>{/if}
           {#if rabattGueltig && rabattZahl > 0}<div class="zeile"><span>Weiterer Rabatt</span><strong>− {formatCHF(rabattZahl)}</strong></div>{/if}
-          <div class="zeile gesamt"><span>Zu bezahlen</span><strong>{formatCHF(endbetrag)}</strong></div>
+          <div class="zeile gesamt"><span>{hatOffenePreise ? 'Bereits bekannter Betrag' : 'Zu bezahlen'}</span><strong>{formatCHF(endbetrag)}</strong></div>
         {/if}
         {#if verkaufsart === 'bestellung'}
           <p class="hinweis">Bei Bestellungen wird der Lagerbestand erst bei der späteren Übergabe reduziert.</p>
