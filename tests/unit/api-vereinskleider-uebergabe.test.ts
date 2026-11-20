@@ -98,8 +98,9 @@ describe('ClubMatiq Vereinskleider – Bestellübergabe', () => {
     const daten = await response.json();
     expect(daten.erfolg).toBe(true);
     expect(daten.uebergabe).toMatchObject({ vorgangId, positionsIndex: 0, uebergeben: 2, reserviert: 0, offen: 3, status: 'offen' });
-    expect(mocks.updateOne).toHaveBeenCalledWith('artikel', expect.objectContaining({ vereinId, menge: { $gte: 3 } }), expect.objectContaining({ $inc: { menge: -2 } }), expect.anything());
+    expect(mocks.updateOne).toHaveBeenCalledWith('artikel', expect.objectContaining({ vereinId, menge: { $gte: 2 } }), expect.objectContaining({ $inc: { menge: -2 } }), expect.anything());
     expect(mocks.updateOne).toHaveBeenCalledWith('vereinskleider_verkaeufe', expect.anything(), expect.objectContaining({ $set: expect.objectContaining({ 'positionen.0.uebergebenMenge': 2, status: 'offen' }) }), expect.anything());
+    expect(mocks.insertOne).toHaveBeenCalledWith('lagerbewegungen', expect.objectContaining({ art: 'verkauf', mengeDelta: -2, benutzerId: admin.id }), expect.objectContaining({ session: expect.anything() }));
     expect(mocks.endSession).toHaveBeenCalledOnce();
   });
   it('schliesst die Bestellung bei vollständiger Übergabe ab', async () => {
@@ -122,7 +123,7 @@ describe('ClubMatiq Vereinskleider – Bestellübergabe', () => {
   it('schützt fremde Reservierungen und die Anprobierreserve', async () => {
     artikel!.menge = 5;
     reservierteVorgaenge = [
-      { positionen }, { positionen: [position({ reserviertMenge: 3 })] }
+      { positionen }, { positionen: [position({ reserviertMenge: 4 })] }
     ];
     await fehlerErwarten(409, 'Nur 1 Stück');
     expect(mocks.updateOne).not.toHaveBeenCalled();
@@ -142,7 +143,7 @@ describe('ClubMatiq Vereinskleider – Bestellübergabe', () => {
     artikel!.hatGroessen = true;
     const response = await ausfuehren();
     expect(response.status).toBe(200);
-    expect(mocks.updateOne).toHaveBeenCalledWith('artikelvarianten', expect.objectContaining({ groesseId, menge: { $gte: 3 } }), { $inc: { menge: -2 } }, expect.anything());
+    expect(mocks.updateOne).toHaveBeenCalledWith('artikelvarianten', expect.objectContaining({ groesseId, menge: { $gte: 2 } }), { $inc: { menge: -2 } }, expect.anything());
     expect(mocks.updateOne).toHaveBeenCalledWith('artikel', expect.anything(), expect.objectContaining({ $inc: { menge: -2 } }), expect.anything());
   });
   it('meldet einen fehlenden Vorgang', async () => {
