@@ -4,6 +4,7 @@ import { ObjectId } from 'mongodb';
 import { db, client } from '../../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
+import { protokolliereLagerbewegung } from '../../../../../lib/server/lagerbewegungen';
 
 // ========================================
 // POST: Materialrückgabe erfassen
@@ -243,6 +244,8 @@ export const POST: RequestHandler = async ({
           );
         }
       }
+
+      await protokolliereLagerbewegung({ vereinId, artikelId: ausleihe.artikelId, groesseId: ausleihe.groesseId ?? null, art: 'rueckgabe', mengeDelta: menge, benutzerId: locals.benutzer!.id, referenzId: ausleiheId, referenzTyp: 'ausleihe' }, session);
 
       // ========================================
       // Ergebnis zurückgeben
