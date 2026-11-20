@@ -21,7 +21,7 @@ describe('P15 Sammelbestellungen Übersicht',()=>{
 });
 describe('P15 Sammelbestellungen Erstellung',()=>{
   it.each([[],Array.from({length:101},()=>pos())])('400 bei ungueltiger Positionsanzahl',async positionen=>{expect((await POST(post(positionen))).status).toBe(400);});
-  it.each<{ artikelId: string; groesseId: null; menge: number }[][]>([[pos({menge:0})],[pos({menge:10001})],[pos({artikelId:'invalid'})],[pos(),pos()]])('400 bei ungueltigen oder doppelten Positionen',async positionen=>{expect((await POST(post(positionen))).status).toBe(400);});
+  it.each([[pos({menge:0})],[pos({menge:10001})],[pos({artikelId:'invalid'})],[pos(),pos()]].map(positionen => [positionen] as const))('400 bei ungueltigen oder doppelten Positionen',async positionen=>{expect((await POST(post(positionen))).status).toBe(400);});
   it('400 bei ungueltiger Bemerkung',async()=>{expect((await POST(post([pos()],123))).status).toBe(400);});
   it('409 bei nicht mehr bestellbarem Artikel',async()=>{expect((await POST(post([pos({artikelId:A})]))).status).toBe(409);});
   it('409 bei fehlendem Standardlieferanten',async()=>{mock.data.lieferanten=[];expect((await POST(post([pos()]))).status).toBe(409);});
