@@ -29,7 +29,7 @@ type Rabattregel = {
   aktiv?: boolean;
 };
 type PositionGeprueft = Omit<PositionEingabe, 'einzelpreis'> & {
-  einzelpreis: number;
+  einzelpreis: number | null;
   artikelname: string;
   kategorieId: string;
   positionsbetrag: number;
@@ -84,7 +84,7 @@ function pruefeEingabe(daten: unknown) {
         (p.einzelpreis !== undefined && !betragGueltig(p.einzelpreis))) {
       throw new Verkaufsfehler('Eine Warenkorbposition ist ungültig.');
     }
-    positionen.push({ artikelId: p.artikelId, groesseId: p.groesseId, menge: p.menge, einzelpreis: p.einzelpreis });
+    positionen.push({ artikelId: p.artikelId, groesseId: p.groesseId, menge: p.menge, einzelpreis: p.einzelpreis, preisOffen: p.preisOffen === true });
   }
   const rabattIds = d.rabattIds ?? [];
   if (!Array.isArray(rabattIds) || rabattIds.length > 30 || !rabattIds.every(gueltigeId) ||
@@ -155,7 +155,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           if (position.einzelpreis !== undefined) {
             throw new Verkaufsfehler(`Für ${artikel.name} ist der Verkaufspreis noch offen. Ein Ersatzpreis ist nicht zulässig.`, 409);
           }
-          throw new Verkaufsfehler(`Für ${artikel.name} ist der Verkaufspreis noch offen. Die Teilzahlungs-Verrechnung ist noch nicht freigeschaltet.`, 409);
+          if (eingabe.verkaufsart !== 'bestellung') {
+            throw new Verkaufsfehler('Artikel mit offenem Preis können vorerst nur verbindlich bestellt werden.', 409);
+          }
+          const schluessel = `${position.artikelId}:${position.groesseId ?? ''}`;
+          const bisher = mengen.get(schluessel);
+          mengen.set(schluessel, { artikelId: position.artikelId, groesseId: position.groesseId,
+            menge: (bisher?.menge ?? 0) + position.menge });
+          geprueft.push({ artikelId: position.artikelId, groesseId: position.groesseId,
+            menge: position.menge, einzelpreis: null, preisOffen: true,
+            artikelname: artikel.name, kategorieId: artikel.kategorieId, positionsbetrag: 0 });
+          continue;
         }
         let einzelpreis: number;
         if (preis.preistyp === 'fix') {
@@ -189,6 +199,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         });
       }
 
+      const hatOffenePreise = geprueft.some((p) => p.preisOffen);
+      if (hatOffenePreise && (eingabe.rabattIds.length > 0 || eingabe.zusaetzlicherRabatt !== 0)) {
+        throw new Verkaufsfehler('Rabatte bei offenen Preispositionen sind noch nicht unterstützt.', 409);
+      }
       const zwischentotalRappen = geprueft.reduce((summe, p) => summe + p.positionsbetrag, 0);
       let regelRabattRappen = 0;
       const angewendeteRabatte: Array<{ rabattId: string; name: string; betrag: number }> = [];
@@ -209,18 +223,18 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           if (regel.riegen?.length && !regel.riegen.some((r: string) => eingabe.riegen.includes(r))) {
             throw new Verkaufsfehler(`Rabattregel «${regel.name}» gilt nicht für die gewählte Riege.`);
           }
-          const passend = geprueft.filter((p) =>
+          const passend = geprueft.filter((p) => p.einzelpreis !== null && (
             regel.geltungsbereich === 'warenkorb' ||
             (regel.geltungsbereich === 'artikel' && regel.artikelIds?.includes(p.artikelId)) ||
             (regel.geltungsbereich === 'kategorie' && regel.kategorieIds?.includes(p.kategorieId))
-          );
+          ));
           if (!passend.length) throw new Verkaufsfehler(`Für «${regel.name}» gibt es keine passende Position.`);
           // Maximale Menge begrenzt die Anzahl rabattierter Stücke, nicht die Warenkorbmenge.
           let restmenge: number = typeof regel.maximaleMenge === 'number' ? regel.maximaleMenge : Number.MAX_SAFE_INTEGER;
           let basis = 0;
           for (const p of passend) {
             const anzahl: number = Math.min(restmenge, p.menge);
-            basis += anzahl * geld(p.einzelpreis);
+            basis += anzahl * geld(p.einzelpreis!);
             restmenge -= anzahl;
             if (restmenge === 0) break;
           }
@@ -235,7 +249,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             restmenge = typeof regel.maximaleMenge === 'number' ? regel.maximaleMenge : Number.MAX_SAFE_INTEGER;
             for (const p of passend) {
               const anzahl: number = Math.min(restmenge, p.menge);
-              rabatt += anzahl * Math.max(0, geld(p.einzelpreis) - geld(regel.wert));
+              rabatt += anzahl * Math.max(0, geld(p.einzelpreis!) - geld(regel.wert));
               restmenge -= anzahl;
               if (restmenge === 0) break;
             }
@@ -305,10 +319,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
          verbleibendDirekt.set(schluessel, (verbleibendDirekt.get(schluessel) ?? 0) - direkt);
          const bestellt = p.menge - direkt;
          if (direkt > 0) aufgeteiltePositionen.push({
-           ...p, menge: direkt, positionsbetrag: geld(p.einzelpreis) * direkt, verkaufsart: 'direkt'
+           ...p, menge: direkt, positionsbetrag: p.einzelpreis === null ? 0 : geld(p.einzelpreis) * direkt, verkaufsart: 'direkt'
          });
          if (bestellt > 0) aufgeteiltePositionen.push({
-           ...p, menge: bestellt, positionsbetrag: geld(p.einzelpreis) * bestellt, verkaufsart: 'bestellung'
+           ...p, menge: bestellt, positionsbetrag: p.einzelpreis === null ? 0 : geld(p.einzelpreis) * bestellt, verkaufsart: 'bestellung'
          });
        }
        const direktMenge = aufgeteiltePositionen.filter((p) => p.verkaufsart === 'direkt')
@@ -322,7 +336,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       // Festpreis-Verkauf. Künftige offene Positionen bleiben explizit null.
       const zahlungsbasis = berechneZahlungsstand(
         geprueft.map((p) => ({ artikelId: p.artikelId, groesseId: p.groesseId,
-          menge: p.menge, einzelpreis: p.einzelpreis, preisOffen: false })), []
+          menge: p.menge, einzelpreis: p.einzelpreis, preisOffen: p.preisOffen === true })), []
       );
       if (Math.round(zahlungsbasis.faellig * 100) !== zwischentotalRappen) {
         throw new Verkaufsfehler('Der Warenkorbwert konnte nicht korrekt berechnet werden.');
@@ -337,12 +351,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         vereinId,
         verkaufsart: effektiveVerkaufsart,
         status: bestellMenge > 0 ? 'offen' : 'abgeschlossen',
+        preisOffen: hatOffenePreise,
+        offenePreispositionen: geprueft.filter((p) => p.preisOffen).length,
         direktMenge,
         bestellMenge,
         kaeufer: eingabe.kaeufer,
         riegen: eingabe.riegen,
         zahlungsart: eingabe.zahlungsart,
-        zahlungsstatus: bezahlt || endbetrag === 0 ? 'bezahlt' : 'offen',
+        zahlungsstatus: hatOffenePreise ? (bezahlt && endbetrag > 0 ? 'teilweise_bezahlt' : 'preis_offen') : bezahlt || endbetrag === 0 ? 'bezahlt' : 'offen',
         bezahltBetrag: bezahlt ? endbetrag : 0,
         zahlungen,
         bemerkung: eingabe.bemerkung,
@@ -352,6 +368,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         zwischentotal: zwischentotalRappen / 100,
         rabattTotal: (regelRabattRappen + zusatzRappen) / 100,
         endbetrag,
+        restbetragBekannt: bezahlt ? 0 : endbetrag,
         erstelltAm: jetzt,
         aktualisiertAm: jetzt
       };
