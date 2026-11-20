@@ -20,7 +20,7 @@ function setup(r:any=invoice(),g:any=credit()){
  m.c.vereine={findOne:vi.fn(async()=>({name:'Turnverein Test'}))};
  m.c.groessen={findOne:vi.fn(async()=>({bezeichnung:'M'})),find:vi.fn(()=>({toArray:async()=>[{_id:new ObjectId(B),bezeichnung:'M'}]}))};
 }
-async function pdf(p:Promise<Response>){const r=await p;expect(r.status).toBe(200);expect(r.headers.get('Content-Type')).toBe('application/pdf');const bytes=new Uint8Array(await r.arrayBuffer());expect(bytes.length).toBeGreaterThan(300);expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThan(0);return r;}
+async function pdf(p:Response | Promise<Response>){const r=await p;expect(r.status).toBe(200);expect(r.headers.get('Content-Type')).toBe('application/pdf');const bytes=new Uint8Array(await r.arrayBuffer());expect(bytes.length).toBeGreaterThan(300);expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThan(0);return r;}
 import * as route0 from '../../../../src/routes/api/vereinskleider/verrechnung/[id]/pdf/+server';
 
 // Ursprüngliche Datei: 40-verrechnung-pdf.integration.test.ts
