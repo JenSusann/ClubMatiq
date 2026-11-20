@@ -32,7 +32,7 @@ import { POST as uebergabePOST } from '../../../../src/routes/api/vereinskleider
 const id = 'aaaaaaaaaaaaaaaaaaaaaaaa';
 const id2 = 'bbbbbbbbbbbbbbbbbbbbbbbb';
 const uuid = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-const locals = { benutzer: { vereinId: 'verein-1' } } as any;
+const locals = { benutzer: { id: 'integration-user', vereinId: 'verein-1' } } as any;
 const req = (method: string, body: unknown) => new Request('http://localhost/api', { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 const verkauf = () => ({ kaeufer: 'Muster', positionen: [{ artikelId: id, groesseId: null, menge: 2, einzelpreis: 10, positionsbetrag: 20 }], endbetrag: 20, zwischentotal: 20, rabattTotal: 0, zahlungsart: 'rechnung' });
 const rechnung = () => ({ status: 'offen', gesamtbetrag: 20, bezahltBetrag: 0, zahlungen: [] });
