@@ -23,6 +23,7 @@ type Verkauf = Document & {
   zahlungsstatus?: string;
   bezahltBetrag?: number;
   preisOffen?: boolean;
+  trancheRechnungIds?: string[];
   zahlungen?: { betrag: number; datum: Date; zahlungsart: string }[];
   bemerkung?: string;
   positionen: Verkaufsposition[];
@@ -78,7 +79,7 @@ export const GET: RequestHandler = async ({ locals }) => {
       db.collection<Verkauf>('vereinskleider_verkaeufe')
         .find({ vereinId, rechnungId: { $exists: false } })
         .sort({ erstelltAm: -1 }).limit(1000)
-        .project<Verkauf>({ kaeufer: 1, riegen: 1, endbetrag: 1, erstelltAm: 1, zahlungsart: 1, zahlungsstatus: 1, bezahltBetrag: 1, preisOffen: 1, offenePreispositionen: 1 })
+        .project<Verkauf>({ kaeufer: 1, riegen: 1, endbetrag: 1, erstelltAm: 1, zahlungsart: 1, zahlungsstatus: 1, bezahltBetrag: 1, preisOffen: 1, offenePreispositionen: 1, trancheRechnungIds: 1 })
         .toArray()
     ]);
 
@@ -116,6 +117,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       const verkauf = await verkaeufe.findOne({ _id: new ObjectId(verkaufId), vereinId }, { session });
       if (!verkauf) throw new Rechnungsfehler('Verkauf nicht gefunden.', 404);
       if (verkauf.rechnungId) throw new Rechnungsfehler('Dieser Verkauf wurde bereits verrechnet.', 409);
+      if (Array.isArray(verkauf.trancheRechnungIds) && verkauf.trancheRechnungIds.length > 0) {
+        throw new Rechnungsfehler('Für diese Bestellung existieren bereits Teilrechnungen. Bitte weitere Tranchen erstellen.', 409);
+      }
       if (verkauf.preisOffen === true || verkauf.positionen?.some((p) => p.preisOffen === true || p.einzelpreis === null)) {
         throw new Rechnungsfehler('Die Bestellung enthält noch offene Verkaufspreise. Bitte zuerst alle Preise festlegen.', 409);
       }
@@ -189,7 +193,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         clubdeskExportStatus: 'nicht_exportiert' as const
       };
       const beansprucht = await verkaeufe.updateOne(
-        { _id: new ObjectId(verkaufId), vereinId, rechnungId: { $exists: false } },
+        { _id: new ObjectId(verkaufId), vereinId, rechnungId: { $exists: false },
+          trancheRechnungIds: { $exists: false } },
         { $set: { rechnungId: rechnungId.toString(), aktualisiertAm: jetzt } },
         { session }
       );
