@@ -50,7 +50,7 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
     const clientId = typeof wert.clientId === 'string' ? wert.clientId.trim() : '';
     const absender = typeof wert.absender === 'string' ? wert.absender.trim() : '';
     const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!guid.test(tenantId) || !guid.test(clientId) || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(absender)) return json({ fehler: 'Ungültige Microsoft-365-Einstellungen.' }, { status: 400 });
+    if (!guid.test(tenantId) || !guid.test(clientId) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(absender)) return json({ fehler: 'Ungültige Microsoft-365-Einstellungen.' }, { status: 400 });
     try {
       await vereine.updateOne(filter, { $set: { mailEinstellungen: {
         methode: 'microsoft365', microsoft365: { tenantId, clientId, absender }
