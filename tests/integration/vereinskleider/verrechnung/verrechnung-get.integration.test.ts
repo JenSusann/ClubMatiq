@@ -38,7 +38,7 @@ describe('Verrechnung GET – Grenzwerte und Fehlerzweige', () => {
     expect(mocks.limit).toHaveBeenCalledWith('vereinskleider_rechnungen', 1000);
     expect(mocks.limit).toHaveBeenCalledWith('vereinskleider_verkaeufe', 1000);
     expect(mocks.project).toHaveBeenCalledWith('vereinskleider_verkaeufe', {
-      kaeufer: 1, riegen: 1, endbetrag: 1, erstelltAm: 1, zahlungsart: 1, zahlungsstatus: 1, bezahltBetrag: 1
+      kaeufer: 1, riegen: 1, endbetrag: 1, erstelltAm: 1, zahlungsart: 1, zahlungsstatus: 1, bezahltBetrag: 1, preisOffen: 1, offenePreispositionen: 1, trancheRechnungIds: 1
     });
   });
   it.each([[0,0,false],[999,999,false],[1000,0,true],[0,1000,true],[1000,1000,true]])
