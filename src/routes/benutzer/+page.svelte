@@ -59,8 +59,7 @@
   let m365TenantId = $state('');
   let m365ClientId = $state('');
   let m365Absender = $state('');
-  let m365Geheimnis = $state('');
-  let m365GeheimnisHinterlegt = $state(false);
+  let m365ZertifikatServerseitig = $state(false);
   let smtpHost = $state('');
   let smtpPort = $state(587);
   let smtpSecure = $state(false);
@@ -83,7 +82,7 @@
         m365TenantId = daten.microsoft365.tenantId;
         m365ClientId = daten.microsoft365.clientId;
         m365Absender = daten.microsoft365.absender;
-        m365GeheimnisHinterlegt = daten.microsoft365.geheimnisHinterlegt;
+        m365ZertifikatServerseitig = daten.microsoft365.zertifikatServerseitig;
       }
       if (daten.smtp) {
         smtpHost = daten.smtp.host;
@@ -111,7 +110,7 @@
           methode: mailMethode,
           ...(mailMethode === 'microsoft365' ? { microsoft365: {
             tenantId: m365TenantId, clientId: m365ClientId,
-            absender: m365Absender, geheimnis: m365Geheimnis
+            absender: m365Absender
           } } : {}),
           ...(mailMethode === 'smtp' ? { smtp: {
             host: smtpHost, port: Number(smtpPort), secure: smtpSecure,
@@ -122,7 +121,6 @@
       const daten = await antwort.json();
       if (!antwort.ok) throw new Error(daten.fehler ?? 'Speichern fehlgeschlagen.');
       smtpPasswort = '';
-      m365Geheimnis = '';
       mailErfolg = 'E-Mail-Einstellungen gespeichert.';
       await ladeMailEinstellungen();
     } catch (error) {
@@ -438,7 +436,7 @@
           <label>Tenant-ID (Entra)<input bind:value={m365TenantId} required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" /></label>
           <label>Client-ID (App-Registrierung)<input bind:value={m365ClientId} required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" /></label>
           <label>Absender-E-Mail<input type="email" bind:value={m365Absender} required /></label>
-          <label>Client-Secret<input type="password" bind:value={m365Geheimnis} autocomplete="new-password" required={!m365GeheimnisHinterlegt} placeholder={m365GeheimnisHinterlegt ? 'Leer lassen, um Secret beizubehalten' : 'Client-Secret eingeben'} /></label>
+          <p class="beschreibung">Zertifikat: {m365ZertifikatServerseitig ? 'Serverseitig konfiguriert' : 'Noch nicht serverseitig konfiguriert'}. Der private Schlüssel wird ausschliesslich als Server-Umgebungsvariable hinterlegt.</p>
         {/if}
         {#if mailMethode === 'smtp'}
           <label>SMTP-Server<input bind:value={smtpHost} placeholder="smtp.beispiel.ch" required /></label>
@@ -452,7 +450,7 @@
         {/if}
       </div>
       {#if mailMethode === 'microsoft365'}
-        <p class="beschreibung">Microsoft Entra ID: App registrieren, Microsoft Graph Application Permission Mail.Send mit Admin-Consent erteilen und den Zugriff auf das gewünschte Postfach begrenzen. Der Versand erfolgt über OAuth2 (Client Credentials), ohne Benutzerpasswort.</p>
+        <p class="beschreibung">Microsoft Entra ID: Zertifikat (öffentlicher Teil) hochladen, Microsoft Graph Application Permission Mail.Send mit Admin-Consent erteilen und den Zugriff auf das gewünschte Postfach begrenzen. Der private Schlüssel bleibt auf dem Server.</p>
       {/if}
       {#if mailMethode === 'smtp'}
         <p class="beschreibung">Port 587 verwendet normalerweise STARTTLS. Microsoft 365 kann OAuth2 erfordern; die Passwort-Anmeldung funktioniert nicht in jedem Tenant.</p>
