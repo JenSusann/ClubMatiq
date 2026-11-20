@@ -117,7 +117,7 @@
         throw new Error('Stammdaten konnten nicht geladen werden.');
       }
 
-      const [k, l, g] = await Promise.all(antworten.slice(0, 3).map((antwort) => antwort.json());
+      const [k, l, g] = await Promise.all(antworten.slice(0, 3).map((antwort) => antwort.json()));
       if (antworten[3].ok) lieferanten = await antworten[3].json() as Stammdatum[];
       else lieferantenFehler = 'Lieferanten konnten nicht geladen werden. Bitte später erneut versuchen.';
 
