@@ -19,7 +19,7 @@ const best = (overrides = {}) => ({ _id: new ObjectId(B), vereinId: A, lieferant
 const bill = (overrides = {}) => ({ _id: new ObjectId(B), vereinId: A, rechnungsnummer: 'R-15', empfaenger: 'Test Person', positionen: [{ artikelname: 'Shirt', menge: 2, einzelpreis: 10 }], zwischentotal: 20, rabattTotal: 0, gesamtbetrag: 20, erstelltAm: new Date('2026-01-01'), status: 'offen', ...overrides });
 const event = (id = B, query = '') => ({ params: { id }, locals, url: new URL('http://localhost/api/pdf' + query) }) as any;
 const post = (ids: any) => ({ locals, request: new Request('http://localhost', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bestellungIds: ids }) }) }) as any;
-async function status(promise: Promise<any>) { try { return (await promise).status; } catch (e: any) { return e.status ?? e.statusCode; } }
+async function status(promise: Response | Promise<Response>) { try { return (await promise).status; } catch (e: any) { return e.status ?? e.statusCode; } }
 beforeEach(() => { store.docs = { vereinskleider_sammelbestellungen: [best()], lieferanten: { name: 'Lieferant' }, vereine: { name: 'Turnverein' }, groessen: [], vereinskleider_rechnungen: bill(), vereinskleider_gutschriften: null }; store.fail = ''; vi.spyOn(console, 'error').mockImplementation(() => {}); });
 
 describe('P15 Gesamt-PDF: Validierung, Lieferanten, Positionen und Layout', () => {
