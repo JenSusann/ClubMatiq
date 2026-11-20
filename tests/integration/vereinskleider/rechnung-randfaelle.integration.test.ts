@@ -77,7 +77,7 @@ describe('Paket 19 – Übergabe: Sonderfälle und Varianten', () => {
   });
   it('verhindert die Übergabe bei fremder Reservierung und knapper Lagerware', async () => {
     init(pos({ reserviertMenge: 0 }));
-    h.docs.artikel.menge = 4;
+    h.docs.artikel.menge = 3;
     h.rows.vereinskleider_verkaeufe.push({ positionen: [pos({ reserviertMenge: 3 })] });
     expect((await uebergabe({ vorgangId: id, positionsIndex: 0, menge: 1 })).status).toBe(409);
   });
