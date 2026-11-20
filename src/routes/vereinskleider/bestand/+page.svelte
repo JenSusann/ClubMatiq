@@ -758,8 +758,6 @@
 
                                 <label class="checkzeile"><input type="checkbox" bind:checked={formulare[schluessel].preisOffen} /> Verkaufspreis noch offen (verbindliche Bestellung, Zahlung später)</label>
 
-<label class="checkzeile"><input type="checkbox" bind:checked={formulare[schluessel].preisOffen} /> Verkaufspreis noch offen (verbindliche Bestellung, Zahlung später)</label>
-
                     {#if formulare[schluessel].preistyp === 'variabel'}
                                   <p class="hinweis">
                                     Der Verkaufspreis darf vorerst
@@ -949,6 +947,8 @@
                         />
                       </div>
                     </div>
+
+<label class="checkzeile"><input type="checkbox" bind:checked={formulare[schluessel].preisOffen} /> Verkaufspreis noch offen (verbindliche Bestellung, Zahlung später)</label>
 
                     {#if formulare[schluessel].preistyp === 'variabel'}
                       <p class="hinweis">
