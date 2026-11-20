@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { db, client } from '../../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
+import { protokolliereLagerbewegung } from '../../../../../lib/server/lagerbewegungen';
 
 export const POST: RequestHandler = async ({ params, locals }) => {
   const berechtigungsfehler = pruefeBerechtigung(
@@ -153,6 +154,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
             throw new Error(`Bestandskorrektur für "${position.artikelName}" fehlgeschlagen.`);
           }
         }
+        await protokolliereLagerbewegung({ vereinId, artikelId: position.artikelId, groesseId: position.groesseId ?? null, art: 'inventur', mengeDelta: differenz, benutzerId: locals.benutzer!.id, referenzId: inventurId, referenzTyp: 'inventur' }, session);
         anzahlKorrekturen++;
       }
 
