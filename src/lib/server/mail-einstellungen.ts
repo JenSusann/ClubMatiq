@@ -4,7 +4,7 @@ import { db } from './mongodb';
 
 export type MailKonfiguration = {
   methode: 'resend' | 'smtp' | 'microsoft365';
-  microsoft365?: { tenantId: string; clientId: string; absender: string; geheimnis?: string };
+  microsoft365?: { tenantId: string; clientId: string; absender: string };
   smtp?: { host: string; port: number; secure: boolean; benutzername: string; absender: string; geheimnis?: string };
 };
 
