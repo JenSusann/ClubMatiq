@@ -360,7 +360,7 @@
   }
 
   async function vorgangSpeichern(): Promise<void> {
-    if (speichernLaeuft || !bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart !== 'bestellung' || rabattId !== '' || rabattZahl !== 0))) return;
+    if (speichernLaeuft || !bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart === 'direkt' || rabattId !== '' || rabattZahl !== 0))) return;
     speichernLaeuft = true;
     speichernFehler = '';
     speichernErfolg = '';
