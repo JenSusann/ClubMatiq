@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { ObjectId, type ClientSession } from 'mongodb';
 import { client, db } from '../../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../../lib/server/berechtigungen';
+import { protokolliereLagerbewegung } from '../../../../../lib/server/lagerbewegungen';
 import type { RequestHandler } from './$types';
 
 type Position = {
@@ -191,7 +192,15 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
           throw new Fachfehler(`Gelieferte Menge für "${position.artikelname}" überschreitet die offene Bestellmenge.`);
         position.geliefertMenge = bisher + geliefert.menge;
       }
-      for (const geliefert of lieferung) await lagerZubuchen(vereinId, geliefert, session);
+      for (const geliefert of lieferung) {
+        await lagerZubuchen(vereinId, geliefert, session);
+        await protokolliereLagerbewegung({
+          vereinId, artikelId: geliefert.artikelId, groesseId: geliefert.groesseId,
+          art: 'wareneingang', mengeDelta: geliefert.menge,
+          benutzerId: locals.benutzer!.id, referenzId: params.id,
+          referenzTyp: 'sammelbestellung'
+        }, session);
+      }
       const zuordnungen = await reservierungenZuteilen(vereinId, lieferung, session);
       const vollstaendig = positionen.every((p) => (p.geliefertMenge ?? 0) === p.menge);
       const status = vollstaendig ? 'geliefert' : 'bestellt';
