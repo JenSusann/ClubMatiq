@@ -122,7 +122,7 @@
           (eintrag.vorgangId === b.vorgangId && eintrag.positionsIndex === b.positionsIndex)) return summe;
       return summe + (eintrag.reserviert ?? 0);
     }, 0);
-    return Math.min(b.offen, Math.max(0, bestand - 1 - fremdeReservierungen));
+    return Math.min(b.offen, Math.max(0, bestand - fremdeReservierungen));
   }
 
   function nochFehlend(b: Bestellung): number {
