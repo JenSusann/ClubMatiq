@@ -57,7 +57,7 @@
     id: string; vorgangId: string; positionsIndex: number; kaeufer: string;
     riegen: string[]; artikelId: string; artikelname: string;
     groesseId: string | null; menge: number; grund: string;
-    storniertAm: string; storniertVon: string | null;
+    storniertAm: string; storniertVon: string | null; storniertVonName: string | null;
   };
   let stornierungenHistorie = $state<StornierungEintrag[]>([]);
   let stornierungenSuche = $state('');
@@ -514,7 +514,7 @@
                 <td><strong>{eintrag.artikelname}</strong><small>{groesseName(eintrag.groesseId)}</small></td>
                 <td class="zahl">{eintrag.menge}</td>
                 <td>{eintrag.grund || '–'}</td>
-                <td><small title={eintrag.storniertVon ?? ''}>{eintrag.storniertVon ? `Benutzer-ID: ${eintrag.storniertVon.slice(-8)}` : 'Nicht erfasst'}</small></td>
+                <td><small title={eintrag.storniertVon ?? ''}>{eintrag.storniertVonName || (eintrag.storniertVon ? `Benutzer #${eintrag.storniertVon.slice(-8)}` : 'Nicht erfasst')}</small></td>
                 <td><small title={eintrag.vorgangId}>#{eintrag.vorgangId.slice(-8)}</small></td>
               </tr>
             {/each}
