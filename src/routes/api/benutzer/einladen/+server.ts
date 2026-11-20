@@ -173,7 +173,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     try {
       const versand = await versendeEinladung({
         email, vorname, verein: vereinsname, link: einladungsLink,
-        ablaufdatum: einladung.ablaufdatum
+        ablaufdatum: einladung.ablaufdatum, vereinId
       });
       await einladungen.updateOne(
         { _id: ergebnis.insertedId, vereinId },
