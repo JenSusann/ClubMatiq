@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
+import { createPrivateKey, createPublicKey, X509Certificate } from 'node:crypto';
 import type { RequestHandler } from './$types';
 import { db } from '../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../lib/server/berechtigungen';
@@ -14,7 +15,7 @@ export const GET: RequestHandler = async ({ locals }) => {
     methode: mail?.methode === 'smtp' || mail?.methode === 'microsoft365' ? mail.methode : 'resend',
     microsoft365: mail?.microsoft365 ? {
       tenantId: mail.microsoft365.tenantId, clientId: mail.microsoft365.clientId,
-      absender: mail.microsoft365.absender, zertifikatServerseitig: Boolean(process.env.M365_CERTIFICATE_BASE64 && process.env.M365_PRIVATE_KEY_BASE64)
+      absender: mail.microsoft365.absender, zertifikatServerseitig: Boolean(mail.microsoft365.zertifikat && mail.microsoft365.privaterSchluessel)
     } : null,
     smtp: mail?.smtp ? {
       host: mail.smtp.host, port: mail.smtp.port, secure: mail.smtp.secure,
@@ -51,9 +52,36 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
     const absender = typeof wert.absender === 'string' ? wert.absender.trim() : '';
     const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!guid.test(tenantId) || !guid.test(clientId) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(absender)) return json({ fehler: 'Ungültige Microsoft-365-Einstellungen.' }, { status: 400 });
+    const certPem = typeof wert.zertifikatPem === 'string' ? wert.zertifikatPem.trim() : '';
+    const keyPem = typeof wert.privaterSchluesselPem === 'string' ? wert.privaterSchluesselPem.trim() : '';
+    if (certPem.length > 20000 || keyPem.length > 20000 || Boolean(certPem) !== Boolean(keyPem)) {
+      return json({ fehler: 'Zertifikat und privater Schlüssel müssen gemeinsam angegeben werden (maximal 20 KB je Datei).' }, { status: 400 });
+    }
     try {
+      const bisher = await vereine.findOne(filter);
+      const alteKonfiguration = bisher?.mailEinstellungen?.microsoft365;
+      let zertifikat = alteKonfiguration?.zertifikat as string | undefined;
+      let privaterSchluessel = alteKonfiguration?.privaterSchluessel as string | undefined;
+      if (certPem && keyPem) {
+        const cert = new X509Certificate(certPem);
+        const key = createPrivateKey(keyPem);
+        const publicKey = createPublicKey(key).export({ type: 'spki', format: 'der' });
+        const certKey = cert.publicKey.export({ type: 'spki', format: 'der' });
+        if (!Buffer.from(publicKey).equals(Buffer.from(certKey))) {
+          return json({ fehler: 'Zertifikat und privater Schlüssel passen nicht zusammen.' }, { status: 400 });
+        }
+        if (Date.now() >= new Date(cert.validTo).getTime() || Date.now() < new Date(cert.validFrom).getTime()) {
+          return json({ fehler: 'Das Zertifikat ist abgelaufen oder noch nicht gültig.' }, { status: 400 });
+        }
+        zertifikat = verschluesseln(certPem);
+        privaterSchluessel = verschluesseln(keyPem);
+      } else if (alteKonfiguration?.tenantId !== tenantId || alteKonfiguration?.clientId !== clientId) {
+        // Schlüssel niemals stillschweigend auf eine andere Entra-App übertragen.
+        zertifikat = undefined;
+        privaterSchluessel = undefined;
+      }
       await vereine.updateOne(filter, { $set: { mailEinstellungen: {
-        methode: 'microsoft365', microsoft365: { tenantId, clientId, absender }
+        methode: 'microsoft365', microsoft365: { tenantId, clientId, absender, ...(zertifikat && privaterSchluessel ? { zertifikat, privaterSchluessel } : {}) }
       } } });
       return json({ erfolg: true });
     } catch {
