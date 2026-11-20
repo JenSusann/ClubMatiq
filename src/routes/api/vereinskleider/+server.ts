@@ -3,12 +3,14 @@ import { ObjectId } from 'mongodb';
 import { db, client } from '../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
+import { berechneZahlungsstand } from '../../../lib/server/vereinskleider-teilzahlungen';
 
 type PositionEingabe = {
   artikelId: string;
   groesseId: string | null;
   menge: number;
   einzelpreis?: number;
+  preisOffen?: boolean;
 };
 type Rabattart = 'prozent' | 'betrag' | 'fixpreis';
 type Rabattregel = {
@@ -147,7 +149,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         // Preis-offen-Positionen dürfen bis zur Einführung der Teilzahlungslogik
         // keinesfalls mit einem manuellen Ersatzpreis als bezahlt verbucht werden.
         if (preis.preisOffen === true) {
-          throw new Verkaufsfehler(`Für ${artikel.name} ist der Verkaufspreis noch offen. Die verbindliche Bestellung mit Teilzahlung wird derzeit vorbereitet.`, 409);
+          // Unbekannte Preise sind ausdrücklich keine Null-Franken-Positionen.
+          // Der Warenkorb kann solche Positionen bereits verbindlich vorsehen,
+          // ihre Verrechnung benötigt jedoch eine separate Teilforderung.
+          if (position.einzelpreis !== undefined) {
+            throw new Verkaufsfehler(`Für ${artikel.name} ist der Verkaufspreis noch offen. Ein Ersatzpreis ist nicht zulässig.`, 409);
+          }
+          throw new Verkaufsfehler(`Für ${artikel.name} ist der Verkaufspreis noch offen. Die Teilzahlungs-Verrechnung ist noch nicht freigeschaltet.`, 409);
         }
         let einzelpreis: number;
         if (preis.preistyp === 'fix') {
@@ -310,6 +318,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
        const effektiveVerkaufsart = direktMenge > 0 && bestellMenge > 0
          ? 'gemischt' : bestellMenge > 0 ? 'bestellung' : 'direkt';
 
+      // Gemeinsame, auf Rappen geprüfte Zahlungsberechnung für den bisherigen
+      // Festpreis-Verkauf. Künftige offene Positionen bleiben explizit null.
+      const zahlungsbasis = berechneZahlungsstand(
+        geprueft.map((p) => ({ artikelId: p.artikelId, groesseId: p.groesseId,
+          menge: p.menge, einzelpreis: p.einzelpreis, preisOffen: false })), []
+      );
+      if (Math.round(zahlungsbasis.faellig * 100) !== zwischentotalRappen) {
+        throw new Verkaufsfehler('Der Warenkorbwert konnte nicht korrekt berechnet werden.');
+      }
       const jetzt = new Date();
       const endbetrag = (zwischentotalRappen - regelRabattRappen - zusatzRappen) / 100;
       const bezahlt = eingabe.zahlungErhalten && eingabe.zahlungsart !== 'rechnung';
