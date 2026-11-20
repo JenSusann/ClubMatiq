@@ -24,7 +24,7 @@ export async function versendeEinladung(daten: {
       const smtp = mail.smtp;
       if (!smtp?.geheimnis) throw new Error('SMTP-Konfiguration unvollständig.');
       const transport = nodemailer.createTransport({
-        host: smtp.host, port: smtp.port, secure: smtp.secure,
+        host: smtp.host, port: smtp.port, secure: smtp.secure, requireTLS: !smtp.secure,
         auth: { user: smtp.benutzername, pass: entschluesseln(smtp.geheimnis) },
         connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000
       });
