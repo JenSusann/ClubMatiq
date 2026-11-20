@@ -45,7 +45,7 @@
       passwort = '';
 
       // Zur Startseite wechseln
-      await goto('/dashboard', { invalidateAll: true });
+      await goto(ergebnis.passwortwechselErforderlich ? '/passwort-aendern' : '/dashboard', { invalidateAll: true });
     } catch (error) {
       console.error('Anmeldefehler:', error);
 
