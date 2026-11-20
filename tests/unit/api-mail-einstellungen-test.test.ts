@@ -7,7 +7,8 @@ const mocks = vi.hoisted(() => ({
   createTransport: vi.fn(),
   verify: vi.fn(),
   sendMail: vi.fn(),
-  close: vi.fn()
+  close: vi.fn(),
+  versendeMicrosoft365Mail: vi.fn()
 }));
 
 vi.mock('../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: mocks.berechtigung }));
@@ -15,6 +16,7 @@ vi.mock('../../src/lib/server/mail-einstellungen', () => ({
   ladeMailKonfiguration: mocks.laden,
   entschluesseln: mocks.entschluesseln
 }));
+vi.mock('../../src/lib/server/microsoft365', () => ({ versendeMicrosoft365Mail: mocks.versendeMicrosoft365Mail }));
 vi.mock('nodemailer', () => ({
   default: { createTransport: mocks.createTransport }
 }));
@@ -59,6 +61,44 @@ describe('SMTP-Testversand: Berechtigungen, Isolation und Versand', () => {
     }));
     expect(mocks.sendMail).toHaveBeenCalledWith(expect.objectContaining({ to: admin.email }));
     expect(mocks.close).toHaveBeenCalledOnce();
+  });
+
+
+  it('sendet Microsoft-365-Testmail nur an die angemeldete Admin-Adresse', async () => {
+    const microsoft365 = { tenantId: 'tenant', clientId: 'client', absender: 'clubmatiq@tvweiningen.ch' };
+    mocks.laden.mockResolvedValue({ methode: 'microsoft365', microsoft365 });
+    mocks.versendeMicrosoft365Mail.mockResolvedValue(undefined);
+    const antwort = await POST(kontext());
+    expect(antwort.status).toBe(200);
+    expect(mocks.laden).toHaveBeenCalledWith(admin.vereinId);
+    expect(mocks.versendeMicrosoft365Mail).toHaveBeenCalledWith(microsoft365, {
+      an: admin.email,
+      betreff: 'ClubMatiq – Microsoft-365-Testversand',
+      text: expect.any(String)
+    });
+    expect(mocks.createTransport).not.toHaveBeenCalled();
+  });
+
+  it('verweigert Microsoft-365-Testmail ohne gespeicherte Konfiguration', async () => {
+    mocks.laden.mockResolvedValue({ methode: 'microsoft365' });
+    const antwort = await POST(kontext());
+    expect(antwort.status).toBe(400);
+    expect(mocks.versendeMicrosoft365Mail).not.toHaveBeenCalled();
+  });
+
+  it('gibt bei Microsoft-365-Fehlern keine Geheimnisse preis', async () => {
+    mocks.laden.mockResolvedValue({ methode: 'microsoft365', microsoft365: {
+      tenantId: 'tenant', clientId: 'client', absender: 'clubmatiq@tvweiningen.ch'
+    } });
+    mocks.versendeMicrosoft365Mail.mockRejectedValue(new Error('sensitive-token'));
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const antwort = await POST(kontext());
+      expect(antwort.status).toBe(502);
+      expect(JSON.stringify(await antwort.json())).not.toContain('sensitive-token');
+    } finally {
+      log.mockRestore();
+    }
   });
 
   it('verhindert Versand ohne gespeicherte SMTP-Konfiguration', async () => {
