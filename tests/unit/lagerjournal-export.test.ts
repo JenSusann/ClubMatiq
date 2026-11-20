@@ -30,10 +30,9 @@ describe('Lagerjournal Excel Export – Unit und API-Integration', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mocks.findOne.mockResolvedValue({ _id: artikelId });
+    const journal = [{ _id: id('journal1'), artikelId, groesseId: null, benutzerId: artikelId, art: 'wareneingang', mengeDelta: 4, zeitpunkt: new Date('2026-11-20'), referenzTyp: 'sammelbestellung', referenzId: 'ref' }];
     mocks.find.mockImplementation(() => ({
-      sort: () => ({ limit: () => ({ toArray: async () => [
-        { _id: id('journal1'), artikelId, groesseId: null, benutzerId: artikelId, art: 'wareneingang', mengeDelta: 4, zeitpunkt: new Date('2026-11-20'), referenzTyp: 'sammelbestellung', referenzId: 'ref' }
-      ] }) }),
+      sort: () => ({ toArray: async () => journal, limit: () => ({ toArray: async () => journal }) }),
       project: () => ({ toArray: async () => [] })
     }));
     mocks.collection.mockImplementation(() => ({ find: mocks.find, findOne: mocks.findOne }));
