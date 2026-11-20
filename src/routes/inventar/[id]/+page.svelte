@@ -46,9 +46,7 @@
   let bewegungGroesse = $state('');
   let bewegungSuche = $state('');
   let artikelIdKopiert = $state(false);
-  const journalExportUrl = $derived('/api/export/lagerbewegungen?' + new URLSearchParams({
-    artikelId, art: bewegungsart, groesseId: bewegungGroesse, von: bewegungVon, bis: bewegungBis, suche: bewegungSuche
-  }).toString());
+
   const bewegungenGefiltert = $derived(bewegungen.filter((eintrag) => {
     if (bewegungGroesse && eintrag.groesseId !== bewegungGroesse) return false;
     const suche = bewegungSuche.trim().toLocaleLowerCase('de-CH');
@@ -60,6 +58,9 @@
   }
 
   const artikelId = $derived(page.params.id ?? '');
+  const journalExportUrl = $derived('/api/export/lagerbewegungen?' + new URLSearchParams({
+    artikelId, art: bewegungsart, groesseId: bewegungGroesse, von: bewegungVon, bis: bewegungBis, suche: bewegungSuche
+  }).toString());
   const standardlieferant = $derived(
     lieferanten.find((eintrag) => eintrag._id === artikel?.lieferantId)
   );
