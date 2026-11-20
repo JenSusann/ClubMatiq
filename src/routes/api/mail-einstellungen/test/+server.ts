@@ -13,10 +13,12 @@ export const POST: RequestHandler = async ({ locals }) => {
       return json({ fehler: 'Bitte zuerst eine SMTP-Konfiguration speichern.' }, { status: 400 });
     }
     const smtp = mail.smtp;
+    const geheimnis = smtp.geheimnis;
+    if (!geheimnis) return json({ fehler: 'SMTP-Passwort fehlt.' }, { status: 400 });
     const transport = nodemailer.createTransport({
       host: smtp.host, port: smtp.port, secure: smtp.secure,
       requireTLS: !smtp.secure,
-      auth: { user: smtp.benutzername, pass: entschluesseln(smtp.geheimnis) },
+      auth: { user: smtp.benutzername, pass: entschluesseln(geheimnis) },
       connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000
     });
     try {
