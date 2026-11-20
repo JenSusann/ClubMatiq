@@ -1,52 +1,45 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ entschluesseln: vi.fn() }));
-vi.mock('../../src/lib/server/mail-einstellungen', () => ({ entschluesseln: mocks.entschluesseln }));
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { versendeMicrosoft365Mail } from '../../src/lib/server/microsoft365';
 
 const konfiguration = {
   tenantId: '507f1f77-bcf8-4cd7-9943-901100000001',
   clientId: '507f1f77-bcf8-4cd7-9943-901100000002',
-  absender: 'versand@club.ch',
-  geheimnis: 'ciphertext'
+  absender: 'versand@club.ch'
 };
 const nachricht = { an: 'empfaenger@club.ch', betreff: 'Test', text: 'Nachricht' };
-const originalFetch = globalThis.fetch;
+const alteWerte = {
+  zertifikat: process.env.M365_CERTIFICATE_BASE64,
+  schluessel: process.env.M365_PRIVATE_KEY_BASE64
+};
 
-describe('Microsoft 365 Graph OAuth2 Mailversand', () => {
-  beforeEach(() => { mocks.entschluesseln.mockReturnValue('client-secret'); });
-  afterEach(() => { globalThis.fetch = originalFetch; vi.clearAllMocks(); });
+afterEach(() => {
+  if (alteWerte.zertifikat === undefined) delete process.env.M365_CERTIFICATE_BASE64;
+  else process.env.M365_CERTIFICATE_BASE64 = alteWerte.zertifikat;
+  if (alteWerte.schluessel === undefined) delete process.env.M365_PRIVATE_KEY_BASE64;
+  else process.env.M365_PRIVATE_KEY_BASE64 = alteWerte.schluessel;
+  vi.restoreAllMocks();
+});
 
-  it('fordert Token an und versendet über das konfigurierte Postfach', async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ access_token: 'access-token' }) })
-      .mockResolvedValueOnce({ ok: true });
-    globalThis.fetch = fetchMock;
-    await versendeMicrosoft365Mail(konfiguration, nachricht);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0][0]).toContain(konfiguration.tenantId);
-    expect(fetchMock.mock.calls[0][1].body.toString()).toContain('grant_type=client_credentials');
-    expect(fetchMock.mock.calls[1][0]).toContain(encodeURIComponent(konfiguration.absender));
-    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe('Bearer access-token');
-  });
-
-  it('verhindert Versand ohne Secret', async () => {
-    const fetchMock = vi.fn(); globalThis.fetch = fetchMock;
-    await expect(versendeMicrosoft365Mail({ ...konfiguration, geheimnis: undefined }, nachricht)).rejects.toThrow();
+describe('Microsoft 365 Zertifikatsauthentifizierung', () => {
+  it('verhindert Versand ohne serverseitiges Zertifikat und privaten Schlüssel', async () => {
+    delete process.env.M365_CERTIFICATE_BASE64;
+    delete process.env.M365_PRIVATE_KEY_BASE64;
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    await expect(versendeMicrosoft365Mail(konfiguration, nachricht)).rejects.toThrow('serverseitig');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('sendet keine E-Mail, wenn die OAuth2-Authentifizierung scheitert', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false });
-    globalThis.fetch = fetchMock;
-    await expect(versendeMicrosoft365Mail(konfiguration, nachricht)).rejects.toThrow('Authentifizierung');
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+  it('verhindert Token-Anfrage mit ungültiger Tenant-ID', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    await expect(versendeMicrosoft365Mail({ ...konfiguration, tenantId: 'ungültig' }, nachricht)).rejects.toThrow('Ungültige');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('meldet Graph-Versandfehler ohne Token oder Client-Secret auszugeben', async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ access_token: 'access-token' }) })
-      .mockResolvedValueOnce({ ok: false });
-    globalThis.fetch = fetchMock;
-    await expect(versendeMicrosoft365Mail(konfiguration, nachricht)).rejects.toThrow('E-Mail-Versand fehlgeschlagen');
+  it('verhindert Versand mit ungültigem Zertifikat', async () => {
+    process.env.M365_CERTIFICATE_BASE64 = Buffer.from('kein Zertifikat').toString('base64');
+    process.env.M365_PRIVATE_KEY_BASE64 = Buffer.from('kein Schlüssel').toString('base64');
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    await expect(versendeMicrosoft365Mail(konfiguration, nachricht)).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
