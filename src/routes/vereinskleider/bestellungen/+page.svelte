@@ -20,7 +20,8 @@
     uebergeben: number;
     reserviert?: number;
     offen: number;
-    einzelpreis: number;
+    einzelpreis: number | null;
+    preisOffen?: boolean;
     status: Status;
   };
   type Groesse = { _id: string; bezeichnung: string };
@@ -39,6 +40,12 @@
   let begrenzt = $state(false);
   let letzteAktualisierung = $state<Date | null>(null);
   let ausgewaehlt = $state<Bestellung | null>(null);
+  let preisAuswahl = $state<Bestellung | null>(null);
+  let neuerPreis = $state('');
+  let preisZahlung = $state('');
+  let preisZahlungsart = $state<'twint' | 'bar'>('twint');
+  let preisSpeichernLaeuft = $state(false);
+  let preisFehler = $state('');
   let uebergabeMenge = $state(1);
   let uebergabeLaeuft = $state(false);
   let uebergabeFehler = $state('');
@@ -204,6 +211,50 @@
       aktualisieren = false;
     }
   }
+  function preisOeffnen(b: Bestellung): void {
+    preisAuswahl = b;
+    neuerPreis = '';
+    preisZahlung = '';
+    preisZahlungsart = 'twint';
+    preisFehler = '';
+  }
+
+  async function preisSpeichern(): Promise<void> {
+    const b = preisAuswahl;
+    if (!b || preisSpeichernLaeuft) return;
+    const einzelpreis = Number(neuerPreis.replace(',', '.'));
+    const zahlung = preisZahlung.trim() === '' ? null : Number(preisZahlung.replace(',', '.'));
+    const gueltig = (wert: number) => Number.isFinite(wert) && wert >= 0 &&
+      Math.abs(wert * 100 - Math.round(wert * 100)) < 0.000001;
+    if (!neuerPreis.trim() || !gueltig(einzelpreis) || (zahlung !== null && (!gueltig(zahlung) || zahlung <= 0))) {
+      preisFehler = 'Bitte einen gültigen Stückpreis und gegebenenfalls eine gültige Zahlung eingeben.';
+      return;
+    }
+    preisSpeichernLaeuft = true;
+    preisFehler = '';
+    try {
+      const antwort = await fetch('/api/vereinskleider/preisfestlegung', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          verkaufId: b.vorgangId, positionsIndex: b.positionsIndex, einzelpreis,
+          ...(zahlung !== null ? { zahlung: { betrag: zahlung, zahlungsart: preisZahlungsart } } : {})
+        })
+      });
+      const daten = await antwort.json().catch(() => ({})) as {
+        erfolg?: boolean; fehler?: string; ergebnis?: { restbetrag: number };
+      };
+      if (!antwort.ok || !daten.erfolg) throw new Error(daten.fehler ?? 'Preisfestlegung fehlgeschlagen.');
+      erfolgsmeldung = `Preis für «${b.artikelname}» gespeichert. Noch offener bekannter Betrag: ${formatCHF(daten.ergebnis?.restbetrag ?? 0)}.`;
+      preisAuswahl = null;
+      await datenLaden();
+    } catch (e) {
+      preisFehler = e instanceof Error ? e.message : 'Preisfestlegung fehlgeschlagen.';
+    } finally {
+      preisSpeichernLaeuft = false;
+    }
+  }
+
   function uebergabeOeffnen(b: Bestellung): void {
     ausgewaehlt = b;
     uebergabeMenge = Math.min(b.offen, verfuegbarFuer(b) ?? 0);
@@ -383,7 +434,7 @@
               <tr>
                 <td><strong>{formatDatum(b.erstelltAm)}</strong><small title={b.vorgangId}>#{b.vorgangId.slice(-8)}</small></td>
                 <td><strong>{b.kaeufer}</strong><small>{b.riegen.join(', ') || '–'}</small></td>
-                <td><strong>{b.artikelname}</strong><small>{groesseName(b.groesseId)} · {formatCHF(b.einzelpreis)} / Stk.</small></td>
+                <td><strong>{b.artikelname}</strong><small>{groesseName(b.groesseId)} · {b.preisOffen ? 'Preis noch offen' : formatCHF(b.einzelpreis ?? 0) + ' / Stk.'}</small></td>
                 <td class="zahl">{b.bestellt}<small>Ursprünglich: {b.urspruenglichBestellt ?? b.bestellt}</small></td>
                 <td class="zahl">{b.storniertMenge ?? 0}</td>
                 <td class="zahl">{b.uebergeben}</td>
@@ -414,8 +465,11 @@
                 <td>
                   {#if b.offen > 0}
                     <div class="aktionsgruppe">
+                      {#if b.preisOffen}
+                        <button type="button" class="uebergabe-knopf" onclick={() => preisOeffnen(b)} disabled={aktualisieren || preisSpeichernLaeuft}>Preis festlegen</button>
+                      {/if}
                       <button class="uebergabe-knopf" type="button" onclick={() => uebergabeOeffnen(b)}
-                        disabled={aktualisieren || uebergabeLaeuft || stornierungLaeuft || (verfuegbarFuer(b) ?? 0) < 1}>
+                        disabled={b.preisOffen || aktualisieren || uebergabeLaeuft || stornierungLaeuft || (verfuegbarFuer(b) ?? 0) < 1}>
                         Übergeben
                       </button>
                       <button class="stornierung-knopf" type="button" onclick={() => stornierungOeffnen(b)}
@@ -433,6 +487,34 @@
         </table>
       </div>
     </section>
+  {/if}
+
+  {#if preisAuswahl}
+    <div class="dialog-hintergrund" role="presentation">
+      <div class="dialog karte" role="dialog" aria-modal="true" aria-labelledby="preis-titel">
+        <h2 id="preis-titel">Verkaufspreis nachträglich festlegen</h2>
+        <p><strong>{preisAuswahl.kaeufer}</strong> · {preisAuswahl.artikelname} · {groesseName(preisAuswahl.groesseId)} · {preisAuswahl.bestellt} Stück</p>
+        <p>Die bestehende Bestellung #{preisAuswahl.vorgangId.slice(-8)} wird ergänzt. Bereits erfasste Zahlungen bleiben erhalten.</p>
+        <label for="neuer-preis">Verkaufspreis pro Stück (CHF)</label>
+        <input id="neuer-preis" type="text" inputmode="decimal" bind:value={neuerPreis} placeholder="z. B. 48.00" />
+        <label for="preis-zahlung">Gleichzeitig erhaltene Zahlung (CHF, optional)</label>
+        <input id="preis-zahlung" type="text" inputmode="decimal" bind:value={preisZahlung} placeholder="Noch keine Zahlung" />
+        {#if preisZahlung.trim() !== ''}
+          <label for="preis-zahlungsart">Zahlungsart</label>
+          <select id="preis-zahlungsart" bind:value={preisZahlungsart}>
+            <option value="twint">TWINT</option>
+            <option value="bar">Bar</option>
+          </select>
+        {/if}
+        {#if preisFehler}<p class="warnung" role="alert">{preisFehler}</p>{/if}
+        <div class="aktionsgruppe">
+          <button type="button" onclick={() => { preisAuswahl = null; }} disabled={preisSpeichernLaeuft}>Abbrechen</button>
+          <button type="button" onclick={preisSpeichern} disabled={preisSpeichernLaeuft}>
+            {preisSpeichernLaeuft ? 'Wird gespeichert ...' : 'Preis und Zahlung speichern'}
+          </button>
+        </div>
+      </div>
+    </div>
   {/if}
 
   {#if ausgewaehlt}
