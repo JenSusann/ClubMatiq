@@ -114,6 +114,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       const verkauf = await verkaeufe.findOne({ _id: new ObjectId(verkaufId), vereinId }, { session });
       if (!verkauf) throw new Rechnungsfehler('Verkauf nicht gefunden.', 404);
       if (verkauf.rechnungId) throw new Rechnungsfehler('Dieser Verkauf wurde bereits verrechnet.', 409);
+      if (verkauf.preisOffen === true || verkauf.positionen?.some((p) => p.preisOffen === true || p.einzelpreis === null)) {
+        throw new Rechnungsfehler('Die Bestellung enthält noch offene Verkaufspreise. Bitte zuerst alle Preise festlegen.', 409);
+      }
       if (!Array.isArray(verkauf.positionen) || verkauf.positionen.length === 0 ||
           !gueltigerBetrag(verkauf.endbetrag) || !gueltigerBetrag(verkauf.zwischentotal) ||
           !gueltigerBetrag(verkauf.rabattTotal) ||
