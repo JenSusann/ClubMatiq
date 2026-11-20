@@ -20,7 +20,7 @@ const fremd = new ObjectId();
 const artikelId = new ObjectId();
 const admin = { id: new ObjectId().toString(), vereinId, rolle: 'admin', vorname: 'Test', nachname: 'Admin' };
 const mitglied = { ...admin, rolle: 'mitglied' };
-const event = (id: string, benutzer: unknown = admin, name?: string) => ({ params: { id }, locals: { benutzer }, ...(name !== undefined ? { request: new Request(`http://localhost/api/kategorien/${id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name }) }) } : {}) }) as Parameters<typeof DELETE>[0] & Parameters<typeof PATCH>[0];
+const event = (id: string, benutzer: unknown = admin, name?: string) => ({ params: { id }, locals: { benutzer }, ...(name !== undefined ? { request: new Request(`http://localhost/api/kategorien/${id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name }) }) } : {}) }) as Parameters<typeof route0.DELETE>[0] & Parameters<typeof route0.PATCH>[0];
 
 beforeAll(async () => {
   if (db.databaseName !== 'clubmatiq_test') throw new Error('Unsichere Testdatenbank');
