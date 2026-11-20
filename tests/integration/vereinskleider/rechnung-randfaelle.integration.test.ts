@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({
   docs: {} as Record<string, any>, rows: {} as Record<string, any[]>,
-  update: vi.fn(async () => ({ modifiedCount: 1, matchedCount: 1 })),
-  insert: vi.fn(async () => ({})),
-  counter: vi.fn(async () => ({ nummer: 1 })),
+  update: vi.fn(async (_filter: any, _update: any) => ({ modifiedCount: 1, matchedCount: 1 })),
+  insert: vi.fn(async (_document: any) => ({})),
+  counter: vi.fn(async (): Promise<{ nummer: unknown } | null> => ({ nummer: 1 })),
   auth: vi.fn(() => null as Response | null),
   ended: vi.fn(async () => {}),
 }));
