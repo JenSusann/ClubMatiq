@@ -49,6 +49,8 @@
   let email = $state('');
   let rolle = $state<Benutzerrolle>('mitglied');
   let speichern = $state(false);
+  let anlageart = $state<'einladung' | 'manuell'>('einladung');
+  let startpasswort = $state('');
   let erneutSendenId = $state<string | null>(null);
   let statusAendernId = $state<string | null>(null);
 
@@ -195,7 +197,7 @@
     erfolgsmeldung = '';
 
     try {
-      const antwort = await fetch('/api/benutzer/einladen', {
+      const antwort = await fetch(anlageart === 'manuell' ? '/api/benutzer/manuell' : '/api/benutzer/einladen', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -204,6 +206,7 @@
           vorname: vorname.trim(),
           nachname: nachname.trim(),
           email: email.trim().toLowerCase(),
+          ...(anlageart === 'manuell' ? { passwort: startpasswort } : {}),
           rolle
         })
       });
@@ -224,9 +227,10 @@
       nachname = '';
       email = '';
       rolle = 'mitglied';
+      startpasswort = '';
 
       // Einladungsübersicht aktualisieren
-      await ladeEinladungen();
+      await Promise.all([ladeEinladungen(), ladeBenutzer()]);
     } catch (fehler) {
       fehlermeldung =
         fehler instanceof Error
@@ -301,7 +305,7 @@
       <p class="untertitel">Vereinsverwaltung</p>
       <h1>Benutzerverwaltung</h1>
       <p>
-        Verwalte die Benutzer deines Vereins und versende Einladungen per E-Mail.
+        Verwalte Benutzer deines Vereins und erstelle Zugänge per E-Mail oder manuell.
       </p>
     </div>
   </header>
@@ -322,7 +326,7 @@
   <!-- Neue Einladung -->
   <section class="karte">
     <div class="abschnitt-titel">
-      <h2>Neue Person einladen</h2>
+      <h2>Benutzer hinzufügen</h2>
       <p class="beschreibung">
         Erfasse die Kontaktdaten und wähle die
         gewünschte Benutzerrolle.
@@ -331,13 +335,24 @@
 
     <div class="hinweis">
       <span class="hinweis-symbol">ⓘ</span>
-      <span>
-        Einladungen werden über Resend per E-Mail verschickt. Der Versand erfordert einen konfigurierten Absender.
-      </span>
+      <span>Wähle eine Einladung per E-Mail oder erstelle einen Benutzer mit Startpasswort ohne E-Mail-Versand.</span>
     </div>
 
     <form onsubmit={einladungErstellen}>
       <div class="formular-raster">
+        <label>
+          Anlageart
+          <select bind:value={anlageart}>
+            <option value="einladung">Einladung per E-Mail</option>
+            <option value="manuell">Manuell mit Startpasswort</option>
+          </select>
+        </label>
+        {#if anlageart === 'manuell'}
+          <label>
+            Startpasswort (mindestens 12 Zeichen)
+            <input type="password" bind:value={startpasswort} minlength="12" maxlength="1024" autocomplete="new-password" required />
+          </label>
+        {/if}
         <label>
           Vorname
           <input
@@ -392,9 +407,7 @@
           class="primaer"
           disabled={speichern}
         >
-          {speichern
-            ? 'Wird versendet ...'
-            : 'Einladung senden'}
+          {speichern ? 'Wird gespeichert …' : anlageart === 'manuell' ? 'Benutzer erstellen' : 'Einladung senden'}
         </button>
       </div>
     </form>
