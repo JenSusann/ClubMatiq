@@ -3,7 +3,8 @@ import { ObjectId } from 'mongodb';
 import { db } from './mongodb';
 
 export type MailKonfiguration = {
-  methode: 'resend' | 'smtp';
+  methode: 'resend' | 'smtp' | 'microsoft365';
+  microsoft365?: { tenantId: string; clientId: string; absender: string; geheimnis?: string };
   smtp?: { host: string; port: number; secure: boolean; benutzername: string; absender: string; geheimnis?: string };
 };
 
@@ -31,6 +32,7 @@ export function entschluesseln(wert: string): string {
 export async function ladeMailKonfiguration(vereinId: string): Promise<MailKonfiguration> {
   const verein = await db.collection('vereine').findOne({ _id: new ObjectId(vereinId) });
   const mail = verein?.mailEinstellungen;
-  if (!mail || mail.methode !== 'smtp') return { methode: 'resend' };
-  return { methode: 'smtp', smtp: mail.smtp };
+  if (mail?.methode === 'smtp') return { methode: 'smtp', smtp: mail.smtp };
+  if (mail?.methode === 'microsoft365') return { methode: 'microsoft365', microsoft365: mail.microsoft365 };
+  return { methode: 'resend' };
 }
