@@ -7,7 +7,7 @@ const m = vi.hoisted(() => {
     find: vi.fn(() => ({ sort: vi.fn(() => ({ limit: vi.fn(() => ({ toArray: vi.fn(async () => []) , project: vi.fn(() => ({toArray:vi.fn(async()=>[])})) })) })) }))
   });
   const session = { withTransaction: vi.fn(async (fn: () => Promise<any>) => fn()), endSession: vi.fn() };
-  return { collections, collection, session, permission: vi.fn(() => null) };
+  return { collections, collection, session, permission: vi.fn<() => Response | null>(() => null) };
 });
 vi.mock('@sveltejs/kit', () => ({ json: (body: any, init?: any) => new Response(JSON.stringify(body), { status: init?.status ?? 200, headers: { 'content-type': 'application/json' } }) }));
 vi.mock('mongodb', () => ({ ObjectId: class { value: string; constructor(v?: string) { this.value = v ?? 'aaaaaaaaaaaaaaaaaaaaaaaa'; } toString() { return this.value; } } }));
