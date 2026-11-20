@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({
   permission: vi.fn(), findOne: vi.fn(), updateOne: vi.fn(),
-  withTransaction: vi.fn(), endSession: vi.fn()
+  withTransaction: vi.fn(), endSession: vi.fn(), insertOne: vi.fn()
 }));
 vi.mock('../../../src/lib/server/berechtigungen', () => ({
   pruefeBerechtigung: m.permission
@@ -10,7 +10,8 @@ vi.mock('../../../src/lib/server/berechtigungen', () => ({
 vi.mock('../../../src/lib/server/mongodb', () => ({
   db: { collection: vi.fn((name: string) => ({
     findOne: (...args: unknown[]) => m.findOne(name, ...args),
-    updateOne: (...args: unknown[]) => m.updateOne(name, ...args)
+    updateOne: (...args: unknown[]) => m.updateOne(name, ...args),
+    insertOne: (...args: unknown[]) => m.insertOne(name, ...args)
   })) },
   client: { startSession: () => ({
     withTransaction: (callback: () => Promise<void>) => m.withTransaction(callback),
@@ -20,7 +21,7 @@ vi.mock('../../../src/lib/server/mongodb', () => ({
 import { POST } from '../../../src/routes/api/ausleihen/[id]/rueckgabe/+server';
 
 const id = (n: number) => n.toString(16).padStart(24, '0');
-const locals = { benutzer: { vereinId: 'verein-1', rolle: 'admin' } };
+const locals = { benutzer: { id: 'integration-user', vereinId: 'verein-1', rolle: 'admin' } };
 const loan = (patch: Record<string, unknown> = {}) => ({
   _id: id(1), vereinId: 'verein-1', artikelId: id(2), groesseId: null,
   person: 'Anna', menge: 5, status: 'offen', zurueckgegeben: 0, ...patch
@@ -89,6 +90,7 @@ describe('Ausleihen – zusätzliche Rückgabezweige', () => {
       erfolg: true, status: 'teilweise', zurueckgegeben: 2, offen: 3
     });
     expect(m.updateOne).toHaveBeenCalledTimes(2);
+    expect(m.insertOne).toHaveBeenCalledWith('lagerbewegungen', expect.objectContaining({ art: 'rueckgabe', mengeDelta: 2 }), expect.objectContaining({ session: expect.anything() }));
     expect(m.endSession).toHaveBeenCalledOnce();
   });
   it('führt vollständige Rückgabe mit Abschlussdatum durch', async () => {
