@@ -4,6 +4,7 @@ import { ObjectId } from 'mongodb';
 import { db, client } from '../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
+import { protokolliereLagerbewegung } from '../../../lib/server/lagerbewegungen';
 
 // ========================================
 // GET: Materialausleihen des Vereins laden
@@ -299,6 +300,7 @@ export const POST: RequestHandler = async ({
 
         neueAusleiheId =
           ergebnis.insertedId.toString();
+        await protokolliereLagerbewegung({ vereinId, artikelId, groesseId: hatGroessen ? groesseId : null, art: 'ausleihe', mengeDelta: -menge, benutzerId: locals.benutzer!.id, referenzId: neueAusleiheId, referenzTyp: 'ausleihe' }, session);
       });
 
       return json(
