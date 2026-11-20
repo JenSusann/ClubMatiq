@@ -15,7 +15,7 @@ describe('P15 Sammelbestellung nach ID: Status und Wareneingang',()=>{
   it('400 bei ungueltiger ID',async()=>{expect((await call('bestellen',undefined,'x')).status).toBe(400);});
   it('400 bei unbekannter Aktion',async()=>{expect((await call('loeschen')).status).toBe(400);});
   it.each([[],Array.from({length:101},()=>pos())])('400 bei ungueltiger Wareneingangsanzahl',async positionen=>{expect((await call('wareneingang',positionen)).status).toBe(400);});
-  it.each([[pos({artikelId:'bad'})],[pos({menge:0})],[pos({menge:10001})],[pos(),pos()]])('400 bei ungueltiger Wareneingangsposition',async positionen=>{expect((await call('wareneingang',positionen)).status).toBe(400);});
+  it.each<{ artikelId: string; groesseId: null; menge: number }[][]>([[pos({artikelId:'bad'})],[pos({menge:0})],[pos({menge:10001})],[pos(),pos()]])('400 bei ungueltiger Wareneingangsposition',async positionen=>{expect((await call('wareneingang',positionen)).status).toBe(400);});
   it('404 bei fehlender Bestellung',async()=>{mock.doc=null;expect((await call('bestellen')).status).toBe(404);});
   it('409 wenn bereits bestellt',async()=>{mock.doc.status='bestellt';expect((await call('bestellen')).status).toBe(409);});
   it('markiert Entwurf erfolgreich als bestellt',async()=>{const r=await call('bestellen');expect(r.status).toBe(200);expect((await r.json()).status).toBe('bestellt');expect(mock.updates.length).toBe(1);});
