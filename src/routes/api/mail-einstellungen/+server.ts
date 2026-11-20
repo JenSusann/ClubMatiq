@@ -57,6 +57,9 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
     if (certPem.length > 20000 || keyPem.length > 20000 || Boolean(certPem) !== Boolean(keyPem)) {
       return json({ fehler: 'Zertifikat und privater Schlüssel müssen gemeinsam angegeben werden (maximal 20 KB je Datei).' }, { status: 400 });
     }
+    if (certPem && keyPem && !/^[a-f0-9]{64}$/i.test(process.env.MAIL_ENCRYPTION_KEY ?? '')) {
+      return json({ fehler: 'Server-Konfiguration unvollständig: MAIL_ENCRYPTION_KEY fehlt oder ist ungültig (64 Hex-Zeichen erforderlich).' }, { status: 503 });
+    }
     try {
       const bisher = await vereine.findOne(filter);
       const alteKonfiguration = bisher?.mailEinstellungen?.microsoft365;
@@ -84,8 +87,9 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
         methode: 'microsoft365', microsoft365: { tenantId, clientId, absender, ...(zertifikat && privaterSchluessel ? { zertifikat, privaterSchluessel } : {}) }
       } } });
       return json({ erfolg: true });
-    } catch {
-      return json({ fehler: 'Microsoft-365-Einstellungen konnten nicht gespeichert werden.' }, { status: 500 });
+    } catch (error) {
+      console.error('Microsoft-365-Konfiguration konnte nicht gespeichert werden:', error instanceof Error ? error.name : 'Unbekannter Fehler');
+      return json({ fehler: 'Microsoft-365-Einstellungen konnten nicht gespeichert werden. Bitte Zertifikatsformat und Serverprotokoll prüfen.' }, { status: 500 });
     }
   }
   const smtp = eingabe.smtp;
