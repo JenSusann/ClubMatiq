@@ -8,7 +8,7 @@ const jpeg = new Uint8Array([255,216,255,0,1]);
 const webp = new Uint8Array([82,73,70,70,0,0,0,0,87,69,66,80]);
 function evt(data?: Uint8Array, type='image/png', logged=true, field='foto') {
  const fd = new FormData();
- if (data) fd.append(field, new File([data], 'foto.bin', { type }));
+ if (data) fd.append(field, new File([Uint8Array.from(data)], 'foto.bin', { type }));
  return { locals: { benutzer: logged ? { id:'u1', vereinId:'v1', rolle:'mitglied' } : null },
    request: new Request('http://localhost/api/upload', { method:'POST', body:fd }) };
 }
