@@ -55,7 +55,12 @@
   let statusAendernId = $state<string | null>(null);
 
   // Vereinseigene E-Mail-Konfiguration (nur Admin-Zugriff auf diese Seite)
-  let mailMethode = $state<'resend' | 'smtp'>('resend');
+  let mailMethode = $state<'resend' | 'smtp' | 'microsoft365'>('resend');
+  let m365TenantId = $state('');
+  let m365ClientId = $state('');
+  let m365Absender = $state('');
+  let m365Geheimnis = $state('');
+  let m365GeheimnisHinterlegt = $state(false);
   let smtpHost = $state('');
   let smtpPort = $state(587);
   let smtpSecure = $state(false);
@@ -74,6 +79,12 @@
       const daten = await antwort.json();
       if (!antwort.ok) throw new Error(daten.fehler ?? 'E-Mail-Einstellungen konnten nicht geladen werden.');
       mailMethode = daten.methode;
+      if (daten.microsoft365) {
+        m365TenantId = daten.microsoft365.tenantId;
+        m365ClientId = daten.microsoft365.clientId;
+        m365Absender = daten.microsoft365.absender;
+        m365GeheimnisHinterlegt = daten.microsoft365.geheimnisHinterlegt;
+      }
       if (daten.smtp) {
         smtpHost = daten.smtp.host;
         smtpPort = daten.smtp.port;
@@ -98,6 +109,10 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           methode: mailMethode,
+          ...(mailMethode === 'microsoft365' ? { microsoft365: {
+            tenantId: m365TenantId, clientId: m365ClientId,
+            absender: m365Absender, geheimnis: m365Geheimnis
+          } } : {}),
           ...(mailMethode === 'smtp' ? { smtp: {
             host: smtpHost, port: Number(smtpPort), secure: smtpSecure,
             benutzername: smtpBenutzername, absender: smtpAbsender, passwort: smtpPasswort
@@ -107,6 +122,7 @@
       const daten = await antwort.json();
       if (!antwort.ok) throw new Error(daten.fehler ?? 'Speichern fehlgeschlagen.');
       smtpPasswort = '';
+      m365Geheimnis = '';
       mailErfolg = 'E-Mail-Einstellungen gespeichert.';
       await ladeMailEinstellungen();
     } catch (error) {
@@ -415,8 +431,15 @@
           <select bind:value={mailMethode}>
             <option value="resend">Resend (ClubMatiq)</option>
             <option value="smtp">Eigener SMTP-Server</option>
+            <option value="microsoft365">Microsoft 365 (Graph OAuth2)</option>
           </select>
         </label>
+        {#if mailMethode === 'microsoft365'}
+          <label>Tenant-ID (Entra)<input bind:value={m365TenantId} required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" /></label>
+          <label>Client-ID (App-Registrierung)<input bind:value={m365ClientId} required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" /></label>
+          <label>Absender-E-Mail<input type="email" bind:value={m365Absender} required /></label>
+          <label>Client-Secret<input type="password" bind:value={m365Geheimnis} autocomplete="new-password" required={!m365GeheimnisHinterlegt} placeholder={m365GeheimnisHinterlegt ? 'Leer lassen, um Secret beizubehalten' : 'Client-Secret eingeben'} /></label>
+        {/if}
         {#if mailMethode === 'smtp'}
           <label>SMTP-Server<input bind:value={smtpHost} placeholder="smtp.beispiel.ch" required /></label>
           <label>Port<input type="number" bind:value={smtpPort} min="1" max="65535" required /></label>
@@ -428,6 +451,9 @@
           </label>
         {/if}
       </div>
+      {#if mailMethode === 'microsoft365'}
+        <p class="beschreibung">Microsoft Entra ID: App registrieren, Microsoft Graph Application Permission Mail.Send mit Admin-Consent erteilen und den Zugriff auf das gewünschte Postfach begrenzen. Der Versand erfolgt über OAuth2 (Client Credentials), ohne Benutzerpasswort.</p>
+      {/if}
       {#if mailMethode === 'smtp'}
         <p class="beschreibung">Port 587 verwendet normalerweise STARTTLS. Microsoft 365 kann OAuth2 erfordern; die Passwort-Anmeldung funktioniert nicht in jedem Tenant.</p>
       {/if}
