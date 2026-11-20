@@ -23,7 +23,7 @@ export async function versendeMicrosoft365Mail(
   const audience = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
   const header = Buffer.from(JSON.stringify({
     alg: 'RS256', typ: 'JWT',
-    x5t: Buffer.from(zertifikat.fingerprint, 'hex').toString('base64url')
+    x5t: Buffer.from(zertifikat.fingerprint.replace(/:/g, ''), 'hex').toString('base64url')
   })).toString('base64url');
   const payload = Buffer.from(JSON.stringify({
     aud: audience, iss: clientId, sub: clientId,
