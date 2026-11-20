@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import nodemailer from 'nodemailer';
+import { versendeMicrosoft365Mail } from '../../../../lib/server/microsoft365';
 import type { RequestHandler } from './$types';
 import { pruefeBerechtigung } from '../../../../lib/server/berechtigungen';
 import { ladeMailKonfiguration, entschluesseln } from '../../../../lib/server/mail-einstellungen';
@@ -9,6 +10,20 @@ export const POST: RequestHandler = async ({ locals }) => {
   if (fehler) return fehler;
   try {
     const mail = await ladeMailKonfiguration(locals.benutzer!.vereinId);
+    if (mail.methode === 'microsoft365') {
+      if (!mail.microsoft365) return json({ fehler: 'Bitte zuerst eine Microsoft-365-Konfiguration speichern.' }, { status: 400 });
+      try {
+        await versendeMicrosoft365Mail(mail.microsoft365, {
+          an: locals.benutzer!.email,
+          betreff: 'ClubMatiq – Microsoft-365-Testversand',
+          text: 'Der Microsoft-365-E-Mail-Versand für deinen Verein wurde erfolgreich getestet.'
+        });
+        return json({ erfolg: true, nachricht: 'Microsoft-365-Test-E-Mail wurde an deine eigene Adresse versendet.' });
+      } catch (error) {
+        console.error('Microsoft-365-Testversand fehlgeschlagen:', error instanceof Error ? error.message : 'Unbekannter Fehler');
+        return json({ fehler: 'Microsoft-365-Test fehlgeschlagen. Bitte Zertifikat, Entra-Anmeldung und Exchange-Berechtigung prüfen.' }, { status: 502 });
+      }
+    }
     if (mail.methode !== 'smtp' || !mail.smtp?.geheimnis) {
       return json({ fehler: 'Bitte zuerst eine SMTP-Konfiguration speichern.' }, { status: 400 });
     }
