@@ -16,7 +16,7 @@ const params = { id: '0123456789abcdef01234567' };
 const request = (daten: unknown) => new Request('http://localhost/api/test', {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(daten)
 });
-const aufrufen = (handler: typeof route0.POST, daten: unknown) => handler({ locals, params, request: request(daten) } as never);
+const aufrufen = (handler: (event: never) => Response | Promise<Response>, daten: unknown) => handler({ locals, params, request: request(daten) } as never);
 import * as route0 from '../../../src/routes/api/inventuren/[id]/korrigieren/+server';
 
 // Ursprüngliche Datei: inventur-korrektur-grenzwerte.integration.test.ts
