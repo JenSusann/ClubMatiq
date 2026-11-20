@@ -6,6 +6,8 @@
   let m365ClientId = $state('');
   let m365Absender = $state('');
   let m365ZertifikatServerseitig = $state(false);
+  let m365ZertifikatPem = $state('');
+  let m365PrivaterSchluesselPem = $state('');
   let smtpHost = $state('');
   let smtpPort = $state(587);
   let smtpSecure = $state(false);
@@ -56,7 +58,8 @@
           methode: mailMethode,
           ...(mailMethode === 'microsoft365' ? { microsoft365: {
             tenantId: m365TenantId, clientId: m365ClientId,
-            absender: m365Absender
+            absender: m365Absender,
+            ...(m365ZertifikatPem || m365PrivaterSchluesselPem ? { zertifikatPem: m365ZertifikatPem, privaterSchluesselPem: m365PrivaterSchluesselPem } : {})
           } } : {}),
           ...(mailMethode === 'smtp' ? { smtp: {
             host: smtpHost, port: Number(smtpPort), secure: smtpSecure,
@@ -67,6 +70,8 @@
       const daten = await antwort.json();
       if (!antwort.ok) throw new Error(daten.fehler ?? 'Speichern fehlgeschlagen.');
       smtpPasswort = '';
+      m365ZertifikatPem = '';
+      m365PrivaterSchluesselPem = '';
       mailErfolg = 'E-Mail-Einstellungen gespeichert.';
       await ladeMailEinstellungen();
     } catch (error) {
@@ -116,7 +121,10 @@
           <label>Tenant-ID (Entra)<input bind:value={m365TenantId} required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" /></label>
           <label>Client-ID (App-Registrierung)<input bind:value={m365ClientId} required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" /></label>
           <label>Absender-E-Mail<input type="email" bind:value={m365Absender} required /></label>
-          <p class="beschreibung">Zertifikat: {m365ZertifikatServerseitig ? 'Serverseitig konfiguriert' : 'Noch nicht serverseitig konfiguriert'}. Der private Schlüssel wird ausschliesslich als Server-Umgebungsvariable hinterlegt.</p>
+          <p class="beschreibung">Zertifikat für diesen Verein: {m365ZertifikatServerseitig ? 'Verschlüsselt hinterlegt' : 'Noch nicht hinterlegt'}. Zertifikat und privater Schlüssel werden verschlüsselt pro Verein gespeichert und niemals wieder im Browser angezeigt.</p>
+          <label>Öffentliches Zertifikat (PEM, bei Neueinrichtung oder Erneuerung)<textarea bind:value={m365ZertifikatPem} rows="5" placeholder="-----BEGIN CERTIFICATE-----" autocomplete="off"></textarea></label>
+          <label>Privater Schlüssel (PEM, gemeinsam mit Zertifikat einfügen)<textarea bind:value={m365PrivaterSchluesselPem} rows="5" placeholder="-----BEGIN PRIVATE KEY-----" autocomplete="off"></textarea></label>
+          <p class="beschreibung">Beide PEM-Inhalte nur bei Neueinrichtung oder Erneuerung eingeben; zum Beibehalten leer lassen. Nur über HTTPS verwenden. Nicht in Git oder Screenshots veröffentlichen.</p>
         {/if}
         {#if mailMethode === 'smtp'}
           <label>SMTP-Server<input bind:value={smtpHost} placeholder="smtp.beispiel.ch" required /></label>
@@ -130,7 +138,7 @@
         {/if}
       </div>
       {#if mailMethode === 'microsoft365'}
-        <p class="beschreibung">Microsoft Entra ID: Zertifikat (öffentlicher Teil) hochladen und Exchange Online Application RBAC mit der Rolle Application Mail.Send auf das gewünschte Postfach beschränken. Keine zusätzliche tenantweite Microsoft-Graph-Mail.Send-Berechtigung freigeben. Der private Schlüssel bleibt auf dem Server.</p>
+        <p class="beschreibung">Microsoft Entra ID: Zertifikat (öffentlicher Teil) hochladen und Exchange Online Application RBAC mit der Rolle Application Mail.Send auf das gewünschte Postfach beschränken. Keine zusätzliche tenantweite Microsoft-Graph-Mail.Send-Berechtigung freigeben. Der private Schlüssel wird verschlüsselt in der Vereinskonfiguration gespeichert; MAIL_ENCRYPTION_KEY muss auf dem Server bzw. bei Netlify hinterlegt sein.</p>
       {/if}
       {#if mailMethode === 'smtp'}
         <p class="beschreibung">Port 587 verwendet normalerweise STARTTLS. Microsoft 365 kann OAuth2 erfordern; die Passwort-Anmeldung funktioniert nicht in jedem Tenant.</p>
@@ -247,7 +255,8 @@
   }
 
   input,
-  select {
+  select,
+  textarea {
     width: 100%;
     box-sizing: border-box;
     border: 1px solid #cbd5e1;
