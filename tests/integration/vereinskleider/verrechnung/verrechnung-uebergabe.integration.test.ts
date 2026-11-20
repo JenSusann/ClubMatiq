@@ -184,7 +184,12 @@ describe('Paket 17 – Bestellungsübergabe', () => {
     expect((await postUebergabe(uebergabe())).status).toBe(409);
   });
   it('prüft ungültigen Lagerbestand', async () => { initUebergabe(); h.docs.artikel.menge = -1; expect((await postUebergabe(uebergabe())).status).toBe(409); });
-  it('schützt Anprobierreserve', async () => { initUebergabe(); h.docs.artikel.menge = 2; expect((await postUebergabe(uebergabe())).status).toBe(409); });
+  it('schützt Anprobierreserve', async () => {
+    initUebergabe();
+    h.docs.artikel.menge = 2;
+    h.rows.vereinskleider_verkaeufe.push({ positionen: [{ ...position(), reserviertMenge: 1 }] });
+    expect((await postUebergabe(uebergabe())).status).toBe(409);
+  });
   it('erkennt gescheiterte Lageraktualisierung', async () => {
     initUebergabe(); h.update.mockResolvedValueOnce({ modifiedCount: 0 }); expect((await postUebergabe(uebergabe())).status).toBe(409);
   });
