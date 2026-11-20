@@ -13,7 +13,7 @@ const locals = (rolle: string | null = 'admin') => ({ benutzer: rolle === null ?
 beforeEach(() => { for (const key of Object.keys(datasets)) delete datasets[key]; calls.length = 0; });
 
 
-const run = (handler: typeof route0.GET, rolle: string | null = 'admin') => handler({ locals: locals(rolle) } as any);
+const run = (handler: (event: never) => Response | Promise<Response>, rolle: string | null = 'admin') => handler({ locals: locals(rolle) } as any);
 import * as route0 from '../../../src/routes/api/vereinskleider/stornierungen/+server';
 
 // Ursprüngliche Datei: paket10-gutschriften-lesepfad.integration.test.ts
