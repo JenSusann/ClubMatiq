@@ -34,10 +34,14 @@
     hatGroessen: boolean;
     istVereinskleidung?: boolean;
     varianten: Variante[];
+    lieferantId?: string | null;
   };
 
   let kategorien = $state<Stammdatum[]>([]);
   let lagerorte = $state<Stammdatum[]>([]);
+  let lieferanten = $state<Stammdatum[]>([]);
+  let lieferantId = $state('');
+  let lieferantenFehler = $state('');
   let groessen = $state<Groesse[]>([]);
 
   let name = $state('');
@@ -135,16 +139,17 @@
         fetch('/api/kategorien'),
         fetch('/api/lagerorte'),
         fetch('/api/groessen'),
-        fetch(`/api/artikel/${artikelId}`)
+        fetch(`/api/artikel/${artikelId}`),
+        fetch('/api/lieferanten')
       ]);
 
-      if (antworten.some((antwort) => !antwort.ok)) {
+      if (antworten.slice(0, 4).some((antwort) => !antwort.ok)) {
         throw new Error('Artikeldaten konnten nicht geladen werden.');
       }
 
-    const [k, l, g, artikel] = await Promise.all(
-        antworten.map((antwort) => antwort.json())
-    ) as [Stammdatum[], Stammdatum[], Groesse[], Artikel];
+    const [k, l, g, artikel] = await Promise.all(antworten.slice(0, 4).map((antwort) => antwort.json())) as [Stammdatum[], Stammdatum[], Groesse[], Artikel];
+    if (antworten[4].ok) lieferanten = await antworten[4].json() as Stammdatum[];
+    else lieferantenFehler = 'Lieferanten konnten nicht geladen werden. Bestehende Zuordnung bleibt beim Speichern erhalten.';
 
       kategorien = k;
       lagerorte = l;
@@ -153,6 +158,7 @@
       name = artikel.name;
       kategorieId = artikel.kategorieId;
       lagerortId = artikel.lagerortId;
+      lieferantId = artikel.lieferantId ?? '';
       menge = artikel.menge;
       mindestbestand = artikel.mindestbestand ?? 0;
       einzelwert = artikel.einzelwert;
@@ -263,6 +269,7 @@
           name: name.trim(),
           kategorieId,
           lagerortId,
+          ...(lieferantenFehler ? {} : { lieferantId: lieferantId || null }),
           menge: gesamtmenge,
           mindestbestand: hatGroessen ? 0 : Number(mindestbestand),
           einzelwert: hatGroessen ? 0 : Number(einzelwert),
@@ -351,6 +358,18 @@
               {/each}
             </select>
           </div>
+        </div>
+
+        <div class="feld">
+          <label for="lieferant">Standardlieferant (optional)</label>
+          <select id="lieferant" bind:value={lieferantId} disabled={Boolean(lieferantenFehler)}>
+            <option value="">Kein Standardlieferant</option>
+            {#each lieferanten as lieferant (lieferant._id)}
+              <option value={lieferant._id}>{lieferant.name}</option>
+            {/each}
+          </select>
+          <small>Für Nachbestellungen und Sammelbestellungen wird ein Standardlieferant benötigt. Lieferanten kannst du in den Stammdaten verwalten.</small>
+          {#if lieferantenFehler}<p class="meldung fehler" role="status">{lieferantenFehler}</p>{/if}
         </div>
 
         <div class="feld">
