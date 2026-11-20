@@ -9,7 +9,8 @@ type Verkaufsposition = {
   groesseId: string | null;
   artikelname: string;
   menge: number;
-  einzelpreis: number;
+  einzelpreis: number | null;
+  preisOffen?: boolean;
   positionsbetrag: number;
   verkaufsart: 'direkt' | 'bestellung';
 };
