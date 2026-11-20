@@ -20,6 +20,9 @@ type Position = {
   einzelpreis: number | null;
   positionsbetrag: number;
   preisOffen?: boolean;
+  verkaufsart: 'direkt' | 'bestellung';
+  storniertMenge?: number;
+  uebergebenMenge?: number;
 };
 type Zahlung = { betrag: number; datum: Date; zahlungsart: string };
 
