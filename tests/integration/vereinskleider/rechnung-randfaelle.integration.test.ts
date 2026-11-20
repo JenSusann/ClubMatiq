@@ -27,7 +27,7 @@ import { PATCH as sammelPATCH } from '../../../src/routes/api/vereinskleider/sam
 const id = 'aaaaaaaaaaaaaaaaaaaaaaaa';
 const id2 = 'bbbbbbbbbbbbbbbbbbbbbbbb';
 const id3 = 'cccccccccccccccccccccccc';
-const locals = { benutzer: { vereinId: 'verein-1' } } as any;
+const locals = { benutzer: { id: 'integration-user', vereinId: 'verein-1' } } as any;
 const req = (method: string, body: unknown) => new Request('http://localhost/api', { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 const uebergabe = (body: unknown) => uebergabePOST({ locals, request: req('POST', body) } as any);
 const rechnung = (body: unknown) => rechnungPOST({ locals, request: req('POST', body) } as any);
