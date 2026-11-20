@@ -22,7 +22,7 @@ const post = (csv: string, type = 'text/csv') => {
   fd.set('datei', new File([csv], 'mitglieder.csv', { type }));
   return POST({ locals: { benutzer }, request: { headers: new Headers({ 'content-type': 'multipart/form-data; boundary=test' }), formData: async () => fd } } as never);
 };
-const message = async (promise: Promise<unknown>, status: number, contains: string) => {
+const message = async (promise: Response | Promise<Response>, status: number, contains: string) => {
   try { await promise; throw new Error('Expected HTTP error'); }
   catch (e: any) { expect(e.status).toBe(status); expect(e.body?.message ?? e.message).toContain(contains); }
 };
