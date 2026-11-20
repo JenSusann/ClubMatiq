@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ collection: vi.fn(), permission: vi.fn(() => null), find: vi.fn() }));
+const mocks = vi.hoisted(() => ({ collection: vi.fn(), permission: vi.fn<() => Response | null>(() => null), find: vi.fn() }));
 vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: mocks.collection } }));
 vi.mock('../../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: mocks.permission }));
 
@@ -18,7 +18,7 @@ const cursor = (name: string) => ({
 function event(query = '', loggedIn = true) {
   return { locals: { benutzer: loggedIn ? { vereinId: 'verein-1' } : null }, url: new URL('http://localhost/api/test' + query) } as never;
 }
-async function read(handler: (e: never) => Promise<Response>, query = '', loggedIn = true) {
+async function read(handler: (e: never) => Response | Promise<Response>, query = '', loggedIn = true) {
   const r = await handler(event(query, loggedIn));
   const t = await r.text();
   return { status: r.status, body: t ? JSON.parse(t) : null };
