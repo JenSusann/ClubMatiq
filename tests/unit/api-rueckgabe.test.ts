@@ -5,6 +5,7 @@ import { ObjectId } from 'mongodb';
 const mocks = vi.hoisted(() => ({
   findOne: vi.fn(),
   updateOne: vi.fn(),
+  insertOne: vi.fn(),
   withTransaction: vi.fn(),
   endSession: vi.fn()
 }));
@@ -13,7 +14,8 @@ vi.mock('../../src/lib/server/mongodb', () => ({
   db: {
     collection: vi.fn((name: string) => ({
       findOne: (...args: unknown[]) => mocks.findOne(name, ...args),
-      updateOne: (...args: unknown[]) => mocks.updateOne(name, ...args)
+      updateOne: (...args: unknown[]) => mocks.updateOne(name, ...args),
+      insertOne: (...args: unknown[]) => mocks.insertOne(name, ...args)
     }))
   },
   client: {
