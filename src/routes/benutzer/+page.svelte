@@ -66,6 +66,7 @@
   let mailSpeichern = $state(false);
   let mailFehler = $state('');
   let mailErfolg = $state('');
+  let mailTesten = $state(false);
 
   async function ladeMailEinstellungen() {
     try {
@@ -112,6 +113,22 @@
       mailFehler = error instanceof Error ? error.message : 'Speichern fehlgeschlagen.';
     } finally {
       mailSpeichern = false;
+    }
+  }
+
+  async function testeMailEinstellungen() {
+    mailTesten = true;
+    mailFehler = '';
+    mailErfolg = '';
+    try {
+      const antwort = await fetch('/api/mail-einstellungen/test', { method: 'POST' });
+      const daten = await antwort.json();
+      if (!antwort.ok) throw new Error(daten.fehler ?? 'SMTP-Test fehlgeschlagen.');
+      mailErfolg = daten.nachricht;
+    } catch (error) {
+      mailFehler = error instanceof Error ? error.message : 'SMTP-Test fehlgeschlagen.';
+    } finally {
+      mailTesten = false;
     }
   }
 
@@ -414,8 +431,18 @@
       {#if mailMethode === 'smtp'}
         <p class="beschreibung">Port 587 verwendet normalerweise STARTTLS. Microsoft 365 kann OAuth2 erfordern; die Passwort-Anmeldung funktioniert nicht in jedem Tenant.</p>
       {/if}
-      <div class="formular-aktionen"><button class="primaer" type="submit" disabled={mailSpeichern}>{mailSpeichern ? 'Speichert …' : 'E-Mail-Einstellungen speichern'}</button></div>
+      <div class="formular-aktionen">
+        <button class="primaer" type="submit" disabled={mailSpeichern}>{mailSpeichern ? 'Speichert …' : 'E-Mail-Einstellungen speichern'}</button>
+      </div>
     </form>
+    {#if mailMethode === 'smtp'}
+      <div class="formular-aktionen" style="margin-top: 12px">
+        <button type="button" class="sekundaer" onclick={testeMailEinstellungen} disabled={mailTesten || mailSpeichern}>
+          {mailTesten ? 'Test läuft …' : 'Gespeicherte SMTP-Einstellungen testen'}
+        </button>
+      </div>
+      <p class="beschreibung" style="margin-top: 8px">Der Test versendet eine E-Mail an deine eigene Benutzeradresse. Änderungen vorher speichern.</p>
+    {/if}
   </section>
 
   <!-- Neue Einladung -->
