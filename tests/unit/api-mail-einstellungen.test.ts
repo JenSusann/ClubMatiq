@@ -110,4 +110,45 @@ describe('E-Mail-Einstellungen API', () => {
     expect(mocks.updateOne.mock.calls[0][0]._id.toHexString()).toBe(admin.vereinId);
     expect(mocks.updateOne.mock.calls[0][1]).toEqual({ $set: { 'mailEinstellungen.methode': 'resend' } });
   });
+  it('speichert pro Verein ein validiertes Schlüsselpaar verschlüsselt', async () => {
+    // Ungültige oder nur halb übergebene Paare müssen blockiert werden.
+    // Ungültige oder nur halb übergebene Paare müssen hier blockiert werden.
+    const antwort = await PUT(kontext('PUT', { methode: 'microsoft365', microsoft365: {
+      tenantId: 'f7cf9dfa-5f0d-429c-9b64-c4c7a5d66a75',
+      clientId: 'e7cd00c1-cd5d-4d3f-8a35-6324ddb026a8',
+      absender: 'mail@verein.ch',
+      zertifikatPem: '-----BEGIN CERTIFICATE-----'
+    } }));
+    expect(antwort.status).toBe(400);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+
+  it('verwirft alte Zertifikate beim Wechsel zu einer anderen Entra-App', async () => {
+    mocks.findOne.mockResolvedValue({ mailEinstellungen: { microsoft365: {
+      tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      clientId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      zertifikat: 'encrypted-cert', privaterSchluessel: 'encrypted-key'
+    } } });
+    const antwort = await PUT(kontext('PUT', { methode: 'microsoft365', microsoft365: {
+      tenantId: 'f7cf9dfa-5f0d-429c-9b64-c4c7a5d66a75',
+      clientId: 'e7cd00c1-cd5d-4d3f-8a35-6324ddb026a8',
+      absender: 'mail@verein.ch'
+    } }));
+    expect(antwort.status).toBe(200);
+    expect(mocks.updateOne.mock.calls[0][1].$set.mailEinstellungen.microsoft365).not.toHaveProperty('privaterSchluessel');
+  });
+
+  it('GET gibt verschlüsselte Zertifikate und Schlüssel nicht an den Browser aus', async () => {
+    mocks.findOne.mockResolvedValue({ mailEinstellungen: { methode: 'microsoft365', microsoft365: {
+      tenantId: 'f7cf9dfa-5f0d-429c-9b64-c4c7a5d66a75',
+      clientId: 'e7cd00c1-cd5d-4d3f-8a35-6324ddb026a8',
+      absender: 'mail@verein.ch', zertifikat: 'cipher-cert', privaterSchluessel: 'cipher-key'
+    } } });
+    const antwort = await GET(kontext('GET'));
+    const text = JSON.stringify(await antwort.json());
+    expect(text).not.toContain('cipher-cert');
+    expect(text).not.toContain('cipher-key');
+    expect(text).toContain('zertifikatServerseitig');
+  });
+
 });
