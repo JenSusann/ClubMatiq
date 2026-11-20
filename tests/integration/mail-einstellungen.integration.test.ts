@@ -94,4 +94,27 @@ describe('Integration: Einstellungen speichern, laden und Testmail versenden', (
       expect(anleitung).toContain(begriff);
     }
   });
+  it('isoliert den Microsoft-365-Versand für zwei Vereine mit unterschiedlichen Zertifikaten', async () => {
+    const andererVerein = '507f191e810c19729de860ea';
+    const clubA = { ...m365, zertifikat: 'encrypted-A-cert', privaterSchluessel: 'encrypted-A-key' };
+    const clubB = {
+      tenantId: '33333333-3333-4333-8333-333333333333',
+      clientId: '44444444-4444-4444-8444-444444444444',
+      absender: 'post@anderer-verein.ch',
+      zertifikat: 'encrypted-B-cert', privaterSchluessel: 'encrypted-B-key'
+    };
+    mocks.ladeMailKonfiguration.mockImplementation(async (id: string) =>
+      id === vereinId ? { methode: 'microsoft365', microsoft365: clubA }
+        : id === andererVerein ? { methode: 'microsoft365', microsoft365: clubB }
+        : { methode: 'resend' }
+    );
+    const personB = { ...admin, vereinId: andererVerein, email: 'admin@anderer-verein.ch' };
+    expect((await POST(kontext('POST', admin))).status).toBe(200);
+    expect((await POST(kontext('POST', personB))).status).toBe(200);
+    expect(mocks.versendeMicrosoft365Mail).toHaveBeenNthCalledWith(1, clubA, expect.objectContaining({ an: admin.email }));
+    expect(mocks.versendeMicrosoft365Mail).toHaveBeenNthCalledWith(2, clubB, expect.objectContaining({ an: personB.email }));
+    expect(mocks.ladeMailKonfiguration).toHaveBeenNthCalledWith(1, vereinId);
+    expect(mocks.ladeMailKonfiguration).toHaveBeenNthCalledWith(2, andererVerein);
+  });
+
 });
