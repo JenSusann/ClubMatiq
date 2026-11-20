@@ -17,11 +17,11 @@ const fremdVereinId = `integration-fremd-${new ObjectId()}`;
 const prefix = new ObjectId().toString();
 const admin = { id: new ObjectId().toString(), vereinId, rolle: 'admin', vorname: 'Test', nachname: 'Admin' };
 const mitglied = { ...admin, rolle: 'mitglied' };
-const event = (benutzer: unknown, suche = '') => ({ locals: { benutzer }, url: new URL(`http://localhost/api/mitglieder?suche=${encodeURIComponent(suche)}`) }) as Parameters<typeof GET>[0];
+const event = (benutzer: unknown, suche = '') => ({ locals: { benutzer }, url: new URL(`http://localhost/api/mitglieder?suche=${encodeURIComponent(suche)}`) }) as Parameters<typeof route0.GET>[0];
 const upload = (csv: string, benutzer: unknown = admin) => {
   const form = new FormData();
   form.set('datei', new File([csv], 'mitglieder.csv', { type: 'text/csv' }));
-  return { locals: { benutzer }, request: new Request('http://localhost/api/mitglieder', { method: 'POST', body: form }) } as Parameters<typeof POST>[0];
+  return { locals: { benutzer }, request: new Request('http://localhost/api/mitglieder', { method: 'POST', body: form }) } as Parameters<typeof route0.POST>[0];
 };
 const csv = (rows: string[]) => ['[Id];Vorname;Nachname;Status', ...rows].join('\r\n');
 
