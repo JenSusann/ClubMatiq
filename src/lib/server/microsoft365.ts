@@ -1,7 +1,8 @@
-import { randomUUID, sign, X509Certificate } from 'node:crypto';
+import { createPrivateKey, createPublicKey, randomUUID, sign, X509Certificate } from 'node:crypto';
+import { entschluesseln } from './mail-einstellungen';
 
 export type Microsoft365Konfiguration = {
-  tenantId: string; clientId: string; absender: string; geheimnis?: string;
+  tenantId: string; clientId: string; absender: string; zertifikat?: string; privaterSchluessel?: string;
 };
 
 export async function versendeMicrosoft365Mail(
@@ -13,12 +14,19 @@ export async function versendeMicrosoft365Mail(
   if (![tenantId, clientId].every((wert) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(wert))) {
     throw new Error('Ungültige Microsoft-365-Konfiguration.');
   }
-  const certBase64 = process.env.M365_CERTIFICATE_BASE64;
-  const privateKeyBase64 = process.env.M365_PRIVATE_KEY_BASE64;
-  if (!certBase64 || !privateKeyBase64) throw new Error('Microsoft-365-Zertifikat ist serverseitig nicht konfiguriert.');
-  const zertifikat = new X509Certificate(Buffer.from(certBase64, 'base64'));
+  // Vereinsbezogene, AES-GCM-verschlüsselte Zugangsdaten. Keine globale
+  // Zertifikats-Fallback-Logik: sonst könnte Verein A mit dem Schlüssel von B senden.
+  if (!konfiguration.zertifikat || !konfiguration.privaterSchluessel) {
+    throw new Error('Microsoft-365-Zertifikat für diesen Verein fehlt.');
+  }
+  const certPem = entschluesseln(konfiguration.zertifikat);
+  const privateKey = entschluesseln(konfiguration.privaterSchluessel);
+  const zertifikat = new X509Certificate(certPem);
   if (Date.now() >= new Date(zertifikat.validTo).getTime()) throw new Error('Microsoft-365-Zertifikat ist abgelaufen.');
-  const privateKey = Buffer.from(privateKeyBase64, 'base64').toString('utf8');
+  if (Date.now() < new Date(zertifikat.validFrom).getTime()) throw new Error('Microsoft-365-Zertifikat ist noch nicht gültig.');
+  const publicDer = createPublicKey(createPrivateKey(privateKey)).export({ type: 'spki', format: 'der' });
+  const certDer = zertifikat.publicKey.export({ type: 'spki', format: 'der' });
+  if (!Buffer.from(publicDer).equals(Buffer.from(certDer))) throw new Error('Microsoft-365-Zertifikat und privater Schlüssel passen nicht zusammen.');
   const jetzt = Math.floor(Date.now() / 1000);
   const audience = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
   const header = Buffer.from(JSON.stringify({
