@@ -27,7 +27,16 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
     if (groesseId) filter.groesseId = groesseId;
     if (von || bis) filter.zeitpunkt = { ...(von ? { $gte: new Date(von + 'T00:00:00.000Z') } : {}), ...(bis ? { $lt: new Date(new Date(bis + 'T00:00:00.000Z').getTime() + 86400000) } : {}) };
     const bewegungen = await db.collection('lagerbewegungen').find(filter).sort({ zeitpunkt: -1, _id: -1 }).limit(200).toArray();
-    return json({ bewegungen: bewegungen.map(({ _id, ...bewegung }) => ({ ...bewegung, id: _id.toString() })), hinweis: 'Bewegungen vor Einführung des Journals sind nicht rückwirkend erfasst. Es werden maximal 200 Einträge angezeigt.' });
+    const benutzerIds = [...new Set(bewegungen.map((bewegung) => bewegung.benutzerId).filter((id): id is string => typeof id === 'string' && ObjectId.isValid(id)))];
+    const personen = benutzerIds.length > 0
+      ? await db.collection('benutzer').find({ vereinId, _id: { $in: benutzerIds.map((id) => new ObjectId(id)) } })
+          .project({ vorname: 1, nachname: 1 }).toArray()
+      : [];
+    const namen = new Map(personen.map((person) => [
+      person._id.toString(),
+      [person.vorname, person.nachname].filter(Boolean).join(' ').trim()
+    ]));
+    return json({ bewegungen: bewegungen.map(({ _id, ...bewegung }) => ({ ...bewegung, id: _id.toString(), benutzerName: namen.get(bewegung.benutzerId) || null })), hinweis: 'Bewegungen vor Einführung des Journals sind nicht rückwirkend erfasst. Es werden maximal 200 Einträge angezeigt.' });
   } catch (error) {
     console.error('Lagerbewegungen laden:', error instanceof Error ? error.name : 'Unbekannter Fehler');
     return json({ fehler: 'Lagerbewegungen konnten nicht geladen werden.' }, { status: 500 });
