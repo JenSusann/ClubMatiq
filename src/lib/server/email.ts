@@ -1,5 +1,7 @@
 import 'dotenv/config';
+import { randomUUID } from 'node:crypto';
 import nodemailer from 'nodemailer';
+import { versendeMicrosoft365Mail } from './microsoft365';
 import { entschluesseln, ladeMailKonfiguration } from './mail-einstellungen';
 
 function escapeHtml(wert: string): string {
@@ -20,6 +22,13 @@ export async function versendeEinladung(daten: {
   const htmlInhalt = `<p>Hallo ${escapeHtml(daten.vorname)},</p><p>Du wurdest zu <strong>${escapeHtml(daten.verein)}</strong> auf ClubMatiq eingeladen.</p><p><a href="${escapeHtml(daten.link)}">Einladung annehmen</a></p><p>Gültig bis ${daten.ablaufdatum.toLocaleDateString('de-CH')}.</p><p>ClubMatiq</p>`;
   if (daten.vereinId) {
     const mail = await ladeMailKonfiguration(daten.vereinId);
+    if (mail.methode === 'microsoft365') {
+      if (!mail.microsoft365) throw new Error('Microsoft-365-Konfiguration unvollständig.');
+      await versendeMicrosoft365Mail(mail.microsoft365, {
+        an: daten.email, betreff: `Einladung zu ${daten.verein} auf ClubMatiq`, text: textInhalt, html: htmlInhalt
+      });
+      return { id: `m365-${randomUUID()}` };
+    }
     if (mail.methode === 'smtp') {
       const smtp = mail.smtp;
       if (!smtp?.geheimnis) throw new Error('SMTP-Konfiguration unvollständig.');
