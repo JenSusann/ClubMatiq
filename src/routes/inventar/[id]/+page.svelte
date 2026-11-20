@@ -32,6 +32,13 @@
   let laden = $state(true);
   let fehler = $state('');
   let lieferantenFehler = $state('');
+  type Bewegung = { id: string; art: string; mengeDelta: number; zeitpunkt: string; benutzerId: string; groesseId: string | null; referenzTyp: string; referenzId: string };
+  let bewegungen = $state<Bewegung[]>([]);
+  let bewegungFehler = $state('');
+  let bewegungHinweis = $state('');
+  let bewegungsart = $state('');
+  let bewegungVon = $state('');
+  let bewegungBis = $state('');
 
   const artikelId = $derived(page.params.id ?? '');
   const standardlieferant = $derived(
@@ -40,6 +47,7 @@
 
   onMount(() => {
     void ladeArtikel();
+    void ladeBewegungen();
   });
 
   async function ladeArtikel() {
@@ -81,6 +89,23 @@
       fehler = error instanceof Error ? error.message : 'Verbindung zum Server fehlgeschlagen.';
     } finally {
       laden = false;
+    }
+  }
+
+  async function ladeBewegungen() {
+    bewegungFehler = '';
+    try {
+      const parameter = new URLSearchParams();
+      if (bewegungsart) parameter.set('art', bewegungsart);
+      if (bewegungVon) parameter.set('von', bewegungVon);
+      if (bewegungBis) parameter.set('bis', bewegungBis);
+      const antwort = await fetch(`/api/artikel/${encodeURIComponent(artikelId)}/lagerbewegungen?${parameter}`);
+      const daten = await antwort.json();
+      if (!antwort.ok) throw new Error(daten.fehler ?? 'Lagerbewegungen konnten nicht geladen werden.');
+      bewegungen = daten.bewegungen ?? [];
+      bewegungHinweis = daten.hinweis ?? '';
+    } catch (error) {
+      bewegungFehler = error instanceof Error ? error.message : 'Verbindung fehlgeschlagen.';
     }
   }
 
@@ -177,6 +202,21 @@
         <a href="/ausleihen" class="aktion">Zur Ausleihe</a>
         <a href="/meldungen" class="aktion">Schaden melden</a>
       </div>
+    </section>
+    <section class="bereich" style="margin-top:24px">
+      <h2>Lagerbewegungsjournal</h2>
+      <p class="hinweis">{bewegungHinweis || 'Bestandsänderungen seit Einführung des Journals werden hier angezeigt.'}</p>
+      <div class="aktionen">
+        <label>Bewegungstyp <select bind:value={bewegungsart}><option value="">Alle</option><option value="anlage">Anlage</option><option value="ausleihe">Ausleihe</option><option value="rueckgabe">Rückgabe</option><option value="inventur">Inventur</option><option value="verkauf">Verkauf</option><option value="wareneingang">Wareneingang</option><option value="korrektur">Korrektur</option><option value="storno">Storno</option></select></label>
+        <label>Von <input type="date" bind:value={bewegungVon}/></label>
+        <label>Bis <input type="date" bind:value={bewegungBis}/></label>
+        <button type="button" onclick={ladeBewegungen}>Filtern</button>
+      </div>
+      {#if bewegungFehler}<p class="fehlermeldung" role="alert">{bewegungFehler}</p>{/if}
+      <div class="tabelle-wrapper"><table><thead><tr><th>Zeitpunkt</th><th>Vorgang</th><th>Menge</th><th>Grösse</th><th>Durchgeführt von (Benutzer-ID)</th><th>Referenz</th></tr></thead>
+      <tbody>{#each bewegungen as bewegung (bewegung.id)}
+        <tr><td>{new Date(bewegung.zeitpunkt).toLocaleString('de-CH')}</td><td>{bewegung.art}</td><td>{bewegung.mengeDelta > 0 ? '+' : ''}{bewegung.mengeDelta}</td><td>{bewegung.groesseId ?? '–'}</td><td>{bewegung.benutzerId}</td><td>{bewegung.referenzTyp}: {bewegung.referenzId}</td></tr>
+      {:else}<tr><td colspan="6">Keine erfassten Bewegungen für diesen Zeitraum.</td></tr>{/each}</tbody></table></div>
     </section>
   {/if}
 </main>
