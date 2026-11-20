@@ -27,7 +27,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
       email: einladung.email, vorname: einladung.vorname,
       verein: typeof verein?.name === 'string' ? verein.name : 'deinem Verein',
       link: `${basisUrl}/einladung?token=${encodeURIComponent(token)}`,
-      ablaufdatum
+      ablaufdatum, vereinId
     });
     await einladungen.updateOne({ _id: einladung._id, vereinId, status: 'offen' }, {
       $set: { tokenHash, ablaufdatum, versendetAm: new Date(), resendId: versand.id }
