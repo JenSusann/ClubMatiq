@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   pruefeBerechtigung: vi.fn(), startSession: vi.fn(), withTransaction: vi.fn(), endSession: vi.fn(),
   sammelFindOne: vi.fn(), sammelUpdateOne: vi.fn(), artikelUpdateOne: vi.fn(), artikelFindOne: vi.fn(),
   variantenUpdateOne: vi.fn(), variantenFindOne: vi.fn(), verkaufFind: vi.fn(), verkaufUpdateOne: vi.fn(),
-  sort: vi.fn(), toArray: vi.fn()
+  sort: vi.fn(), toArray: vi.fn(), journalInsertOne: vi.fn()
 }));
 vi.mock('../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: mocks.pruefeBerechtigung }));
 vi.mock('../../src/lib/server/mongodb', () => ({
@@ -15,6 +15,7 @@ vi.mock('../../src/lib/server/mongodb', () => ({
     if (name === 'artikel') return { updateOne: mocks.artikelUpdateOne, findOne: mocks.artikelFindOne };
     if (name === 'artikelvarianten') return { updateOne: mocks.variantenUpdateOne, findOne: mocks.variantenFindOne };
     if (name === 'vereinskleider_verkaeufe') return { find: mocks.verkaufFind, updateOne: mocks.verkaufUpdateOne };
+    if (name === 'lagerbewegungen') return { insertOne: mocks.journalInsertOne };
     throw new Error(`Unbekannte Collection ${name}`);
   }) }
 }));
