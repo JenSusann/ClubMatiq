@@ -91,6 +91,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     return json({
       erfolg: true,
       meldung: 'Anmeldung erfolgreich.',
+      passwortwechselErforderlich: benutzer.passwortwechselErforderlich === true,
       benutzer: {
         id: benutzer._id.toString(),
         vorname: benutzer.vorname,
