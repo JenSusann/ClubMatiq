@@ -46,6 +46,9 @@
   let bewegungGroesse = $state('');
   let bewegungSuche = $state('');
   let artikelIdKopiert = $state(false);
+  const journalExportUrl = $derived('/api/export/lagerbewegungen?' + new URLSearchParams({
+    artikelId, art: bewegungsart, groesseId: bewegungGroesse, von: bewegungVon, bis: bewegungBis, suche: bewegungSuche
+  }).toString());
   const bewegungenGefiltert = $derived(bewegungen.filter((eintrag) => {
     if (bewegungGroesse && eintrag.groesseId !== bewegungGroesse) return false;
     const suche = bewegungSuche.trim().toLocaleLowerCase('de-CH');
@@ -228,7 +231,7 @@
     <section class="bereich journal">
       <div class="journal-kopf">
         <div><span class="kennzeichnung">BESTANDSHISTORIE</span><h2>Lagerbewegungsjournal</h2><p class="journal-hinweis">{bewegungHinweis || 'Alle erfassten Bestandsänderungen dieses Artikels.'}</p></div>
-        <span class="anzahl">{bewegungenGefiltert.length} Bewegungen</span>
+        <div class="journal-aktionen"><span class="anzahl">{bewegungenGefiltert.length} angezeigt</span><a class="excel-export" href={journalExportUrl}>Excel exportieren (.xlsx)</a></div>
       </div>
       <div class="filterbereich">
         <label class="suche-feld">Suche
@@ -279,6 +282,9 @@
   .artikel-id { font-size:12px; color:#64748b; overflow-wrap:anywhere; }
   .kopieren { padding:5px 9px; font-size:12px; background:#e9eef6; color:#172b4d; }
   .journal { margin-top:24px; }
+  .journal-aktionen { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .excel-export { display:inline-block; background:#166534; color:white; border-radius:7px; padding:10px 14px; font-size:13px; font-weight:700; text-decoration:none; }
+  .excel-export:hover { background:#14532d; }
   .journal-kopf { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
   .journal-kopf h2 { margin:7px 0; }
   .journal-hinweis { color:#64748b; font-size:13px; max-width:680px; }
