@@ -36,7 +36,7 @@
   let laden = $state(true);
   let fehler = $state('');
   let lieferantenFehler = $state('');
-  type Bewegung = { id: string; art: string; mengeDelta: number; zeitpunkt: string; benutzerId: string; groesseId: string | null; referenzTyp: string; referenzId: string };
+  type Bewegung = { id: string; art: string; mengeDelta: number; zeitpunkt: string; benutzerId: string; benutzerName?: string | null; groesseId: string | null; referenzTyp: string; referenzId: string };
   let bewegungen = $state<Bewegung[]>([]);
   let bewegungFehler = $state('');
   let bewegungHinweis = $state('');
@@ -49,7 +49,7 @@
   const bewegungenGefiltert = $derived(bewegungen.filter((eintrag) => {
     if (bewegungGroesse && eintrag.groesseId !== bewegungGroesse) return false;
     const suche = bewegungSuche.trim().toLocaleLowerCase('de-CH');
-    return !suche || [eintrag.art, eintrag.benutzerId, eintrag.referenzId, eintrag.referenzTyp, groessenName(eintrag.groesseId), bewegungsName(eintrag.art)].some((wert) => wert.toLocaleLowerCase('de-CH').includes(suche));
+    return !suche || [eintrag.art, eintrag.benutzerId, eintrag.benutzerName ?? '', eintrag.referenzId, eintrag.referenzTyp, groessenName(eintrag.groesseId), bewegungsName(eintrag.art)].some((wert) => wert.toLocaleLowerCase('de-CH').includes(suche));
   }));
   const bewegungsName = (art: string) => ({ anlage: 'Anlage', ausleihe: 'Ausleihe', rueckgabe: 'Rückgabe', inventur: 'Inventurkorrektur', verkauf: 'Verkauf', wareneingang: 'Wareneingang', korrektur: 'Korrektur', storno: 'Storno' })[art as 'anlage'] ?? art;
   async function kopiereArtikelId() {
@@ -232,7 +232,7 @@
       </div>
       <div class="filterbereich">
         <label class="suche-feld">Suche
-          <input type="search" bind:value={bewegungSuche} placeholder="Vorgang, Benutzer-ID oder Referenz suchen …" aria-label="Lagerbewegungen durchsuchen"/>
+          <input type="search" bind:value={bewegungSuche} placeholder="Vorgang, Benutzername oder Referenz suchen …" aria-label="Lagerbewegungen durchsuchen"/>
         </label>
         <label>Grösse
           <select bind:value={bewegungGroesse} onchange={ladeBewegungen}><option value="">Alle Grössen</option>{#each groessen.filter((g) => artikel?.varianten.some((v) => v.groesseId === g._id)) as groesse (groesse._id)}<option value={groesse._id}>{groesse.bezeichnung}</option>{/each}</select>
@@ -248,7 +248,7 @@
       {#if bewegungFehler}<p class="fehlermeldung" role="alert">{bewegungFehler}</p>{/if}
       <div class="tabelle-wrapper"><table class="journal-tabelle"><thead><tr><th>Zeitpunkt</th><th>Vorgang</th><th>Menge</th><th>Grösse</th><th>Durchgeführt von</th><th>Referenz</th></tr></thead>
       <tbody>{#each bewegungenGefiltert as bewegung (bewegung.id)}
-        <tr><td>{new Date(bewegung.zeitpunkt).toLocaleString('de-CH')}</td><td><span class="vorgang">{bewegungsName(bewegung.art)}</span></td><td><span class:zugang={bewegung.mengeDelta > 0} class:abgang={bewegung.mengeDelta < 0} class="menge">{bewegung.mengeDelta > 0 ? '+' : ''}{bewegung.mengeDelta}</span></td><td>{groessenName(bewegung.groesseId)}</td><td><span class="referenz" title={bewegung.benutzerId}>{bewegung.benutzerId}</span></td><td><span class="referenz" title={bewegung.referenzId}>{bewegung.referenzTyp}: {bewegung.referenzId}</span></td></tr>
+        <tr><td>{new Date(bewegung.zeitpunkt).toLocaleString('de-CH')}</td><td><span class="vorgang">{bewegungsName(bewegung.art)}</span></td><td><span class:zugang={bewegung.mengeDelta > 0} class:abgang={bewegung.mengeDelta < 0} class="menge">{bewegung.mengeDelta > 0 ? '+' : ''}{bewegung.mengeDelta}</span></td><td>{groessenName(bewegung.groesseId)}</td><td><span class="referenz" title={bewegung.benutzerId}>{bewegung.benutzerName ?? "Benutzer nicht mehr vorhanden"}</span></td><td><span class="referenz" title={bewegung.referenzId}>{bewegung.referenzTyp}: {bewegung.referenzId}</span></td></tr>
       {:else}<tr><td colspan="6"><div class="leerzustand"><strong>Keine Lagerbewegungen gefunden</strong><p>{bewegungen.length === 0 ? 'Für diesen Artikel wurden seit Einführung des Journals noch keine Bestandsänderungen protokolliert.' : 'Passe die Suche oder die Filter an.'}</p></div></td></tr>{/each}</tbody></table></div>
     </section>
   {/if}
