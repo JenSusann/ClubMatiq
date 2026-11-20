@@ -475,3 +475,14 @@ setup();
 expect((await response.json()).verkauf.endbetrag).toBe(35);
  }); });
 
+
+describe('Issue #68 – keine Ersatzpreis-Verrechnung bei explizit offenem Preis', () => {
+  it('sperrt den Verkauf auch dann, wenn der Client einen Preis übermittelt', async () => {
+    setup({ preis: price({ preistyp: 'variabel', verkaufspreis: null, preisOffen: true }) });
+    const response = await route40.POST(event('POST', input({
+      positionen: [position({ einzelpreis: 12 })]
+    })) as never);
+    expect(response.status).toBe(409);
+    expect((await response.json()).fehler).toContain('Ersatzpreis');
+  });
+});
