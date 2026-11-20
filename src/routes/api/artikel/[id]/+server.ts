@@ -580,6 +580,19 @@ export const DELETE: RequestHandler = async ({
       );
     }
 
+    // Historische Verkäufe und Bestellungen dürfen nicht ihre Artikelreferenz verlieren.
+    // Auch abgeschlossene oder stornierte Vorgänge bleiben für die Nachvollziehbarkeit erhalten.
+    const verwendung = await db.collection('vereinskleider_verkaeufe').findOne({
+      vereinId,
+      'positionen.artikelId': artikelId
+    });
+
+    if (verwendung) {
+      return json({
+        fehler: 'Dieser Artikel ist mit einer Vereinskleiderbestellung oder einem Verkauf verknüpft und kann nicht gelöscht werden.'
+      }, { status: 409 });
+    }
+
     // Artikel und Varianten gemeinsam löschen
     const session = client.startSession();
 
