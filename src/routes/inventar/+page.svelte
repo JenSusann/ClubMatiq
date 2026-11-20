@@ -232,6 +232,7 @@
                       aria-expanded={ausgeklappteArtikel.includes(a._id)}>
                       {ausgeklappteArtikel.includes(a._id) ? 'Schliessen' : 'Anzeigen'}
                     </button>
+                    <a href={`/inventar/${a._id}`} class="bearbeiten-button">Details / Verlauf</a>
                     {#if darfBearbeiten}
                       <a href={`/inventar/${a._id}/bearbeiten`} class="bearbeiten-button">Bearbeiten</a>
                       <button type="button" class="loeschen-button"
