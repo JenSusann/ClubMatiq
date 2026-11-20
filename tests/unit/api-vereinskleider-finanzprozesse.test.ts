@@ -4,7 +4,7 @@ const m = vi.hoisted(() => {
   const collections: Record<string, any> = {};
   const session = { withTransaction: vi.fn(async (fn: () => unknown) => fn()), endSession: vi.fn(async () => {}) };
   const collection = vi.fn((name: string) => collections[name]);
-  return { collections, session, collection, startSession: vi.fn(() => session), permission: vi.fn(() => null) };
+  return { collections, session, collection, startSession: vi.fn(() => session), permission: vi.fn<() => Response | null>(() => null) };
 });
 vi.mock('../../src/lib/server/mongodb', () => ({ db: { collection: m.collection }, client: { startSession: m.startSession } }));
 vi.mock('../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: m.permission }));
@@ -164,7 +164,7 @@ describe('Zahlungseingänge', () => {
   });
   it.each([
     [{ betrag: 11 }, 'Betrag'], [{ zahlungsart: 'bar' }, 'Zahlungsart'], [{ datum: '2026-11-18' }, 'Datum']
-  ])('verhindert Wiederverwendung einer Zahlungs-ID mit abweichenden Daten (%s)', async (overrides) => {
+  ])('verhindert Wiederverwendung einer Zahlungs-ID mit abweichenden Daten (%s)', async (overrides, _label) => {
     m.collections.vereinskleider_rechnungen.findOne.mockResolvedValue(rechnung({ zahlungen: [{ betrag: 10, datum: new Date('2026-11-17T12:00:00Z'), zahlungsart: 'twint', zahlungId: UUID }] }));
     expect((await call(patchZahlung, payment(overrides))).status).toBe(409);
   });
