@@ -4,8 +4,8 @@ const h = vi.hoisted(() => ({
   rows: {} as Record<string, any[]>, one: {} as Record<string, any>,
   fail: '' as string, count: 1,
   auth: vi.fn(() => null as Response | null),
-  insert: vi.fn(async () => ({ insertedId: new ObjectId('aaaaaaaaaaaaaaaaaaaaaaaa') })),
-  update: vi.fn(async () => ({ matchedCount: 1, modifiedCount: 1, deletedCount: 1 })),
+  insert: vi.fn(async (_document: any) => ({ insertedId: new ObjectId('aaaaaaaaaaaaaaaaaaaaaaaa') })),
+  update: vi.fn(async (_filter: any, _update: any) => ({ matchedCount: 1, modifiedCount: 1, deletedCount: 1 })),
 }));
 vi.mock('../../../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: h.auth }));
 vi.mock('../../../../src/lib/server/mongodb', () => ({
