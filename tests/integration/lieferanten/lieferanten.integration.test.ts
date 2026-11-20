@@ -17,7 +17,7 @@ beforeEach(() => {
  m.startSession.mockReturnValue({ withTransaction: m.withTransaction, endSession: m.endSession });
 });
 import { GET, POST, PATCH, DELETE } from '../../../src/routes/api/lieferanten/+server';
-const req = (method: 'POST'|'PATCH'|'DELETE', d: unknown) => ({ ...ctx('GET'), request: new Request('http://localhost/api/lieferanten', {method,headers:{'content-type':'application/json'},body:JSON.stringify(d)}) }) as never;
+const req = (method: 'POST'|'PATCH'|'DELETE', d: unknown) => ({ ...(ctx('GET') as object), request: new Request('http://localhost/api/lieferanten', {method,headers:{'content-type':'application/json'},body:JSON.stringify(d)}) }) as never;
 const good = { name:'Testlieferant', kontaktperson:'', email:'', telefon:'', bemerkung:'' };
 describe('Lieferanten zusätzliche Fälle', () => {
  it.each([null,[],4,'x'])('POST ungültiges Objekt %j',async d=>{expect((await POST(req('POST',d))).status).toBe(400)});
