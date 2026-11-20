@@ -81,7 +81,8 @@ function pruefeEingabe(daten: unknown) {
     if (!p || typeof p !== 'object' || Array.isArray(p) || !gueltigeId(p.artikelId) ||
         (p.groesseId !== null && !gueltigeId(p.groesseId)) ||
         !Number.isSafeInteger(p.menge) || p.menge < 1 || p.menge > 10000 ||
-        (p.einzelpreis !== undefined && !betragGueltig(p.einzelpreis))) {
+        (p.einzelpreis !== undefined && !betragGueltig(p.einzelpreis)) ||
+        (p.preisOffen !== undefined && typeof p.preisOffen !== 'boolean')) {
       throw new Verkaufsfehler('Eine Warenkorbposition ist ungültig.');
     }
     positionen.push({ artikelId: p.artikelId, groesseId: p.groesseId, menge: p.menge, einzelpreis: p.einzelpreis, preisOffen: p.preisOffen === true });
