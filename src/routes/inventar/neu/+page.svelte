@@ -282,12 +282,12 @@
 </svelte:head>
 
 <main>
-  <a href="/inventar" class="zurueck">
-    ← Zurück zum Inventar
+  <a href="/stammdaten" class="zurueck">
+    ← Zurück zu den Stammdaten
   </a>
 
   <h1>Neuen Inventarartikel erfassen</h1>
-  <p>Erfasse Vereinsmaterial und Vereinskleider zentral im Inventar.</p>
+  <p>Erfasse Vereinsmaterial und Vereinskleider zentral über die Stammdaten.</p>
 
   {#if fehlermeldung}
     <p class="meldung fehler" role="alert">{fehlermeldung}</p>
