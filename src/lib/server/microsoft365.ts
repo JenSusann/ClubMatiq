@@ -41,7 +41,18 @@ export async function versendeMicrosoft365Mail(
     }),
     signal: AbortSignal.timeout(15000)
   });
-  if (!tokenAntwort.ok) throw new Error('Microsoft-365-Authentifizierung fehlgeschlagen.');
+  if (!tokenAntwort.ok) {
+    // Microsoft liefert bei OAuth-Fehlern einen AADSTS-Code und einen Fehlernamen.
+    // Keine Tokens, Assertions oder Zertifikatsdaten protokollieren.
+    const oauthAntwort: unknown = await tokenAntwort.json().catch(() => null);
+    const oauth = oauthAntwort && typeof oauthAntwort === 'object'
+      ? oauthAntwort as Record<string, unknown> : {};
+    const fehlercode = typeof oauth.error === 'string' && /^[a-z_]{1,80}$/i.test(oauth.error)
+      ? oauth.error : 'unknown_error';
+    const beschreibung = typeof oauth.error_description === 'string' ? oauth.error_description : '';
+    const aadsts = beschreibung.match(/AADSTS\d{5,8}/)?.[0] ?? 'kein AADSTS-Code';
+    throw new Error(`Microsoft-365-Authentifizierung fehlgeschlagen (HTTP ${tokenAntwort.status}, ${fehlercode}, ${aadsts}).`);
+  }
   const tokenDaten: unknown = await tokenAntwort.json();
   if (!tokenDaten || typeof tokenDaten !== 'object' || !('access_token' in tokenDaten) ||
       typeof tokenDaten.access_token !== 'string') throw new Error('Microsoft-365-Token fehlt.');
