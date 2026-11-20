@@ -212,33 +212,6 @@
     margin-bottom: 20px;
   }
 
-  .abschnitt-kopf {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 22px;
-  }
-
-  .hinweis {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 14px 16px;
-    margin-bottom: 24px;
-    background: #eff6ff;
-    color: #1e40af;
-    border-radius: 8px;
-    font-size: 14px;
-    line-height: 1.5;
-  }
-
-  .hinweis-symbol {
-    font-size: 19px;
-    font-weight: 700;
-    line-height: 1;
-  }
-
   .formular-raster {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -311,64 +284,6 @@
     cursor: not-allowed;
   }
 
-  .tabellen-container {
-    overflow-x: auto;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-  }
-
-  th,
-  td {
-    padding: 14px 12px;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 14px;
-  }
-
-  th {
-    color: #64748b;
-    font-size: 13px;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-
-  td {
-    vertical-align: middle;
-  }
-
-  td strong {
-    font-weight: 600;
-  }
-
-  .status {
-    display: inline-block;
-    padding: 5px 10px;
-    border-radius: 20px;
-    background: #dcfce7;
-    color: #166534;
-    font-size: 12px;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-
-  .status-offen {
-    background: #dbeafe;
-    color: #1d4ed8;
-  }
-
-  .status-abgelaufen {
-    background: #fef3c7;
-    color: #92400e;
-  }
-
-  .status-inaktiv {
-    background: #f1f5f9;
-    color: #64748b;
-  }
-
   .meldung {
     padding: 14px 18px;
     border-radius: 8px;
@@ -386,17 +301,6 @@
     color: #166534;
   }
 
-  .platzhalter {
-    color: #64748b;
-    padding: 16px 0;
-  }
-
-  .tabellen-info {
-    margin: 16px 0 0;
-    font-size: 13px;
-    color: #64748b;
-  }
-
   @media (max-width: 650px) {
     .seite {
       padding: 24px 14px 40px;
@@ -410,12 +314,7 @@
       padding: 18px;
     }
 
-    .abschnitt-kopf {
-      align-items: flex-start;
-      flex-direction: column;
-    }
-
-    h1 {
+      h1 {
       font-size: 26px;
     }
 
