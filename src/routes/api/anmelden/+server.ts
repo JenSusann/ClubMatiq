@@ -28,10 +28,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     }
 
     // Benutzer in MongoDB suchen
-    const benutzer = await db.collection('benutzer').findOne({
-      email,
-      aktiv: true
-    });
+    const benutzer = await db.collection('benutzer').findOne({ email });
 
     // Keine Information preisgeben, ob die E-Mail existiert
     if (
@@ -55,6 +52,12 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         { fehler: 'E-Mail-Adresse oder Passwort ist falsch.' },
         { status: 401 }
       );
+    }
+
+    if (benutzer.aktiv === false) {
+      return json({
+        fehler: 'Dein Benutzerkonto wurde deaktiviert. Falls du glaubst, dass dies ein Fehler ist, wende dich bitte an den Administrator deines Vereins.'
+      }, { status: 403 });
     }
 
     // Zufälligen Session-Token erstellen
