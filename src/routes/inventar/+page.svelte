@@ -155,7 +155,7 @@
       <h1>Inventarverwaltung</h1>
       <p>Verwalte das Material und die Vereinskleider.</p>
     </div>
-    <div class="kopf-aktionen"><a href="/inventar/lagerbewegungen" class="button">Gesamtes Lagerbewegungsjournal</a>{#if darfBearbeiten}<a href="/inventar/neu" class="button">+ Neuer Artikel</a>{/if}</div>
+    <div class="kopf-aktionen"><a href="/inventar/lagerbewegungen" class="button">Gesamtes Lagerbewegungsjournal</a></div>
   </div>
 
   {#if fehlermeldung}
