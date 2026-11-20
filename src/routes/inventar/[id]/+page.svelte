@@ -118,6 +118,7 @@
     try {
       const parameter = new URLSearchParams();
       if (bewegungsart) parameter.set('art', bewegungsart);
+      if (bewegungGroesse) parameter.set('groesseId', bewegungGroesse);
       if (bewegungVon) parameter.set('von', bewegungVon);
       if (bewegungBis) parameter.set('bis', bewegungBis);
       const antwort = await fetch(`/api/artikel/${encodeURIComponent(artikelId)}/lagerbewegungen?${parameter}`);
@@ -234,7 +235,7 @@
           <input type="search" bind:value={bewegungSuche} placeholder="Vorgang, Benutzer-ID oder Referenz suchen …" aria-label="Lagerbewegungen durchsuchen"/>
         </label>
         <label>Grösse
-          <select bind:value={bewegungGroesse}><option value="">Alle Grössen</option>{#each groessen.filter((g) => artikel?.varianten.some((v) => v.groesseId === g._id)) as groesse (groesse._id)}<option value={groesse._id}>{groesse.bezeichnung}</option>{/each}</select>
+          <select bind:value={bewegungGroesse} onchange={ladeBewegungen}><option value="">Alle Grössen</option>{#each groessen.filter((g) => artikel?.varianten.some((v) => v.groesseId === g._id)) as groesse (groesse._id)}<option value={groesse._id}>{groesse.bezeichnung}</option>{/each}</select>
         </label>
         <label>Bewegungstyp
           <select bind:value={bewegungsart}><option value="">Alle Vorgänge</option><option value="anlage">Anlage</option><option value="ausleihe">Ausleihe</option><option value="rueckgabe">Rückgabe</option><option value="inventur">Inventur</option><option value="verkauf">Verkauf</option><option value="wareneingang">Wareneingang</option><option value="korrektur">Korrektur</option><option value="storno">Storno</option></select>
