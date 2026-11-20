@@ -5,7 +5,7 @@ const ID = '507f1f77bcf86cd799439011';
 const ART = '507f191e810c19729de860ea';
 const SIZE = '507f1f77bcf86cd799439012';
 const OTHER = '507f1f77bcf86cd799439013';
-const mocks = vi.hoisted(() => ({ collection: vi.fn(), permission: vi.fn(() => null) }));
+const mocks = vi.hoisted(() => ({ collection: vi.fn(), permission: vi.fn<() => Response | null>(() => null) }));
 vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: mocks.collection } }));
 vi.mock('../../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: mocks.permission }));
 
@@ -50,7 +50,7 @@ function event(method: 'GET' | 'POST', body?: unknown, id = ID) {
     })
   } as any;
 }
-async function status(promise: Promise<unknown>, expected: number) {
+async function status(promise: Response | Promise<Response>, expected: number) {
   try {
     const response = await promise as Response;
     expect(response.status).toBe(expected);
@@ -58,7 +58,7 @@ async function status(promise: Promise<unknown>, expected: number) {
     expect(e.status).toBe(expected);
   }
 }
-async function pdf(promise: Promise<unknown>) {
+async function pdf(promise: Response | Promise<Response>) {
   const response = await promise as Response;
   expect(response.status).toBe(200);
   expect(response.headers.get('content-type')).toContain('application/pdf');
