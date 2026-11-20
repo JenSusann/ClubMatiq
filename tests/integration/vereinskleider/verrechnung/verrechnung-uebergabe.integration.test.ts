@@ -4,7 +4,7 @@ const h = vi.hoisted(() => ({
   docs: {} as Record<string, any>, rows: {} as Record<string, any[]>,
   update: vi.fn(async () => ({ modifiedCount: 1 })),
   insert: vi.fn(async () => ({})),
-  counter: vi.fn(async () => ({ nummer: 1 })),
+  counter: vi.fn(async (): Promise<{ nummer: unknown } | null> => ({ nummer: 1 })),
   auth: vi.fn(() => null as Response | null),
   failure: '' as string,
   transactionFailure: false,
