@@ -139,6 +139,24 @@ describe('PUT /api/vereinskleider/preise', () => {
         : 'Ungültiger Verkaufspreis.'
     );
   });
+  it('akzeptiert explizit offenen Fixpreis und speichert den Status', async () => {
+    const response = await put({ ...standard, verkaufspreis: null, preisOffen: true });
+    expect(response.status).toBe(200);
+    expect(mocks.updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({ vereinId, artikelId }),
+      expect.objectContaining({ $set: expect.objectContaining({ preisOffen: true, verkaufspreis: null }) }),
+      { upsert: true }
+    );
+  });
+  it('lehnt offenen Preis mit gleichzeitigem Betrag ab', async () => {
+    const response = await put({ ...standard, preisOffen: true });
+    expect(response.status).toBe(400);
+    expect((await response.json()).fehler).toContain('offenem Preis');
+  });
+  it('lehnt ungültigen Preis-offen-Status ab', async () => {
+    const response = await put({ ...standard, preisOffen: 'ja' });
+    expect(response.status).toBe(400);
+  });
   it('verlangt beim Fixpreis einen Verkaufspreis', async () => {
     const response = await put({ ...standard, verkaufspreis: null });
     expect(response.status).toBe(400);
