@@ -22,6 +22,10 @@
     varianten: Variante[];
   };
 
+  type Groesse = { _id: string; bezeichnung: string };
+  let groessen = $state<Groesse[]>([]);
+  const groessenName = (id: string | null) => id === null ? '–' : (groessen.find((g) => g._id === id)?.bezeichnung ?? 'Unbekannte Grösse');
+
   type Lieferant = {
     _id: string;
     name: string;
@@ -56,9 +60,10 @@
     lieferantenFehler = '';
 
     try {
-      const [artikelAntwort, lieferantenAntwort] = await Promise.all([
+      const [artikelAntwort, lieferantenAntwort, groessenAntwort] = await Promise.all([
         fetch(`/api/artikel/${encodeURIComponent(artikelId)}`),
-        fetch('/api/lieferanten')
+        fetch('/api/lieferanten'),
+        fetch('/api/groessen')
       ]);
 
       const artikelDaten = await artikelAntwort.json();
@@ -66,6 +71,10 @@
         throw new Error(artikelDaten.fehler ?? 'Artikel konnte nicht geladen werden.');
       }
       artikel = artikelDaten as Artikel;
+      if (groessenAntwort.ok) {
+        const groessenDaten: unknown = await groessenAntwort.json();
+        groessen = Array.isArray(groessenDaten) ? groessenDaten as Groesse[] : [];
+      }
 
       if (lieferantenAntwort.ok) {
         const lieferantenDaten: unknown = await lieferantenAntwort.json();
@@ -182,12 +191,12 @@
           <div class="tabelle-wrapper">
             <table>
               <thead>
-                <tr><th>Grössen-ID</th><th>Menge</th><th>Einzelwert</th></tr>
+                <tr><th>Grösse</th><th>Menge</th><th>Einzelwert</th></tr>
               </thead>
               <tbody>
                 {#each artikel.varianten as variante (variante._id)}
                   <tr>
-                    <td>{variante.groesseId}</td>
+                    <td>{groessenName(variante.groesseId)}</td>
                     <td>{variante.menge}</td>
                     <td>{geldbetrag(variante.einzelwert)}</td>
                   </tr>
@@ -215,7 +224,7 @@
       {#if bewegungFehler}<p class="fehlermeldung" role="alert">{bewegungFehler}</p>{/if}
       <div class="tabelle-wrapper"><table><thead><tr><th>Zeitpunkt</th><th>Vorgang</th><th>Menge</th><th>Grösse</th><th>Durchgeführt von (Benutzer-ID)</th><th>Referenz</th></tr></thead>
       <tbody>{#each bewegungen as bewegung (bewegung.id)}
-        <tr><td>{new Date(bewegung.zeitpunkt).toLocaleString('de-CH')}</td><td>{bewegung.art}</td><td>{bewegung.mengeDelta > 0 ? '+' : ''}{bewegung.mengeDelta}</td><td>{bewegung.groesseId ?? '–'}</td><td>{bewegung.benutzerId}</td><td>{bewegung.referenzTyp}: {bewegung.referenzId}</td></tr>
+        <tr><td>{new Date(bewegung.zeitpunkt).toLocaleString('de-CH')}</td><td>{bewegung.art}</td><td>{bewegung.mengeDelta > 0 ? '+' : ''}{bewegung.mengeDelta}</td><td>{groessenName(bewegung.groesseId)}</td><td>{bewegung.benutzerId}</td><td>{bewegung.referenzTyp}: {bewegung.referenzId}</td></tr>
       {:else}<tr><td colspan="6">Keine erfassten Bewegungen für diesen Zeitraum.</td></tr>{/each}</tbody></table></div>
     </section>
   {/if}
