@@ -13,6 +13,8 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
   const vereinId = locals.benutzer!.vereinId;
   const art = url.searchParams.get('art');
   if (art && !arten.includes(art)) return json({ fehler: 'Ungültiger Bewegungstyp.' }, { status: 400 });
+  const groesseId = url.searchParams.get('groesseId');
+  if (groesseId && !ObjectId.isValid(groesseId)) return json({ fehler: 'Ungültige Grössen-ID.' }, { status: 400 });
   const von = url.searchParams.get('von');
   const bis = url.searchParams.get('bis');
   const datum = (wert: string | null) => !wert || /^\d{4}-\d{2}-\d{2}$/.test(wert) && !Number.isNaN(Date.parse(wert)) && new Date(wert).toISOString().slice(0, 10) === wert;
@@ -22,6 +24,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
     if (!artikel) return json({ fehler: 'Artikel nicht gefunden.' }, { status: 404 });
     const filter: Record<string, unknown> = { vereinId, artikelId: params.id };
     if (art) filter.art = art;
+    if (groesseId) filter.groesseId = groesseId;
     if (von || bis) filter.zeitpunkt = { ...(von ? { $gte: new Date(von + 'T00:00:00.000Z') } : {}), ...(bis ? { $lt: new Date(new Date(bis + 'T00:00:00.000Z').getTime() + 86400000) } : {}) };
     const bewegungen = await db.collection('lagerbewegungen').find(filter).sort({ zeitpunkt: -1, _id: -1 }).limit(200).toArray();
     return json({ bewegungen: bewegungen.map(({ _id, ...bewegung }) => ({ ...bewegung, id: _id.toString() })), hinweis: 'Bewegungen vor Einführung des Journals sind nicht rückwirkend erfasst. Es werden maximal 200 Einträge angezeigt.' });
