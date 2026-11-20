@@ -13,6 +13,7 @@ type PreisEingabe = {
   preistyp?: unknown;
   druckkosten?: unknown;
   verkaufspreis?: unknown;
+  preisOffen?: unknown;
 };
 
 function gueltigerBetrag(wert: unknown): wert is number {
@@ -76,7 +77,8 @@ export const GET: RequestHandler = async ({ locals }) => {
         groesseId: preis.groesseId ?? null,
         preistyp: preis.preistyp,
         druckkosten: preis.druckkosten,
-        verkaufspreis: preis.verkaufspreis ?? null
+        verkaufspreis: preis.verkaufspreis ?? null,
+        preisOffen: preis.preisOffen === true || (preis.preistyp === 'variabel' && preis.verkaufspreis == null)
       }))
     );
   } catch (error) {
@@ -131,7 +133,8 @@ export const PUT: RequestHandler = async ({
     groesseId = null,
     preistyp,
     druckkosten,
-    verkaufspreis
+    verkaufspreis,
+    preisOffen = false
   } = daten;
 
   if (
@@ -153,6 +156,10 @@ export const PUT: RequestHandler = async ({
       { fehler: 'Ungültige Grössen-ID.' },
       { status: 400 }
     );
+  }
+
+  if (typeof preisOffen !== 'boolean') {
+    return json({ fehler: 'Ungültige Preis-offen-Einstellung.' }, { status: 400 });
   }
 
   if (preistyp !== 'fix' && preistyp !== 'variabel') {
@@ -179,7 +186,11 @@ export const PUT: RequestHandler = async ({
     );
   }
 
-  if (preistyp === 'fix' && verkaufspreis === null) {
+  if (preisOffen && verkaufspreis !== null) {
+    return json({ fehler: 'Bei offenem Preis darf noch kein Verkaufspreis hinterlegt sein.' }, { status: 400 });
+  }
+
+  if (preistyp === 'fix' && verkaufspreis === null && !preisOffen) {
     return json(
       {
         fehler:
@@ -271,6 +282,7 @@ export const PUT: RequestHandler = async ({
           preistyp,
           druckkosten,
           verkaufspreis,
+          preisOffen,
           aktualisiertAm: jetzt
         },
         $setOnInsert: {
