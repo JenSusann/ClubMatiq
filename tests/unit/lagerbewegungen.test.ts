@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ insertOne: vi.fn(), findOne: vi.fn(), find: vi.fn(), collection: vi.fn() }));
+const mocks = vi.hoisted(() => ({ insertOne: vi.fn(), findOne: vi.fn(), find: vi.fn(), project: vi.fn(), collection: vi.fn() }));
 vi.mock('../../src/lib/server/mongodb', () => ({
   db: { collection: mocks.collection }
 }));
@@ -21,7 +21,8 @@ describe('Lagerbewegungsjournal: Unit und API-Integration', () => {
     vi.resetAllMocks();
     mocks.insertOne.mockResolvedValue({ insertedId: 'journal-1' });
     mocks.findOne.mockResolvedValue({ _id: artikelId });
-    mocks.find.mockReturnValue({ sort: () => ({ limit: () => ({ toArray: async () => [{ _id: { toString: () => 'entry-1' }, ...bewegung }] }) }) });
+    mocks.find.mockReturnValue({ sort: () => ({ limit: () => ({ toArray: async () => [{ _id: { toString: () => 'entry-1' }, ...bewegung }] }) }), project: mocks.project });
+    mocks.project.mockReturnValue({ toArray: async () => [] });
     mocks.collection.mockImplementation((name: string) => ({
       insertOne: mocks.insertOne, findOne: mocks.findOne, find: mocks.find
     }));
@@ -67,6 +68,27 @@ describe('Lagerbewegungsjournal: Unit und API-Integration', () => {
     const antwort = await GET(kontext('admin', vereinId, '?groesseId=ungueltig'));
     expect(antwort.status).toBe(400);
     expect(mocks.find).not.toHaveBeenCalled();
+  });
+
+  it('zeigt den Namen des durchführenden Benutzers statt der technischen ID', async () => {
+    const benutzerId = '507f1f77bcf86cd799439013';
+    mocks.find.mockReturnValueOnce({ sort: () => ({ limit: () => ({ toArray: async () => [
+      { _id: { toString: () => 'entry-1' }, ...bewegung, benutzerId }
+    ] }) }) });
+    mocks.project.mockReturnValueOnce({ toArray: async () => [
+      { _id: { toString: () => benutzerId }, vorname: 'Jennifer', nachname: 'Mentner' }
+    ] });
+    const antwort = await GET(kontext());
+    expect(antwort.status).toBe(200);
+    const daten = await antwort.json();
+    expect(daten.bewegungen[0].benutzerName).toBe('Jennifer Mentner');
+    expect(mocks.collection).toHaveBeenCalledWith('benutzer');
+  });
+
+  it('gibt bei gelöschten Benutzern keinen erfundenen Namen zurück', async () => {
+    const antwort = await GET(kontext());
+    const daten = await antwort.json();
+    expect(daten.bewegungen[0].benutzerName).toBeNull();
   });
 
   it('gibt fremde Artikel nicht preis', async () => {
