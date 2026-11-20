@@ -24,3 +24,8 @@ vite.config.ts.timestamp-*
 
 # Test Coverage
 coverage/
+
+# Private certificates and keys
+certs/
+*.key
+*-private.pem
