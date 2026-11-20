@@ -56,6 +56,19 @@ describe('Lagerbewegungsjournal: Unit und API-Integration', () => {
     expect(daten.hinweis).toContain('nicht rückwirkend');
   });
 
+  it('filtert Bewegungen serverseitig nach einer Grössenvariante', async () => {
+    const groesseId = '507f1f77bcf86cd799439099';
+    const antwort = await GET(kontext('admin', vereinId, '?groesseId=' + groesseId));
+    expect(antwort.status).toBe(200);
+    expect(mocks.find).toHaveBeenCalledWith(expect.objectContaining({ vereinId, artikelId, groesseId }));
+  });
+
+  it('verwirft ungültige Grössenfilter ohne Datenbankzugriff', async () => {
+    const antwort = await GET(kontext('admin', vereinId, '?groesseId=ungueltig'));
+    expect(antwort.status).toBe(400);
+    expect(mocks.find).not.toHaveBeenCalled();
+  });
+
   it('gibt fremde Artikel nicht preis', async () => {
     mocks.findOne.mockResolvedValue(null);
     expect((await GET(kontext('admin', 'anderer-verein'))).status).toBe(404);
