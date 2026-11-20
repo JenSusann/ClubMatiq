@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 const mocks = vi.hoisted(() => {
   const collections: Record<string, any> = {};
   const session = { withTransaction: vi.fn(async (fn: () => Promise<unknown>) => fn()), endSession: vi.fn(async () => {}) };
-  return { collections, session, check: vi.fn(() => null), startSession: vi.fn(() => session) };
+  return { collections, session, check: vi.fn<() => Response | null>(() => null), startSession: vi.fn(() => session) };
 });
 vi.mock('../../../src/lib/server/mongodb', () => ({
   db: { collection: (name: string) => mocks.collections[name] },
