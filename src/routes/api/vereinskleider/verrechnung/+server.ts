@@ -22,6 +22,7 @@ type Verkauf = Document & {
   zahlungsart: string;
   zahlungsstatus?: string;
   bezahltBetrag?: number;
+  preisOffen?: boolean;
   zahlungen?: { betrag: number; datum: Date; zahlungsart: string }[];
   bemerkung?: string;
   positionen: Verkaufsposition[];
@@ -77,7 +78,7 @@ export const GET: RequestHandler = async ({ locals }) => {
       db.collection<Verkauf>('vereinskleider_verkaeufe')
         .find({ vereinId, rechnungId: { $exists: false } })
         .sort({ erstelltAm: -1 }).limit(1000)
-        .project<Verkauf>({ kaeufer: 1, riegen: 1, endbetrag: 1, erstelltAm: 1, zahlungsart: 1, zahlungsstatus: 1, bezahltBetrag: 1 })
+        .project<Verkauf>({ kaeufer: 1, riegen: 1, endbetrag: 1, erstelltAm: 1, zahlungsart: 1, zahlungsstatus: 1, bezahltBetrag: 1, preisOffen: 1, offenePreispositionen: 1 })
         .toArray()
     ]);
 
