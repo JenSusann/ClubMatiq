@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
-import { db } from '../../../../lib/server/mongodb';
-import { pruefeBerechtigung } from '../../../../lib/server/berechtigungen';
+import { db } from '../../../../../lib/server/mongodb';
+import { pruefeBerechtigung } from '../../../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
 const arten = ['anlage', 'ausleihe', 'rueckgabe', 'inventur', 'verkauf', 'wareneingang', 'korrektur', 'storno'];
