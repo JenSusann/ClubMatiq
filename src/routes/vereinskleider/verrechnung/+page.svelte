@@ -10,6 +10,8 @@
     zahlungsart: string;
     zahlungsstatus?: string;
     bezahltBetrag?: number;
+    preisOffen?: boolean;
+    offenePreispositionen?: number;
   };
 
   type Rechnung = {
@@ -184,6 +186,7 @@
   }
 
   function istBezahlt(verkauf: Verkauf): boolean {
+    if (verkauf.preisOffen === true) return false;
     return verkauf.zahlungsstatus === 'bezahlt' ||
       (verkauf.endbetrag === 0 && verkauf.zahlungsstatus !== 'offen') ||
       (verkauf.endbetrag > 0 && (verkauf.bezahltBetrag ?? 0) >= verkauf.endbetrag);
@@ -239,6 +242,10 @@
 
   async function rechnungErstellen(verkauf: Verkauf): Promise<void> {
     if (erstellenId !== null) return;
+    if (verkauf.preisOffen === true) {
+      fehler = 'Für diese Bestellung sind noch Verkaufspreise offen. Bitte zuerst die Preise in der Bestellübersicht festlegen.';
+      return;
+    }
     const bezeichnung = istQuittung(verkauf) ? 'Quittung' : 'Rechnung';
     if (!confirm(`${bezeichnung} für ${verkauf.kaeufer} über ${chf(verkauf.endbetrag)} erstellen?`)) return;
     erstellenId = verkauf._id;
@@ -315,9 +322,9 @@
                   <td><strong>{verkauf.kaeufer}</strong></td>
                   <td>{(verkauf.riegen ?? []).join(', ') || '–'}</td>
                   <td>{zahlungsartText(verkauf.zahlungsart)}</td>
-                  <td><span class="status" class:bezahlt={istBezahlt(verkauf)}>{istBezahlt(verkauf) ? 'Bezahlt' : 'Offen'}</span></td>
+                  <td><span class="status" class:bezahlt={istBezahlt(verkauf)}>{verkauf.preisOffen ? 'Preis offen' : istBezahlt(verkauf) ? 'Bezahlt' : 'Offen'}</span></td>
                   <td class="rechts">{chf(verkauf.endbetrag)}</td>
-                  <td><button type="button" onclick={() => rechnungErstellen(verkauf)} disabled={erstellenId !== null}>
+                  <td><button type="button" onclick={() => rechnungErstellen(verkauf)} disabled={erstellenId !== null || verkauf.preisOffen === true} title={verkauf.preisOffen ? 'Zuerst offene Preise festlegen' : undefined}>
                     {erstellenId === verkauf._id ? 'Wird erstellt ...' : istQuittung(verkauf) ? 'Quittung erfassen' : 'Rechnung erstellen'}
                   </button></td>
                 </tr>
