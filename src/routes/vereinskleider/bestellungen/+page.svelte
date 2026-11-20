@@ -14,6 +14,7 @@
     restbetragBekannt?: number;
     endbetrag?: number;
     bezahltBetrag?: number;
+    zahlungen?: { betrag: number; zahlungsart: string; datum: string }[];
     artikelId: string;
     artikelname: string;
     groesseId: string | null;
@@ -45,6 +46,7 @@
   let ausgewaehlt = $state<Bestellung | null>(null);
   let preisAuswahl = $state<Bestellung | null>(null);
   let zahlungAuswahl = $state<Bestellung | null>(null);
+  let zahlungHistorieAuswahl = $state<Bestellung | null>(null);
   let zahlungBetrag = $state('');
   let zahlungArt = $state<'twint' | 'bar'>('twint');
   let zahlungFehler = $state('');
@@ -502,6 +504,11 @@
                 <td>
                   {#if b.offen > 0}
                     <div class="aktionsgruppe">
+                      {#if (b.zahlungen?.length ?? 0) > 0}
+                        <button type="button" onclick={() => { zahlungHistorieAuswahl = b; }}>
+                          Zahlungen ({b.zahlungen?.length ?? 0})
+                        </button>
+                      {/if}
                       {#if (b.restbetragBekannt ?? 0) > 0}
                         <button type="button" class="uebergabe-knopf" disabled={aktualisieren || zahlungLaeuft}
                           onclick={() => { zahlungAuswahl = b; zahlungBetrag = String(b.restbetragBekannt ?? ''); zahlungFehler = ''; }}>
@@ -530,6 +537,23 @@
         </table>
       </div>
     </section>
+  {/if}
+
+  {#if zahlungHistorieAuswahl}
+    <div class="dialog-hintergrund" role="presentation">
+      <div class="dialog karte" role="dialog" aria-modal="true" aria-labelledby="zahlung-historie-titel">
+        <h2 id="zahlung-historie-titel">Zahlungshistorie</h2>
+        <p><strong>{zahlungHistorieAuswahl.kaeufer}</strong> · Bestellung #{zahlungHistorieAuswahl.vorgangId.slice(-8)}</p>
+        <ul>
+          {#each zahlungHistorieAuswahl.zahlungen ?? [] as z, i (i)}
+            <li>{formatDatum(z.datum)} · {z.zahlungsart.toUpperCase()} · <strong>{formatCHF(z.betrag)}</strong></li>
+          {/each}
+        </ul>
+        <p>Bekannter Gesamtbetrag: {formatCHF(zahlungHistorieAuswahl.endbetrag ?? 0)} · Bezahlt: {formatCHF(zahlungHistorieAuswahl.bezahltBetrag ?? 0)}</p>
+        <p>Offene bekannte Forderung: <strong>{formatCHF(zahlungHistorieAuswahl.restbetragBekannt ?? 0)}</strong></p>
+        <button type="button" onclick={() => { zahlungHistorieAuswahl = null; }}>Schliessen</button>
+      </div>
+    </div>
   {/if}
 
   {#if zahlungAuswahl}
