@@ -75,6 +75,16 @@
     const text = suche.trim().toLocaleLowerCase('de-CH');
     return !text || `${p.artikelname} ${groesseName(p.groesseId)} ${p.lieferantName ?? ''}`.toLocaleLowerCase('de-CH').includes(text);
   }));
+  const bedarfOhneLieferant = $derived(bedarf.filter((p) => p.nachbestellen > 0 && !p.lieferantId));
+  const bedarfOhneLieferantGruppen = $derived.by(() => {
+    const gruppen = new Map<string, { artikelId: string; artikelname: string; menge: number }>();
+    for (const p of bedarfOhneLieferant) {
+      const vorhanden = gruppen.get(p.artikelId);
+      if (vorhanden) vorhanden.menge += p.nachbestellen;
+      else gruppen.set(p.artikelId, { artikelId: p.artikelId, artikelname: p.artikelname, menge: p.nachbestellen });
+    }
+    return [...gruppen.values()];
+  });
   const artikelGruppen = $derived.by(() => {
     const gruppen = new Map<string, { id: string; name: string; positionen: Bedarf[]; bedarf: number; auswahl: number }>();
     for (const p of sichtbarePositionen) {
@@ -411,6 +421,17 @@
         <button type="button" class:aktiv={ansicht === 'bedarf'} aria-pressed={ansicht === 'bedarf'} onclick={() => { ansicht = 'bedarf'; aufgeklappteArtikel = []; }}>Nachbestellbedarf</button>
         <button type="button" class:aktiv={ansicht === 'reserve'} aria-pressed={ansicht === 'reserve'} onclick={() => { ansicht = 'reserve'; aufgeklappteArtikel = []; }}>Lagerreserven</button>
       </div>
+      {#if bedarfOhneLieferantGruppen.length > 0}
+        <div class="lieferant-hinweis" role="status">
+          <strong>Nachbestellbedarf ohne Standardlieferanten</strong>
+          <p>Für die folgenden Artikel liegt Kundenbedarf vor, aber es ist kein gültiger Standardlieferant hinterlegt. Ordne den Lieferanten im Inventar zu, damit du den Bedarf als Sammelbestellung übernehmen kannst.</p>
+          <ul>
+            {#each bedarfOhneLieferantGruppen as eintrag (eintrag.artikelId)}
+              <li><span>{eintrag.artikelname} · {eintrag.menge} Stk.</span><a href={`/inventar/${eintrag.artikelId}/bearbeiten`}>Lieferant zuordnen</a></li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
       <div class="filterzeile">
         <div class="filterfeld">
           <label for="lieferant">Lieferant</label>
@@ -613,4 +634,9 @@
   .nur-screenreader { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
   @media (max-width: 900px) { .kennzahlen { grid-template-columns: repeat(2, minmax(0, 1fr)); } .abschnitt-kopf { align-items: flex-start; flex-direction: column; } }
   @media (max-width: 600px) { .bestell-filter { grid-template-columns: 1fr; } .filterzeile { grid-template-columns: 1fr; } .ansicht-tabs { width: 100%; } .ansicht-tabs button { flex: 1; } main { margin: 20px auto; padding: 16px; } header, .formularabschluss { flex-direction: column; align-items: stretch; } .kennzahlen { grid-template-columns: 1fr 1fr; } }
+  .lieferant-hinweis { margin:16px 0; padding:16px; border:1px solid #f3d08b; border-radius:9px; background:#fffbeb; color:#713f12; }
+  .lieferant-hinweis p { margin:7px 0 10px; font-size:13px; }
+  .lieferant-hinweis ul { padding-left:18px; margin:0; }
+  .lieferant-hinweis li { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin:7px 0; }
+  .lieferant-hinweis a { color:#1d4ed8; font-weight:600; }
 </style>
