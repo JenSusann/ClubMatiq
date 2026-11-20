@@ -3,7 +3,7 @@ import { db } from '../../../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
-type Stornierung = { positionsIndex?: number; menge?: number; grund?: string; storniertAm?: Date | string; storniertVon?: string };
+type Stornierung = { positionsIndex?: number; menge?: number; grund?: string; storniertAm?: Date | string; storniertVon?: string; storniertVonName?: string };
 type Position = { artikelId?: string; artikelname?: string; groesseId?: string | null; verkaufsart?: string };
 type Verkauf = { _id: import('mongodb').ObjectId; vereinId: string; kaeufer?: string; riegen?: string[]; positionen?: Position[]; stornierungen?: Stornierung[] };
 
@@ -38,7 +38,8 @@ export const GET: RequestHandler = async ({ locals }) => {
           menge: eintrag.menge as number,
           grund: eintrag.grund ?? '',
           storniertAm: datum.toISOString(),
-          storniertVon: eintrag.storniertVon ?? null
+          storniertVon: eintrag.storniertVon ?? null,
+          storniertVonName: eintrag.storniertVonName ?? null
         }];
       });
     });
