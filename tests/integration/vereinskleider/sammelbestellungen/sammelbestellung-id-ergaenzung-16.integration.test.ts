@@ -20,7 +20,7 @@ vi.mock('../../../../src/lib/server/mongodb', () => ({
 const id = 'aaaaaaaaaaaaaaaaaaaaaaaa';
 const id2 = 'bbbbbbbbbbbbbbbbbbbbbbbb';
 const id3 = 'cccccccccccccccccccccccc';
-const locals = { benutzer: { vereinId: 'verein-1' } } as any;
+const locals = { benutzer: { id: 'integration-user', vereinId: 'verein-1' } } as any;
 const post = (body: unknown) => new Request('http://localhost/api', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const patch = (body: unknown) => new Request('http://localhost/api', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const reset = () => { h.rows = {}; h.one = {}; h.fail = ''; h.count = 1; h.auth.mockReset(); h.auth.mockReturnValue(null); h.insert.mockReset(); h.insert.mockResolvedValue({insertedId:new ObjectId(id)}); h.update.mockReset(); h.update.mockResolvedValue({matchedCount:1,modifiedCount:1,deletedCount:1}); vi.spyOn(console,'error').mockImplementation(()=>{}); };
