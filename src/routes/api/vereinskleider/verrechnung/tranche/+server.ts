@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { ObjectId } from 'mongodb';
+import { ObjectId, type Document } from 'mongodb';
 import { client, db } from '../../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../../lib/server/berechtigungen';
 import { berechneNaechsteRechnungstranche } from '../../../../../lib/server/vereinskleider-rechnungstranchen';
@@ -80,7 +80,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
       const neuBezahlt = Math.min(gesamtRappen, bezahltGesamt - bisherBezahlt);
       const jetzt = new Date();
       const jahr = jetzt.getFullYear();
-      const zaehler = await db.collection('vereinskleider_rechnungsnummern').findOneAndUpdate(
+      const zaehler = await db.collection<Document & { _id: string; nummer: number }>('vereinskleider_rechnungsnummern').findOneAndUpdate(
         { _id: `${vereinId}:${jahr}` },
         { $inc: { nummer: 1 }, $setOnInsert: { vereinId, jahr } },
         { upsert: true, returnDocument: 'after', session }
