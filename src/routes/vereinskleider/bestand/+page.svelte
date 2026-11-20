@@ -48,6 +48,7 @@
     preistyp: Preistyp;
     druckkosten: string;
     verkaufspreis: string;
+    preisOffen: boolean;
   };
 
   let artikel = $state<Artikel[]>([]);
@@ -112,6 +113,7 @@
 
     formulare[schluessel] = {
       preistyp: preis?.preistyp ?? 'fix',
+      preisOffen: preis?.verkaufspreis === null && preis?.preistyp === 'variabel',
       druckkosten: String(preis?.druckkosten ?? 0),
       verkaufspreis:
         preis?.verkaufspreis === null ||
@@ -193,9 +195,9 @@
       false
     );
 
-    const verkaufspreis = betragLesen(
+    const verkaufspreis = formular.preisOffen ? null : betragLesen(
       formular.verkaufspreis,
-      true
+      false
     );
 
     meldungen[schluessel] = '';
@@ -219,7 +221,7 @@
     }
 
     if (
-      formular.preistyp === 'fix' &&
+      !formular.preisOffen &&
       verkaufspreis === null
     ) {
       meldungen[schluessel] =
@@ -241,7 +243,7 @@
           body: JSON.stringify({
             artikelId,
             groesseId,
-            preistyp: formular.preistyp,
+            preistyp: formular.preisOffen ? 'variabel' : formular.preistyp,
             druckkosten,
             verkaufspreis
           })
@@ -746,12 +748,17 @@
                                       type="text"
                                       inputmode="decimal"
                                       placeholder="Noch nicht bekannt"
+                                      disabled={formulare[schluessel].preisOffen}
                                       bind:value={formulare[schluessel].verkaufspreis}
                                     />
                                   </div>
                                 </div>
 
-                                {#if formulare[schluessel].preistyp === 'variabel'}
+                                <label class="checkzeile"><input type="checkbox" bind:checked={formulare[schluessel].preisOffen} /> Verkaufspreis noch offen (verbindliche Bestellung, Zahlung später)</label>
+
+                                <label class="checkzeile"><input type="checkbox" bind:checked={formulare[schluessel].preisOffen} /> Verkaufspreis noch offen (verbindliche Bestellung, Zahlung später)</label>
+
+                    {#if formulare[schluessel].preistyp === 'variabel'}
                                   <p class="hinweis">
                                     Der Verkaufspreis darf vorerst
                                     leer bleiben und kann später
@@ -935,7 +942,8 @@
                           type="text"
                           inputmode="decimal"
                           placeholder="Noch nicht bekannt"
-                          bind:value={formulare[schluessel].verkaufspreis}
+                          disabled={formulare[schluessel].preisOffen}
+                                      bind:value={formulare[schluessel].verkaufspreis}
                         />
                       </div>
                     </div>
