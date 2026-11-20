@@ -79,6 +79,31 @@ describe('E-Mail-Einstellungen API', () => {
     expect(mocks.updateOne.mock.calls[0][1].$set.mailEinstellungen.smtp.geheimnis).toBe('existing');
   });
 
+
+  it('PUT akzeptiert gültige Microsoft-365-Einstellungen mit Vereins-Absender', async () => {
+    const microsoft365 = {
+      tenantId: 'f7cf9dfa-5f0d-429c-9b64-c4c7a5d66a75',
+      clientId: 'e7cd00c1-cd5d-4d3f-8a35-6324ddb026a8',
+      absender: 'clubmatiq@tvweiningen.ch'
+    };
+    const antwort = await PUT(kontext('PUT', { methode: 'microsoft365', microsoft365 }));
+    expect(antwort.status).toBe(200);
+    expect(mocks.updateOne.mock.calls[0][0]._id.toHexString()).toBe(admin.vereinId);
+    expect(mocks.updateOne.mock.calls[0][1].$set.mailEinstellungen).toEqual({
+      methode: 'microsoft365', microsoft365
+    });
+  });
+
+  it('PUT lehnt ungültige Microsoft-365-Absenderadressen ab', async () => {
+    const antwort = await PUT(kontext('PUT', { methode: 'microsoft365', microsoft365: {
+      tenantId: 'f7cf9dfa-5f0d-429c-9b64-c4c7a5d66a75',
+      clientId: 'e7cd00c1-cd5d-4d3f-8a35-6324ddb026a8',
+      absender: 'ungueltig'
+    } }));
+    expect(antwort.status).toBe(400);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+
   it('PUT Resend schreibt vereinsbezogen ohne SMTP-Geheimnis', async () => {
     const antwort = await PUT(kontext('PUT', { methode: 'resend' }));
     expect(antwort.status).toBe(200);
