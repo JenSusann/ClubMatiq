@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   pruefeBerechtigung: vi.fn(() => null)
 }));
 
-vi.mock('../../../src/lib/server/mongodb', () => ({
+vi.mock('../../src/lib/server/mongodb', () => ({
   db: {
     collection: (name: string) => ({
       findOne: (filter: unknown) => mocks.findOne(name, filter),
@@ -24,11 +24,11 @@ vi.mock('../../../src/lib/server/mongodb', () => ({
   }) }
 }));
 
-vi.mock('../../../src/lib/server/berechtigungen', () => ({
+vi.mock('../../src/lib/server/berechtigungen', () => ({
   pruefeBerechtigung: mocks.pruefeBerechtigung
 }));
 
-import { DELETE } from '../../../src/routes/api/artikel/[id]/+server';
+import { DELETE } from '../../src/routes/api/artikel/[id]/+server';
 
 const artikelId = new ObjectId().toString();
 const vereinId = new ObjectId().toString();
