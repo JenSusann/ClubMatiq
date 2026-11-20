@@ -25,7 +25,8 @@
     { titel:'Inventarbewertung', link:'/inventarbewertung', rollen:['admin','materialverantwortlich'] },
     { titel:'Schadensmeldungen', link:'/meldungen', rollen:['admin','materialverantwortlich','leiter','mitglied'] },
     { titel:'Stammdaten', link:'/stammdaten', rollen:['admin','materialverantwortlich'] },
-    { titel:'Benutzerverwaltung', link:'/benutzer', rollen:['admin'] }
+    { titel:'Benutzerverwaltung', link:'/benutzer', rollen:['admin'] },
+    { titel:'E-Mail-Einstellungen', link:'/mail-einstellungen', rollen:['admin'] }
   ];
   const sichtbareNavigation = $derived(navigation.filter((n)=>n.rollen.includes(angezeigteRolle)));
   const istOeffentlicheSeite = $derived(page.url.pathname==='/' || page.url.pathname==='/anmelden' || page.url.pathname==='/registrieren' || page.url.pathname==='/funktionen' || page.url.pathname==='/docs' || page.url.pathname.startsWith('/docs/'));
