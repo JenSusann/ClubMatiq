@@ -50,6 +50,7 @@
   let rolle = $state<Benutzerrolle>('mitglied');
   let speichern = $state(false);
   let erneutSendenId = $state<string | null>(null);
+  let statusAendernId = $state<string | null>(null);
 
   // Meldungen
   let fehlermeldung = $state('');
@@ -254,6 +255,30 @@
     }
   }
 
+  async function statusAendern(person: Benutzer) {
+    if (statusAendernId) return;
+    const aktion = person.aktiv ? 'deaktivieren' : 'reaktivieren';
+    if (!confirm(`${person.vorname} ${person.nachname} wirklich ${aktion}?`)) return;
+    statusAendernId = person.id;
+    fehlermeldung = '';
+    erfolgsmeldung = '';
+    try {
+      const antwort = await fetch(`/api/benutzer/${encodeURIComponent(person.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aktiv: !person.aktiv })
+      });
+      const daten = await antwort.json();
+      if (!antwort.ok) throw new Error(daten.fehler ?? 'Benutzerstatus konnte nicht geändert werden.');
+      erfolgsmeldung = `Benutzer erfolgreich ${person.aktiv ? 'deaktiviert' : 'reaktiviert'}.`;
+      await ladeBenutzer();
+    } catch (error) {
+      fehlermeldung = error instanceof Error ? error.message : 'Änderung fehlgeschlagen.';
+    } finally {
+      statusAendernId = null;
+    }
+  }
+
   // Daten beim Öffnen der Seite laden
   onMount(() => {
     void ladeBenutzer();
@@ -418,6 +443,7 @@
               <th>E-Mail-Adresse</th>
               <th>Rolle</th>
               <th>Status</th>
+              <th>Aktion</th>
             </tr>
           </thead>
 
@@ -443,6 +469,11 @@
                   >
                     {person.aktiv ? 'Aktiv' : 'Inaktiv'}
                   </span>
+                </td>
+                <td>
+                  <button type="button" class="sekundaer" disabled={statusAendernId !== null} onclick={() => statusAendern(person)}>
+                    {statusAendernId === person.id ? 'Wird gespeichert …' : person.aktiv ? 'Deaktivieren' : 'Reaktivieren'}
+                  </button>
                 </td>
               </tr>
             {/each}
