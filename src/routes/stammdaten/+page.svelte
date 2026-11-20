@@ -6,7 +6,10 @@
   const echteRolle = $derived(page.data.benutzer?.rolle ?? 'mitglied');
   const angezeigteRolle = $derived(echteRolle === 'admin' ? rollenVorschau.rolle : echteRolle);
 
+  const darfArtikelErfassen = $derived(angezeigteRolle === 'admin' || angezeigteRolle === 'materialverantwortlich');
+
   const stammdaten = [
+    { titel: 'Artikel erfassen', beschreibung: 'Neue Inventarartikel und Vereinskleider mit Beständen und Grössen anlegen.', symbol: '📦', link: '/inventar/neu', nurAdmin: false, artikelErfassung: true },
     { titel: 'Kategorien', beschreibung: 'Materialkategorien erstellen und verwalten.', symbol: '🏷️', link: '/stammdaten/kategorien', nurAdmin: false },
     { titel: 'Lagerorte', beschreibung: 'Lagerorte und Materialräume verwalten.', symbol: '📍', link: '/stammdaten/lagerorte', nurAdmin: false },
     { titel: 'Kleidergrössen', beschreibung: 'Grössen für Vereinskleider verwalten.', symbol: '👕', link: '/stammdaten/groessen', nurAdmin: false },
@@ -14,7 +17,7 @@
     { titel: 'Mitglieder', beschreibung: 'Mitglieder suchen und ClubDesk-CSV-Dateien importieren.', symbol: '👥', link: '/stammdaten/mitglieder', nurAdmin: true },
     { titel: 'Lieferanten', beschreibung: 'Lieferanten für Vereinskleider erfassen und verwalten.', symbol: '🚚', link: '/stammdaten/lieferanten', nurAdmin: false }
   ];
-  const sichtbareStammdaten = $derived(stammdaten.filter((eintrag) => !eintrag.nurAdmin || angezeigteRolle === 'admin'));
+  const sichtbareStammdaten = $derived(stammdaten.filter((eintrag) => (!eintrag.nurAdmin || angezeigteRolle === 'admin') && (!('artikelErfassung' in eintrag) || darfArtikelErfassen)));
 </script>
 
 <svelte:head><title>Stammdaten – ClubMatiq</title></svelte:head>
