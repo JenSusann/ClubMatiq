@@ -9,7 +9,7 @@ const response = (data: unknown, status = 200) => new Response(JSON.stringify(da
 const event = () => ({ locals: { benutzer: { vereinId: 'v1' } }, url: new URL(url), fetch: m.fetch }) as never;
 async function get() { return GET(event()); }
 beforeEach(() => { vi.resetAllMocks(); m.fetch.mockImplementation(async (path: string) => path === '/api/groessen' ? response([{ _id: 'g1', bezeichnung: 'M' }]) : response({ gesamt: 1, seiten: 1, verkaeufe: [sale()] })); });
-async function workbook(r: Response) { const w = new ExcelJS.Workbook(); await w.xlsx.load(new Uint8Array(await r.arrayBuffer()) as unknown as Buffer); return w; }
+async function workbook(r: Response) { const w = new ExcelJS.Workbook(); await w.xlsx.load(new Uint8Array(await r.arrayBuffer()) as unknown as Parameters<typeof w.xlsx.load>[0]); return w; }
 
 describe('Vereinskleider Excel-Export', () => {
   it('verweigert fehlende Berechtigung', async () => { m.permission.mockReturnValue(new Response('Nein', { status: 403 })); expect((await get()).status).toBe(403); expect(m.fetch).not.toHaveBeenCalled(); });
