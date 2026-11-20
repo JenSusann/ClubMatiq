@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { ObjectId, type Document } from 'mongodb';
 import { db, client } from '../../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../../lib/server/berechtigungen';
+import { protokolliereLagerbewegung } from '../../../../../lib/server/lagerbewegungen';
 import type { RequestHandler } from './$types';
 
 class Uebergabefehler extends Error {
@@ -184,6 +185,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       if (aktualisiert.modifiedCount !== 1) {
         throw new Uebergabefehler('Bestellung wurde zwischenzeitlich geändert. Bitte aktualisieren.', 409);
       }
+      await protokolliereLagerbewegung({ vereinId, artikelId: position.artikelId, groesseId: position.groesseId, art: 'verkauf', mengeDelta: -anzahl, benutzerId: locals.benutzer!.id, referenzId: vorgangId, referenzTyp: 'vereinskleider-uebergabe' }, session);
       return { vorgangId, positionsIndex: index, uebergeben: neuerStand,
         reserviert: neueReserve, offen: position.menge - neuerStand,
         status: nochOffen ? 'offen' : 'abgeschlossen' };
