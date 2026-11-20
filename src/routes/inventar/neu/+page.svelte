@@ -15,6 +15,9 @@
 
   let kategorien = $state<Stammdatum[]>([]);
   let lagerorte = $state<Stammdatum[]>([]);
+  let lieferanten = $state<Stammdatum[]>([]);
+  let lieferantId = $state('');
+  let lieferantenFehler = $state('');
   let groessen = $state<Groesse[]>([]);
   let ausgewaehlteGroessen = $state<string[]>([]);
 
@@ -106,16 +109,17 @@
       const antworten = await Promise.all([
         fetch('/api/kategorien'),
         fetch('/api/lagerorte'),
-        fetch('/api/groessen')
+        fetch('/api/groessen'),
+        fetch('/api/lieferanten')
       ]);
 
-      if (antworten.some((antwort) => !antwort.ok)) {
+      if (antworten.slice(0, 3).some((antwort) => !antwort.ok)) {
         throw new Error('Stammdaten konnten nicht geladen werden.');
       }
 
-      const [k, l, g] = await Promise.all(
-        antworten.map((antwort) => antwort.json())
-      );
+      const [k, l, g] = await Promise.all(antworten.slice(0, 3).map((antwort) => antwort.json());
+      if (antworten[3].ok) lieferanten = await antworten[3].json() as Stammdatum[];
+      else lieferantenFehler = 'Lieferanten konnten nicht geladen werden. Bitte später erneut versuchen.';
 
       kategorien = k;
       lagerorte = l;
@@ -220,6 +224,7 @@
           name: name.trim(),
           kategorieId,
           lagerortId,
+          lieferantId: lieferantId || null,
           menge: gesamtmenge,
           mindestbestand: hatGroessen ? 0 : Number(mindestbestand),
           einzelwert: hatGroessen ? 0 : Number(einzelwert),
@@ -245,6 +250,7 @@
       name = '';
       kategorieId = '';
       lagerortId = '';
+      lieferantId = '';
       menge = 0;
       mindestbestand = 0;
       groessenMindestbestaende = {};
@@ -338,6 +344,18 @@
               {/each}
             </select>
           </div>
+        </div>
+
+        <div class="feld">
+          <label for="lieferant">Standardlieferant (optional)</label>
+          <select id="lieferant" bind:value={lieferantId} disabled={Boolean(lieferantenFehler)}>
+            <option value="">Kein Standardlieferant</option>
+            {#each lieferanten as lieferant (lieferant._id)}
+              <option value={lieferant._id}>{lieferant.name}</option>
+            {/each}
+          </select>
+          <small>Für Nachbestellungen und Sammelbestellungen wird ein Standardlieferant benötigt. Lieferanten kannst du in den Stammdaten verwalten.</small>
+          {#if lieferantenFehler}<p class="meldung fehler" role="status">{lieferantenFehler}</p>{/if}
         </div>
 
         <div class="feld">
