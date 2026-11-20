@@ -144,6 +144,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           vereinId, artikelId: position.artikelId, groesseId: position.groesseId
         }, { session });
         if (!preis) throw new Verkaufsfehler(`Für ${artikel.name} fehlt ein Verkaufspreis.`);
+        // Preis-offen-Positionen dürfen bis zur Einführung der Teilzahlungslogik
+        // keinesfalls mit einem manuellen Ersatzpreis als bezahlt verbucht werden.
+        if (preis.preisOffen === true || (preis.preistyp === 'variabel' && preis.verkaufspreis == null)) {
+          throw new Verkaufsfehler(`Für ${artikel.name} ist der Verkaufspreis noch offen. Die verbindliche Bestellung mit Teilzahlung wird derzeit vorbereitet.`, 409);
+        }
         let einzelpreis: number;
         if (preis.preistyp === 'fix') {
           if (!betragGueltig(preis.verkaufspreis)) throw new Verkaufsfehler('Ein Fixpreis ist ungültig.');
