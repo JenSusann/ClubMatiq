@@ -22,7 +22,7 @@ beforeEach(() => {
 import { GET, POST } from '../../src/routes/api/meldungen/+server';
 const foto = { url: 'https://res.cloudinary.com/demo/image/upload/x', publicId: 'clubmatiq/v1/schadensmeldungen/f1' };
 const setup = () => {
-  const meld = { find: vi.fn(() => ({sort: vi.fn(() => ({toArray: vi.fn().mockResolvedValue([{_id:oid, status:'offen'}])}))})), insertOne: vi.fn().mockResolvedValue({insertedId:oid}) };
+  const meld = { find: vi.fn((_filter: Record<string, unknown>) => ({sort: vi.fn(() => ({toArray: vi.fn().mockResolvedValue([{_id:oid, status:'offen'}])}))})), insertOne: vi.fn().mockResolvedValue({insertedId:oid}) };
   const artikel = { findOne: vi.fn().mockResolvedValue({ _id:oid, name:'Ball' }) };
   const uploads = { find: vi.fn(() => ({toArray: vi.fn().mockResolvedValue([foto])})), updateMany: vi.fn().mockResolvedValue({modifiedCount:1}) };
   m.collections = { schadensmeldungen:meld, artikel, bildUploads:uploads };
