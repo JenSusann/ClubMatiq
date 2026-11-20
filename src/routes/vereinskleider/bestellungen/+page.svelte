@@ -11,6 +11,9 @@
     riegen: string[];
     zahlungsart: string;
     zahlungsstatus: string;
+    restbetragBekannt?: number;
+    endbetrag?: number;
+    bezahltBetrag?: number;
     artikelId: string;
     artikelname: string;
     groesseId: string | null;
@@ -41,6 +44,11 @@
   let letzteAktualisierung = $state<Date | null>(null);
   let ausgewaehlt = $state<Bestellung | null>(null);
   let preisAuswahl = $state<Bestellung | null>(null);
+  let zahlungAuswahl = $state<Bestellung | null>(null);
+  let zahlungBetrag = $state('');
+  let zahlungArt = $state<'twint' | 'bar'>('twint');
+  let zahlungFehler = $state('');
+  let zahlungLaeuft = $state(false);
   let neuerPreis = $state('');
   let preisZahlung = $state('');
   let preisZahlungsart = $state<'twint' | 'bar'>('twint');
@@ -211,6 +219,35 @@
       aktualisieren = false;
     }
   }
+  async function zahlungSpeichern(): Promise<void> {
+    const b = zahlungAuswahl;
+    if (!b || zahlungLaeuft) return;
+    const betrag = Number(zahlungBetrag.replace(',', '.'));
+    if (!zahlungBetrag.trim() || !Number.isFinite(betrag) || betrag <= 0 ||
+        Math.abs(betrag * 100 - Math.round(betrag * 100)) > 0.000001 ||
+        betrag > (b.restbetragBekannt ?? 0)) {
+      zahlungFehler = 'Bitte einen gültigen Betrag bis zur bekannten Restforderung eingeben.';
+      return;
+    }
+    zahlungLaeuft = true;
+    zahlungFehler = '';
+    try {
+      const antwort = await fetch('/api/vereinskleider/teilzahlung', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verkaufId: b.vorgangId, betrag, zahlungsart: zahlungArt })
+      });
+      const daten = await antwort.json().catch(() => ({})) as { erfolg?: boolean; fehler?: string };
+      if (!antwort.ok || !daten.erfolg) throw new Error(daten.fehler ?? 'Zahlung konnte nicht gespeichert werden.');
+      erfolgsmeldung = `Zahlung von ${formatCHF(betrag)} für Bestellung #${b.vorgangId.slice(-8)} erfasst.`;
+      zahlungAuswahl = null;
+      await datenLaden();
+    } catch (e) {
+      zahlungFehler = e instanceof Error ? e.message : 'Zahlung konnte nicht gespeichert werden.';
+    } finally {
+      zahlungLaeuft = false;
+    }
+  }
+
   function preisOeffnen(b: Bestellung): void {
     preisAuswahl = b;
     neuerPreis = '';
@@ -465,6 +502,12 @@
                 <td>
                   {#if b.offen > 0}
                     <div class="aktionsgruppe">
+                      {#if (b.restbetragBekannt ?? 0) > 0}
+                        <button type="button" class="uebergabe-knopf" disabled={aktualisieren || zahlungLaeuft}
+                          onclick={() => { zahlungAuswahl = b; zahlungBetrag = String(b.restbetragBekannt ?? ''); zahlungFehler = ''; }}>
+                          Zahlung erfassen
+                        </button>
+                      {/if}
                       {#if b.preisOffen}
                         <button type="button" class="uebergabe-knopf" onclick={() => preisOeffnen(b)} disabled={aktualisieren || preisSpeichernLaeuft}>Preis festlegen</button>
                       {/if}
@@ -487,6 +530,30 @@
         </table>
       </div>
     </section>
+  {/if}
+
+  {#if zahlungAuswahl}
+    <div class="dialog-hintergrund" role="presentation">
+      <div class="dialog karte" role="dialog" aria-modal="true" aria-labelledby="teilzahlung-titel">
+        <h2 id="teilzahlung-titel">Teilzahlung erfassen</h2>
+        <p><strong>{zahlungAuswahl.kaeufer}</strong> · Bestellung #{zahlungAuswahl.vorgangId.slice(-8)}</p>
+        <p>Bereits bezahlt: {formatCHF(zahlungAuswahl.bezahltBetrag ?? 0)} · Noch bekannte Forderung: <strong>{formatCHF(zahlungAuswahl.restbetragBekannt ?? 0)}</strong></p>
+        <label for="teilzahlung-betrag">Erhaltener Betrag (CHF)</label>
+        <input id="teilzahlung-betrag" type="text" inputmode="decimal" bind:value={zahlungBetrag} />
+        <label for="teilzahlung-art">Zahlungsart</label>
+        <select id="teilzahlung-art" bind:value={zahlungArt}>
+          <option value="twint">TWINT</option>
+          <option value="bar">Bar</option>
+        </select>
+        {#if zahlungFehler}<p class="warnung" role="alert">{zahlungFehler}</p>{/if}
+        <div class="aktionsgruppe">
+          <button type="button" onclick={() => { zahlungAuswahl = null; }} disabled={zahlungLaeuft}>Abbrechen</button>
+          <button type="button" onclick={zahlungSpeichern} disabled={zahlungLaeuft}>
+            {zahlungLaeuft ? 'Wird gespeichert ...' : 'Zahlung speichern'}
+          </button>
+        </div>
+      </div>
+    </div>
   {/if}
 
   {#if preisAuswahl}
