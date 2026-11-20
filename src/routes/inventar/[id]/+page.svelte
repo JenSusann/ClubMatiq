@@ -255,7 +255,7 @@
 </main>
 
 <style>
-  main { max-width: 1100px; margin: 40px auto; padding: 20px; }
+  main { max-width: 1320px; margin: 40px auto; padding: 20px; }
   h1 { color: #172b4d; margin: 18px 0 24px; }
   .zurueck { color: #2563eb; text-decoration: none; font-weight: 500; }
   .bereich { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px; }
@@ -290,13 +290,14 @@
   .suche-feld input { width:100%; box-sizing:border-box; }
   .filterbereich button { min-height:38px; padding:9px 12px; font-size:12px; }
   .filterbereich .zuruecksetzen { background:white; color:#172b4d; border:1px solid #cbd5e1; }
-  .journal-tabelle th { font-size:12px; color:#64748b; white-space:nowrap; }
-  .journal-tabelle td { font-size:13px; }
+  .journal-tabelle { min-width: 980px; }
+  .journal-tabelle th { font-size:14px; color:#475569; white-space:nowrap; padding:15px 16px; }
+  .journal-tabelle td { font-size:14px; padding:16px; line-height:1.5; }
   .vorgang { background:#eef2f7; color:#334155; padding:5px 9px; border-radius:6px; font-weight:600; white-space:nowrap; }
   .menge { font-weight:700; padding:5px 8px; border-radius:6px; }
   .zugang { color:#166534; background:#dcfce7; }
   .abgang { color:#b91c1c; background:#fee2e2; }
-  .referenz { display:inline-block; max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; color:#64748b; font-size:12px; }
+  .referenz { display:inline-block; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; color:#475569; font-size:14px; }
   .leerzustand { text-align:center; padding:32px 12px; color:#475569; }
   .leerzustand p { font-size:13px; color:#64748b; margin-bottom:0; }
   .fehlermeldung button { margin-top: 12px; }
