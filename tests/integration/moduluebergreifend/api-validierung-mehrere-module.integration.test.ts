@@ -4,7 +4,7 @@ vi.mock('../../../src/lib/server/mongodb', () => ({
   client: { startSession: () => { throw new Error('UNERWARTETE_TRANSAKTION'); } }
 }));
 const basis = { id: '507f1f77bcf86cd799439011', vereinId: '507f1f77bcf86cd799439011', rolle: 'admin', vorname: 'Test', nachname: 'Admin' };
-function ereignis(methode: string, daten: unknown, rolle: string | null, id?: string) {
+function ereignis(methode: string, daten: unknown, rolle: string | null, id?: string | null) {
   const benutzer = rolle === null ? null : { ...basis, rolle };
   const request = new Request('http://localhost/api/test', {
     method: methode,
