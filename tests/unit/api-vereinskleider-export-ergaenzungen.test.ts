@@ -8,7 +8,7 @@ import { GET } from '../../src/routes/api/vereinskleider/export/+server';
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const sale = (extra: Record<string, unknown> = {}) => ({ _id: 'v1', erstelltAm: '2026-11-19', positionen: [], ...extra });
 const run = () => GET({ locals: { benutzer: { vereinId: 'v1' } }, url: new URL('http://localhost/api/vereinskleider/export'), fetch: m.fetch } as never);
-const excel = async (r: Response) => { expect(r.status).toBe(200); const w = new ExcelJS.Workbook(); await w.xlsx.load(Buffer.from(await r.arrayBuffer())); return w; };
+const excel = async (r: Response) => { expect(r.status).toBe(200); const w = new ExcelJS.Workbook(); await w.xlsx.load(new Uint8Array(await r.arrayBuffer()) as unknown as Buffer); return w; };
 const set = (data: unknown, sizes: unknown = []) => m.fetch.mockImplementation(async (url: string) => url === '/api/groessen' ? reply(sizes) : reply(data));
 const one = (v: Record<string, unknown>, sizes: unknown = []) => set({ gesamt: 1, seiten: 1, verkaeufe: [sale(v)] }, sizes);
 
