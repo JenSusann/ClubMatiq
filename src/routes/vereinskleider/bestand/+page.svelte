@@ -42,6 +42,7 @@
     preistyp: Preistyp;
     druckkosten: number;
     verkaufspreis: number | null;
+    preisOffen?: boolean;
   };
 
   type PreisFormular = {
@@ -113,7 +114,7 @@
 
     formulare[schluessel] = {
       preistyp: preis?.preistyp ?? 'fix',
-      preisOffen: preis?.verkaufspreis === null && preis?.preistyp === 'variabel',
+      preisOffen: preis?.preisOffen === true || (preis?.verkaufspreis === null && preis?.preistyp === 'variabel'),
       druckkosten: String(preis?.druckkosten ?? 0),
       verkaufspreis:
         preis?.verkaufspreis === null ||
@@ -243,9 +244,10 @@
           body: JSON.stringify({
             artikelId,
             groesseId,
-            preistyp: formular.preisOffen ? 'variabel' : formular.preistyp,
+            preistyp: formular.preistyp,
             druckkosten,
-            verkaufspreis
+            verkaufspreis,
+            preisOffen: formular.preisOffen
           })
         }
       );
