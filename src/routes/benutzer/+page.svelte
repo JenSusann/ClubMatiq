@@ -137,10 +137,10 @@
     try {
       const antwort = await fetch('/api/mail-einstellungen/test', { method: 'POST' });
       const daten = await antwort.json();
-      if (!antwort.ok) throw new Error(daten.fehler ?? 'SMTP-Test fehlgeschlagen.');
+      if (!antwort.ok) throw new Error(daten.fehler ?? 'E-Mail-Test fehlgeschlagen.');
       mailErfolg = daten.nachricht;
     } catch (error) {
-      mailFehler = error instanceof Error ? error.message : 'SMTP-Test fehlgeschlagen.';
+      mailFehler = error instanceof Error ? error.message : 'E-Mail-Test fehlgeschlagen.';
     } finally {
       mailTesten = false;
     }
@@ -450,7 +450,7 @@
         {/if}
       </div>
       {#if mailMethode === 'microsoft365'}
-        <p class="beschreibung">Microsoft Entra ID: Zertifikat (öffentlicher Teil) hochladen, Microsoft Graph Application Permission Mail.Send mit Admin-Consent erteilen und den Zugriff auf das gewünschte Postfach begrenzen. Der private Schlüssel bleibt auf dem Server.</p>
+        <p class="beschreibung">Microsoft Entra ID: Zertifikat (öffentlicher Teil) hochladen und Exchange Online Application RBAC mit der Rolle Application Mail.Send auf das gewünschte Postfach beschränken. Keine zusätzliche tenantweite Microsoft-Graph-Mail.Send-Berechtigung freigeben. Der private Schlüssel bleibt auf dem Server.</p>
       {/if}
       {#if mailMethode === 'smtp'}
         <p class="beschreibung">Port 587 verwendet normalerweise STARTTLS. Microsoft 365 kann OAuth2 erfordern; die Passwort-Anmeldung funktioniert nicht in jedem Tenant.</p>
@@ -459,10 +459,10 @@
         <button class="primaer" type="submit" disabled={mailSpeichern}>{mailSpeichern ? 'Speichert …' : 'E-Mail-Einstellungen speichern'}</button>
       </div>
     </form>
-    {#if mailMethode === 'smtp'}
+    {#if mailMethode === 'smtp' || mailMethode === 'microsoft365'}
       <div class="formular-aktionen" style="margin-top: 12px">
         <button type="button" class="sekundaer" onclick={testeMailEinstellungen} disabled={mailTesten || mailSpeichern}>
-          {mailTesten ? 'Test läuft …' : 'Gespeicherte SMTP-Einstellungen testen'}
+          {mailTesten ? 'Test läuft …' : mailMethode === 'microsoft365' ? 'Microsoft-365-Testmail senden' : 'Gespeicherte SMTP-Einstellungen testen'}
         </button>
       </div>
       <p class="beschreibung" style="margin-top: 8px">Der Test versendet eine E-Mail an deine eigene Benutzeradresse. Änderungen vorher speichern.</p>
