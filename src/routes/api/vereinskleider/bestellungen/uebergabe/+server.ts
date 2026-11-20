@@ -122,10 +122,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         throw new Uebergabefehler('Lagerbestand ist ungültig oder Variante nicht aktiv.', 409);
       }
       const fremdReserviert = reserviertGesamt - eigeneReserve;
-      const maximalUebergebbar = Math.max(0, (bestand as number) - 1 - fremdReserviert);
+      const maximalUebergebbar = Math.max(0, (bestand as number) - fremdReserviert);
       if (anzahl > maximalUebergebbar) {
         throw new Uebergabefehler(
-          `Nur ${maximalUebergebbar} Stück sind für diese Übergabe verfügbar (fremde Reservierungen und Anprobierreserve geschützt).`,
+          `Nur ${maximalUebergebbar} Stück sind für diese Übergabe verfügbar (fremde Reservierungen geschützt).`,
           409
         );
       }
@@ -135,10 +135,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       if (position.groesseId !== null) {
         const varianteAktualisiert = await varianten.updateOne({
           vereinId, artikelId: position.artikelId, groesseId: position.groesseId,
-          aktiv: { $ne: false }, menge: { $gte: anzahl + 1 + fremdReserviert }
+          aktiv: { $ne: false }, menge: { $gte: anzahl + fremdReserviert }
         }, { $inc: { menge: -anzahl } }, { session });
         if (varianteAktualisiert.modifiedCount !== 1) {
-          throw new Uebergabefehler('Nicht genügend freier Grössenbestand (inkl. Reservierungen und Anprobierreserve).', 409);
+          throw new Uebergabefehler('Nicht genügend freier Grössenbestand (inkl. fremder Reservierungen).', 409);
         }
         const artikelAktualisiert = await artikel.updateOne({
           _id: new ObjectId(position.artikelId), vereinId, menge: { $gte: anzahl }
@@ -149,7 +149,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       } else {
         const artikelAktualisiert = await artikel.updateOne({
           _id: new ObjectId(position.artikelId), vereinId,
-          menge: { $gte: anzahl + 1 + fremdReserviert }
+          menge: { $gte: anzahl + fremdReserviert }
         }, { $inc: { menge: -anzahl }, $set: { aktualisiertAm: jetzt } }, { session });
         if (artikelAktualisiert.modifiedCount !== 1) {
           throw new Uebergabefehler('Nicht genügend freier Lagerbestand (inkl. Reservierungen und Anprobierreserve).', 409);
