@@ -25,7 +25,7 @@ const id = new ObjectId().toHexString();
 const artikelId = new ObjectId().toHexString();
 const groesseId = new ObjectId().toHexString();
 const vereinId = 'verein-1';
-const benutzer = { vereinId };
+const benutzer = { id: 'admin-test', vereinId };
 const position = (overrides: Record<string, unknown> = {}) => ({ artikelId, groesseId: null, artikelname: 'Vereinsshirt', menge: 5, ...overrides });
 const bestellung = (overrides = {}) => ({ vereinId, status: 'bestellt', positionen: [position()], ...overrides });
 const request = (body: unknown) => new Request('http://localhost/api/vereinskleider/sammelbestellungen/' + id, {
@@ -56,6 +56,7 @@ beforeEach(() => {
   mocks.sort.mockReturnValue({ toArray: mocks.toArray });
   mocks.toArray.mockResolvedValue([]);
   mocks.verkaufUpdateOne.mockResolvedValue({ modifiedCount: 1 });
+  mocks.journalInsertOne.mockResolvedValue({ insertedId: new ObjectId() });
 });
 
 describe('PATCH Vereinskleider-Sammelbestellung – Eingaben und Berechtigung', () => {
@@ -151,6 +152,7 @@ describe('PATCH Sammelbestellung – Wareneingang und Lager', () => {
     const res = await call(eingang());
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ erfolg: true, status: 'bestellt', vollstaendig: false, zuordnungen: [] });
+    expect(mocks.journalInsertOne).toHaveBeenCalledWith(expect.objectContaining({ art: 'wareneingang', mengeDelta: 2, benutzerId: benutzer.id, referenzId: id }), expect.objectContaining({ session: expect.anything() }));
     expect(mocks.artikelUpdateOne).toHaveBeenCalledWith(
       expect.objectContaining({ vereinId, hatGroessen: false }),
       { $inc: { menge: 2 } }, expect.objectContaining({ session: expect.anything() })
