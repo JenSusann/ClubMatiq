@@ -53,6 +53,22 @@
     riegen: string[]; artikelId: string; artikelname: string;
     groesseId: string | null; menge: number; uebergebenAm: string;
   };
+  type StornierungEintrag = {
+    id: string; vorgangId: string; positionsIndex: number; kaeufer: string;
+    riegen: string[]; artikelId: string; artikelname: string;
+    groesseId: string | null; menge: number; grund: string;
+    storniertAm: string; storniertVon: string | null;
+  };
+  let stornierungenHistorie = $state<StornierungEintrag[]>([]);
+  let stornierungenSuche = $state('');
+  let stornierungenFehler = $state('');
+  let stornierungenLaden = $state(false);
+  const gefilterteStornierungen = $derived(stornierungenHistorie.filter((eintrag) => {
+    const text = stornierungenSuche.trim().toLocaleLowerCase('de-CH');
+    return !text || [eintrag.kaeufer, eintrag.artikelname, groesseName(eintrag.groesseId),
+      ...eintrag.riegen, eintrag.vorgangId, eintrag.grund]
+      .some((wert) => wert.toLocaleLowerCase('de-CH').includes(text));
+  }));
   let historie = $state<UebergabeEintrag[]>([]);
   let historieSuche = $state('');
   let historieFehler = $state('');
@@ -130,6 +146,24 @@
     }
   }
 
+  async function stornierungenHistorieAbrufen(): Promise<void> {
+    stornierungenLaden = true;
+    stornierungenFehler = '';
+    try {
+      const antwort = await fetch('/api/vereinskleider/bestellungen/stornierungen/historie');
+      if (!antwort.ok) {
+        const meldung = await antwort.json().catch(() => ({})) as { fehler?: string };
+        throw new Error(meldung.fehler ?? 'Stornierungshistorie konnte nicht geladen werden.');
+      }
+      const daten = await antwort.json() as { historie?: StornierungEintrag[] };
+      stornierungenHistorie = Array.isArray(daten.historie) ? daten.historie : [];
+    } catch (e) {
+      stornierungenFehler = e instanceof Error ? e.message : 'Stornierungshistorie konnte nicht geladen werden.';
+    } finally {
+      stornierungenLaden = false;
+    }
+  }
+
   async function datenLaden(): Promise<void> {
     aktualisieren = true;
     fehler = '';
@@ -161,7 +195,7 @@
         }));
         artikel = mitDetails;
       }
-      await historieAbrufen();
+      await Promise.all([historieAbrufen(), stornierungenHistorieAbrufen()]);
       letzteAktualisierung = new Date();
     } catch (e) {
       fehler = e instanceof Error ? e.message : 'Unbekannter Fehler beim Laden.';
@@ -448,6 +482,47 @@
       </div>
     </div>
   {/if}
+
+  <section class="karte" aria-label="Gespeicherte Stornierungshistorie">
+    <div class="historie-kopf">
+      <div>
+        <h2>Stornierungshistorie</h2>
+        <p class="dezent">Alle gespeicherten Stornierungen, auch Teilstornierungen und ältere Vorgänge.</p>
+      </div>
+      <span class="dezent">{gefilterteStornierungen.length} Stornierungen</span>
+    </div>
+    <label for="stornierungen-historie-suche">Stornierungen durchsuchen</label>
+    <input id="stornierungen-historie-suche" type="search"
+      placeholder="Mitglied, Artikel, Grösse, Riege, Grund oder Vorgang ..."
+      bind:value={stornierungenSuche} />
+    {#if stornierungenFehler}<p class="warnung" role="alert">{stornierungenFehler}</p>{/if}
+    {#if stornierungenLaden}
+      <p class="dezent">Stornierungshistorie wird geladen ...</p>
+    {:else if gefilterteStornierungen.length === 0}
+      <p class="dezent">Keine passenden Stornierungen gefunden.</p>
+    {:else}
+      <div class="tabellen-scroll historie-tabelle">
+        <table>
+          <thead>
+            <tr><th>Storniert am</th><th>Mitglied / Riege</th><th>Artikel / Grösse</th><th class="zahl">Menge</th><th>Grund</th><th>Durchgeführt von</th><th>Bestellung</th></tr>
+          </thead>
+          <tbody>
+            {#each gefilterteStornierungen as eintrag (eintrag.id)}
+              <tr>
+                <td>{new Intl.DateTimeFormat('de-CH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(eintrag.storniertAm))}</td>
+                <td><strong>{eintrag.kaeufer}</strong><small>{eintrag.riegen.join(', ') || '–'}</small></td>
+                <td><strong>{eintrag.artikelname}</strong><small>{groesseName(eintrag.groesseId)}</small></td>
+                <td class="zahl">{eintrag.menge}</td>
+                <td>{eintrag.grund || '–'}</td>
+                <td><small title={eintrag.storniertVon ?? ''}>{eintrag.storniertVon ? `Benutzer-ID: ${eintrag.storniertVon.slice(-8)}` : 'Nicht erfasst'}</small></td>
+                <td><small title={eintrag.vorgangId}>#{eintrag.vorgangId.slice(-8)}</small></td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    {/if}
+  </section>
 
   <section class="karte" aria-label="Gespeicherte Übergabehistorie">
     <div class="historie-kopf">
