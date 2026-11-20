@@ -43,6 +43,18 @@
   let bewegungsart = $state('');
   let bewegungVon = $state('');
   let bewegungBis = $state('');
+  let bewegungGroesse = $state('');
+  let bewegungSuche = $state('');
+  let artikelIdKopiert = $state(false);
+  const bewegungenGefiltert = $derived(bewegungen.filter((eintrag) => {
+    if (bewegungGroesse && eintrag.groesseId !== bewegungGroesse) return false;
+    const suche = bewegungSuche.trim().toLocaleLowerCase('de-CH');
+    return !suche || [eintrag.art, eintrag.benutzerId, eintrag.referenzId, eintrag.referenzTyp, groessenName(eintrag.groesseId), bewegungsName(eintrag.art)].some((wert) => wert.toLocaleLowerCase('de-CH').includes(suche));
+  }));
+  const bewegungsName = (art: string) => ({ anlage: 'Anlage', ausleihe: 'Ausleihe', rueckgabe: 'Rückgabe', inventur: 'Inventurkorrektur', verkauf: 'Verkauf', wareneingang: 'Wareneingang', korrektur: 'Korrektur', storno: 'Storno' })[art as 'anlage'] ?? art;
+  async function kopiereArtikelId() {
+    try { await navigator.clipboard.writeText(artikelId); artikelIdKopiert = true; } catch { artikelIdKopiert = false; }
+  }
 
   const artikelId = $derived(page.params.id ?? '');
   const standardlieferant = $derived(
@@ -153,8 +165,8 @@
 
       <div class="informationen">
         <div>
-          <span class="feldname">Artikel-ID</span>
-          <p>{artikel._id}</p>
+          <span class="feldname">Interne Artikel-ID</span>
+          <div class="id-zeile"><code class="artikel-id" title={artikel._id}>{artikel._id}</code><button type="button" class="kopieren" onclick={kopiereArtikelId}>{artikelIdKopiert ? 'Kopiert' : 'Kopieren'}</button></div>
         </div>
         <div>
           <span class="feldname">Gesamtbestand</span>
@@ -212,20 +224,31 @@
         <a href="/meldungen" class="aktion">Schaden melden</a>
       </div>
     </section>
-    <section class="bereich" style="margin-top:24px">
-      <h2>Lagerbewegungsjournal</h2>
-      <p class="hinweis">{bewegungHinweis || 'Bestandsänderungen seit Einführung des Journals werden hier angezeigt.'}</p>
-      <div class="aktionen">
-        <label>Bewegungstyp <select bind:value={bewegungsart}><option value="">Alle</option><option value="anlage">Anlage</option><option value="ausleihe">Ausleihe</option><option value="rueckgabe">Rückgabe</option><option value="inventur">Inventur</option><option value="verkauf">Verkauf</option><option value="wareneingang">Wareneingang</option><option value="korrektur">Korrektur</option><option value="storno">Storno</option></select></label>
+    <section class="bereich journal">
+      <div class="journal-kopf">
+        <div><span class="kennzeichnung">BESTANDSHISTORIE</span><h2>Lagerbewegungsjournal</h2><p class="journal-hinweis">{bewegungHinweis || 'Alle erfassten Bestandsänderungen dieses Artikels.'}</p></div>
+        <span class="anzahl">{bewegungenGefiltert.length} Bewegungen</span>
+      </div>
+      <div class="filterbereich">
+        <label class="suche-feld">Suche
+          <input type="search" bind:value={bewegungSuche} placeholder="Vorgang, Benutzer-ID oder Referenz suchen …" aria-label="Lagerbewegungen durchsuchen"/>
+        </label>
+        <label>Grösse
+          <select bind:value={bewegungGroesse}><option value="">Alle Grössen</option>{#each groessen.filter((g) => artikel?.varianten.some((v) => v.groesseId === g._id)) as groesse (groesse._id)}<option value={groesse._id}>{groesse.bezeichnung}</option>{/each}</select>
+        </label>
+        <label>Bewegungstyp
+          <select bind:value={bewegungsart}><option value="">Alle Vorgänge</option><option value="anlage">Anlage</option><option value="ausleihe">Ausleihe</option><option value="rueckgabe">Rückgabe</option><option value="inventur">Inventur</option><option value="verkauf">Verkauf</option><option value="wareneingang">Wareneingang</option><option value="korrektur">Korrektur</option><option value="storno">Storno</option></select>
+        </label>
         <label>Von <input type="date" bind:value={bewegungVon}/></label>
         <label>Bis <input type="date" bind:value={bewegungBis}/></label>
-        <button type="button" onclick={ladeBewegungen}>Filtern</button>
+        <button type="button" class="filtern" onclick={ladeBewegungen}>Zeitraum / Typ anwenden</button>
+        <button type="button" class="zuruecksetzen" onclick={() => { bewegungSuche = ''; bewegungGroesse = ''; bewegungsart = ''; bewegungVon = ''; bewegungBis = ''; void ladeBewegungen(); }}>Zurücksetzen</button>
       </div>
       {#if bewegungFehler}<p class="fehlermeldung" role="alert">{bewegungFehler}</p>{/if}
-      <div class="tabelle-wrapper"><table><thead><tr><th>Zeitpunkt</th><th>Vorgang</th><th>Menge</th><th>Grösse</th><th>Durchgeführt von (Benutzer-ID)</th><th>Referenz</th></tr></thead>
-      <tbody>{#each bewegungen as bewegung (bewegung.id)}
-        <tr><td>{new Date(bewegung.zeitpunkt).toLocaleString('de-CH')}</td><td>{bewegung.art}</td><td>{bewegung.mengeDelta > 0 ? '+' : ''}{bewegung.mengeDelta}</td><td>{groessenName(bewegung.groesseId)}</td><td>{bewegung.benutzerId}</td><td>{bewegung.referenzTyp}: {bewegung.referenzId}</td></tr>
-      {:else}<tr><td colspan="6">Keine erfassten Bewegungen für diesen Zeitraum.</td></tr>{/each}</tbody></table></div>
+      <div class="tabelle-wrapper"><table class="journal-tabelle"><thead><tr><th>Zeitpunkt</th><th>Vorgang</th><th>Menge</th><th>Grösse</th><th>Durchgeführt von</th><th>Referenz</th></tr></thead>
+      <tbody>{#each bewegungenGefiltert as bewegung (bewegung.id)}
+        <tr><td>{new Date(bewegung.zeitpunkt).toLocaleString('de-CH')}</td><td><span class="vorgang">{bewegungsName(bewegung.art)}</span></td><td><span class:zugang={bewegung.mengeDelta > 0} class:abgang={bewegung.mengeDelta < 0} class="menge">{bewegung.mengeDelta > 0 ? '+' : ''}{bewegung.mengeDelta}</span></td><td>{groessenName(bewegung.groesseId)}</td><td><span class="referenz" title={bewegung.benutzerId}>{bewegung.benutzerId}</span></td><td><span class="referenz" title={bewegung.referenzId}>{bewegung.referenzTyp}: {bewegung.referenzId}</span></td></tr>
+      {:else}<tr><td colspan="6"><div class="leerzustand"><strong>Keine Lagerbewegungen gefunden</strong><p>{bewegungen.length === 0 ? 'Für diesen Artikel wurden seit Einführung des Journals noch keine Bestandsänderungen protokolliert.' : 'Passe die Suche oder die Filter an.'}</p></div></td></tr>{/each}</tbody></table></div>
     </section>
   {/if}
 </main>
@@ -251,6 +274,30 @@
   .aktionen { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
   .aktion, button { display: inline-block; padding: 11px 18px; border: 0; border-radius: 8px; background: #172b4d; color: white; font: inherit; text-decoration: none; cursor: pointer; }
   .fehlermeldung { color: #b91c1c; }
+  .id-zeile { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:7px; }
+  .artikel-id { font-size:12px; color:#64748b; overflow-wrap:anywhere; }
+  .kopieren { padding:5px 9px; font-size:12px; background:#e9eef6; color:#172b4d; }
+  .journal { margin-top:24px; }
+  .journal-kopf { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+  .journal-kopf h2 { margin:7px 0; }
+  .journal-hinweis { color:#64748b; font-size:13px; max-width:680px; }
+  .anzahl { background:#edf2f9; color:#172b4d; border-radius:20px; padding:7px 12px; font-size:12px; font-weight:600; }
+  .filterbereich { display:flex; flex-wrap:wrap; align-items:end; gap:12px; margin:24px 0 18px; padding:16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; }
+  .filterbereich label { display:flex; flex-direction:column; gap:6px; font-size:12px; font-weight:600; color:#475569; }
+  .filterbereich input, .filterbereich select { border:1px solid #cbd5e1; border-radius:7px; padding:9px 10px; background:white; color:#172b4d; font:inherit; min-height:38px; }
+  .filterbereich .suche-feld { flex:2 1 240px; }
+  .suche-feld input { width:100%; box-sizing:border-box; }
+  .filterbereich button { min-height:38px; padding:9px 12px; font-size:12px; }
+  .filterbereich .zuruecksetzen { background:white; color:#172b4d; border:1px solid #cbd5e1; }
+  .journal-tabelle th { font-size:12px; color:#64748b; white-space:nowrap; }
+  .journal-tabelle td { font-size:13px; }
+  .vorgang { background:#eef2f7; color:#334155; padding:5px 9px; border-radius:6px; font-weight:600; white-space:nowrap; }
+  .menge { font-weight:700; padding:5px 8px; border-radius:6px; }
+  .zugang { color:#166534; background:#dcfce7; }
+  .abgang { color:#b91c1c; background:#fee2e2; }
+  .referenz { display:inline-block; max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; color:#64748b; font-size:12px; }
+  .leerzustand { text-align:center; padding:32px 12px; color:#475569; }
+  .leerzustand p { font-size:13px; color:#64748b; margin-bottom:0; }
   .fehlermeldung button { margin-top: 12px; }
   @media (max-width: 600px) {
     main { margin: 16px auto; padding: 12px; }
