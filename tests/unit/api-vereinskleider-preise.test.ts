@@ -77,8 +77,8 @@ describe('GET /api/vereinskleider/preise', () => {
       { _id: id2, artikelId, groesseId, preistyp: 'fix', druckkosten: 0, verkaufspreis: 10 }
     ]);
     expect(await (await get()).json()).toEqual([
-      { _id: id1.toString(), artikelId, groesseId: null, preistyp: 'variabel', druckkosten: 2, verkaufspreis: null },
-      { _id: id2.toString(), artikelId, groesseId, preistyp: 'fix', druckkosten: 0, verkaufspreis: 10 }
+      { _id: id1.toString(), artikelId, groesseId: null, preistyp: 'variabel', druckkosten: 2, verkaufspreis: null, preisOffen: true },
+      { _id: id2.toString(), artikelId, groesseId, preistyp: 'fix', druckkosten: 0, verkaufspreis: 10, preisOffen: false }
     ]);
   });
   it.each(['createIndex', 'toArray'] as const)('behandelt Fehler bei %s', async (methode) => {
