@@ -10,7 +10,7 @@ import * as route0 from '../../../../src/routes/api/vereinskleider/export/+serve
 // Ursprüngliche Datei: 21-export-api-fehler.integration.test.ts
 describe('21-export-api-fehler', () => {
   it('prüft den Exportablauf', async () => {
-    const responses = [[500, {"fehler": "Historie nicht verf\u00fcgbar"}]];
+    const responses: Array<[number, unknown]> = [[500, {"fehler": "Historie nicht verf\u00fcgbar"}]];
     const fetchMock = vi.fn();
     for (const [status, data] of responses) {
       fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(data), {
@@ -28,7 +28,7 @@ import * as route1 from '../../../../src/routes/api/vereinskleider/export/+serve
 // Ursprüngliche Datei: 21-export-datenkonflikt.integration.test.ts
 describe('21-export-datenkonflikt', () => {
   it('prüft den Exportablauf', async () => {
-    const responses = [[200, {"gesamt": 2, "verkaeufe": [], "seiten": 1}]];
+    const responses: Array<[number, unknown]> = [[200, {"gesamt": 2, "verkaeufe": [], "seiten": 1}]];
     const fetchMock = vi.fn();
     for (const [status, data] of responses) {
       fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(data), {
@@ -46,7 +46,7 @@ import * as route2 from '../../../../src/routes/api/vereinskleider/export/+serve
 // Ursprüngliche Datei: 21-export-leere-excel.integration.test.ts
 describe('21-export-leere-excel', () => {
   it('prüft den Exportablauf', async () => {
-    const responses = [[200, {"gesamt": 0, "verkaeufe": [], "seiten": 0}], [200, []]];
+    const responses: Array<[number, unknown]> = [[200, {"gesamt": 0, "verkaeufe": [], "seiten": 0}], [200, []]];
     const fetchMock = vi.fn();
     for (const [status, data] of responses) {
       fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(data), {
@@ -64,7 +64,7 @@ import * as route3 from '../../../../src/routes/api/vereinskleider/export/+serve
 // Ursprüngliche Datei: 21-export-zu-viele-verkaeufe.integration.test.ts
 describe('21-export-zu-viele-verkaeufe', () => {
   it('prüft den Exportablauf', async () => {
-    const responses = [[200, {"gesamt": 10001, "verkaeufe": [], "seiten": 1}]];
+    const responses: Array<[number, unknown]> = [[200, {"gesamt": 10001, "verkaeufe": [], "seiten": 1}]];
     const fetchMock = vi.fn();
     for (const [status, data] of responses) {
       fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(data), {
