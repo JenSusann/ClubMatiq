@@ -146,7 +146,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         if (!preis) throw new Verkaufsfehler(`Für ${artikel.name} fehlt ein Verkaufspreis.`);
         // Preis-offen-Positionen dürfen bis zur Einführung der Teilzahlungslogik
         // keinesfalls mit einem manuellen Ersatzpreis als bezahlt verbucht werden.
-        if (preis.preisOffen === true || (preis.preistyp === 'variabel' && preis.verkaufspreis == null)) {
+        if (preis.preisOffen === true) {
           throw new Verkaufsfehler(`Für ${artikel.name} ist der Verkaufspreis noch offen. Die verbindliche Bestellung mit Teilzahlung wird derzeit vorbereitet.`, 409);
         }
         let einzelpreis: number;
