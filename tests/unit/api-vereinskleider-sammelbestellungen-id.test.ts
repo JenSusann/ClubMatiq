@@ -25,7 +25,7 @@ const artikelId = new ObjectId().toHexString();
 const groesseId = new ObjectId().toHexString();
 const vereinId = 'verein-1';
 const benutzer = { vereinId };
-const position = (overrides = {}) => ({ artikelId, groesseId: null, artikelname: 'Vereinsshirt', menge: 5, ...overrides });
+const position = (overrides: Record<string, unknown> = {}) => ({ artikelId, groesseId: null, artikelname: 'Vereinsshirt', menge: 5, ...overrides });
 const bestellung = (overrides = {}) => ({ vereinId, status: 'bestellt', positionen: [position()], ...overrides });
 const request = (body: unknown) => new Request('http://localhost/api/vereinskleider/sammelbestellungen/' + id, {
   method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
