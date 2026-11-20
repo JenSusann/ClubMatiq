@@ -19,7 +19,7 @@ const id = new ObjectId();
 const fremdId = new ObjectId();
 const admin = { id: new ObjectId().toString(), vereinId, rolle: 'admin', vorname: 'Test', nachname: 'Admin' };
 const mitglied = { ...admin, rolle: 'mitglied' };
-const event = (benutzer: unknown) => ({ locals: { benutzer } }) as Parameters<typeof GET>[0];
+const event = (benutzer: unknown) => ({ locals: { benutzer } }) as Parameters<typeof route0.GET>[0];
 
 beforeAll(async () => {
   if (db.databaseName !== 'clubmatiq_test') throw new Error('Unsichere Testdatenbank');
