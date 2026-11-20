@@ -8,7 +8,8 @@ type Bestellposition = {
   groesseId: string | null;
   artikelname: string;
   menge: number;
-  einzelpreis: number;
+  einzelpreis: number | null;
+  preisOffen?: boolean;
   verkaufsart: 'direkt' | 'bestellung';
   uebergebenMenge?: number;
   reserviertMenge?: number;
@@ -78,6 +79,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
           nochFehlend,
           offen,
           einzelpreis: position.einzelpreis,
+          preisOffen: position.preisOffen === true,
           status: positionsstatus
         };
         if (status !== 'alle' && status !== positionsstatus &&
