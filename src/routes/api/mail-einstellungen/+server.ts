@@ -14,7 +14,7 @@ export const GET: RequestHandler = async ({ locals }) => {
     methode: mail?.methode === 'smtp' || mail?.methode === 'microsoft365' ? mail.methode : 'resend',
     microsoft365: mail?.microsoft365 ? {
       tenantId: mail.microsoft365.tenantId, clientId: mail.microsoft365.clientId,
-      absender: mail.microsoft365.absender, geheimnisHinterlegt: Boolean(mail.microsoft365.geheimnis)
+      absender: mail.microsoft365.absender, zertifikatServerseitig: Boolean(process.env.M365_CERTIFICATE_BASE64 && process.env.M365_PRIVATE_KEY_BASE64)
     } : null,
     smtp: mail?.smtp ? {
       host: mail.smtp.host, port: mail.smtp.port, secure: mail.smtp.secure,
@@ -49,15 +49,11 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
     const tenantId = typeof wert.tenantId === 'string' ? wert.tenantId.trim() : '';
     const clientId = typeof wert.clientId === 'string' ? wert.clientId.trim() : '';
     const absender = typeof wert.absender === 'string' ? wert.absender.trim() : '';
-    const geheimnisNeu = typeof wert.geheimnis === 'string' ? wert.geheimnis : '';
     const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!guid.test(tenantId) || !guid.test(clientId) || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(absender)) return json({ fehler: 'Ungültige Microsoft-365-Einstellungen.' }, { status: 400 });
     try {
-      const bisher = await vereine.findOne(filter);
-      const geheimnis = geheimnisNeu ? verschluesseln(geheimnisNeu) : bisher?.mailEinstellungen?.microsoft365?.geheimnis;
-      if (!geheimnis) return json({ fehler: 'Microsoft-365-Client-Secret fehlt.' }, { status: 400 });
       await vereine.updateOne(filter, { $set: { mailEinstellungen: {
-        methode: 'microsoft365', microsoft365: { tenantId, clientId, absender, geheimnis }
+        methode: 'microsoft365', microsoft365: { tenantId, clientId, absender }
       } } });
       return json({ erfolg: true });
     } catch {
