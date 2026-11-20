@@ -4,7 +4,7 @@ const m=vi.hoisted(()=>({c:{} as Record<string,any>,permission:vi.fn(()=>null as
 vi.mock('../../../../src/lib/server/mongodb',()=>({db:{collection:(n:string)=>m.c[n]},client:{startSession:()=>m.session}}));
 vi.mock('../../../../src/lib/server/berechtigungen',()=>({pruefeBerechtigung:m.permission}));
 const ID='507f1f77bcf86cd799439011', A='507f1f77bcf86cd799439012', B='507f1f77bcf86cd799439013', S='507f1f77bcf86cd799439014', V='507f1f77bcf86cd799439015';
-const user={id:'u1',vereinId:V,rolle:'admin'};
+const user={id:'integration-user',vereinId:V,rolle:'admin'};
 const req=(x:unknown)=>new Request('http://localhost/api',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(x)});
 const unpack=async(p:Promise<Response>|Response)=>{const r=await p;const t=await r.text();return {status:r.status,body:t?JSON.parse(t):null}};
 beforeEach(()=>{vi.clearAllMocks();m.permission.mockReturnValue(null);m.session.withTransaction.mockImplementation(async(fn:()=>Promise<unknown>)=>fn());for(const k of Object.keys(m.c))delete m.c[k]});
@@ -15,6 +15,7 @@ const patch=(x:unknown,id=ID)=>unpack(route0.PATCH({params:{id},locals:{benutzer
 function setup(status='entwurf',position:any={...pos,artikelname:'Trikot',geliefertMenge:0},kunden:any[]=[]){
  m.c.vereinskleider_sammelbestellungen={findOne:vi.fn(async()=>({status,positionen:[position]})),updateOne:vi.fn(async()=>({modifiedCount:1}))};
  m.c.vereinskleider_verkaeufe={find:vi.fn(()=>({sort:()=>({toArray:async()=>kunden})})),updateOne:vi.fn(async()=>({modifiedCount:1}))};
+ m.c.lagerbewegungen={insertOne:vi.fn(async()=>({insertedId:new ObjectId()}))};
  m.c.artikel={updateOne:vi.fn(async()=>({matchedCount:1})),findOne:vi.fn(async()=>({menge:8}))};
  m.c.artikelvarianten={updateOne:vi.fn(async()=>({matchedCount:1})),findOne:vi.fn(async()=>({menge:8}))};
 }
