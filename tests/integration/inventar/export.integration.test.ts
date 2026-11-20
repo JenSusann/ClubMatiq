@@ -29,7 +29,7 @@ describe('Verkaufshistorie-Excel – Branches', () => {
     const result = await run(fetchMock);
     expect(result.status).toBe(200);
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(Buffer.from(await result.arrayBuffer()));
+    await workbook.xlsx.load(new Uint8Array(await result.arrayBuffer()) as unknown as Buffer);
     expect(workbook.worksheets.map((s) => s.name)).toEqual(['Verkäufe', 'Positionen']);
     expect(workbook.getWorksheet('Verkäufe')!.rowCount).toBe(1);
   });
@@ -43,7 +43,7 @@ describe('Verkaufshistorie-Excel – Branches', () => {
     const result = await run(fetchMock);
     expect(result.status).toBe(200);
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(Buffer.from(await result.arrayBuffer()));
+    await workbook.xlsx.load(new Uint8Array(await result.arrayBuffer()) as unknown as Buffer);
     const summary = workbook.getWorksheet('Verkäufe')!.getRow(2);
     expect(summary.getCell(14).value).toBe(50);
     expect(summary.getCell(16).value).toBe(30);
@@ -101,7 +101,7 @@ describe('Verkaufshistorie-Excel – Branches', () => {
     const result = await run(fetchMock);
     expect(result.status).toBe(200);
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(Buffer.from(await result.arrayBuffer()));
+    await workbook.xlsx.load(new Uint8Array(await result.arrayBuffer()) as unknown as Buffer);
     expect(workbook.getWorksheet('Positionen')!.getRow(2).getCell(7).value).toBe('Unbekannte Grösse');
   });
   it('filtert ungültige Grösseneinträge', async () => {
