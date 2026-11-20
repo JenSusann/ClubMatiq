@@ -332,7 +332,12 @@ describe('ClubMatiq Inventur abschliessen', () => {
     }));
 
     await fehlerErwarten('konnte nicht abgeschlossen werden');
-    expect(mocks.insertOne).not.toHaveBeenCalled();
+    // Das Journal wird innerhalb der Transaktion geschrieben. Bei einem
+    // Versionskonflikt rollt MongoDB sowohl Journal als auch Bestand zurück.
+    expect(mocks.insertOne).toHaveBeenCalledWith(
+      'lagerbewegungen', expect.objectContaining({ art: 'inventur' }),
+      expect.objectContaining({ session: expect.anything() })
+    );
   });
 
   it('schliesst die Session auch bei Fehlern', async () => {
