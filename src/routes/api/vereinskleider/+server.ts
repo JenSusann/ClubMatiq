@@ -156,8 +156,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           if (position.einzelpreis !== undefined) {
             throw new Verkaufsfehler(`Für ${artikel.name} ist der Verkaufspreis noch offen. Ein Ersatzpreis ist nicht zulässig.`, 409);
           }
-          if (eingabe.verkaufsart !== 'bestellung') {
-            throw new Verkaufsfehler('Artikel mit offenem Preis können vorerst nur verbindlich bestellt werden.', 409);
+          if (eingabe.verkaufsart === 'direkt') {
+            throw new Verkaufsfehler('Artikel mit offenem Preis können nicht direkt verkauft werden. Bitte Automatisch oder Nur Bestellung wählen.', 409);
           }
           const schluessel = `${position.artikelId}:${position.groesseId ?? ''}`;
           const bisher = mengen.get(schluessel);
@@ -268,9 +268,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
        // Pro Artikel und Grösse wird nur der tatsächlich verfügbare Bestand
        // (abzüglich eines Stücks Anprobierreserve) direkt verkauft.
        const direkteMengen = new Map<string, number>();
+       const offeneVarianten = new Set(geprueft.filter((p) => p.preisOffen).map((p) => `${p.artikelId}:${p.groesseId ?? ''}`));
        for (const [schluessel, eintrag] of mengen) {
          let direkt = 0;
-         if (eingabe.verkaufsart !== 'bestellung') {
+         if (eingabe.verkaufsart !== 'bestellung' && !offeneVarianten.has(schluessel)) {
            const bestandDokument = eintrag.groesseId !== null
              ? await variantenCollection.findOne({
                  vereinId, artikelId: eintrag.artikelId, groesseId: eintrag.groesseId,
