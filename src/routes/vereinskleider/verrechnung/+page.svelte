@@ -12,6 +12,7 @@
     bezahltBetrag?: number;
     preisOffen?: boolean;
     offenePreispositionen?: number;
+    trancheRechnungIds?: string[];
   };
 
   type Rechnung = {
@@ -242,17 +243,16 @@
 
   async function rechnungErstellen(verkauf: Verkauf): Promise<void> {
     if (erstellenId !== null) return;
-    if (verkauf.preisOffen === true) {
-      fehler = 'Für diese Bestellung sind noch Verkaufspreise offen. Bitte zuerst die Preise in der Bestellübersicht festlegen.';
-      return;
-    }
+    const istTranche = verkauf.preisOffen === true || (verkauf.trancheRechnungIds?.length ?? 0) > 0;
     const bezeichnung = istQuittung(verkauf) ? 'Quittung' : 'Rechnung';
-    if (!confirm(`${bezeichnung} für ${verkauf.kaeufer} über ${chf(verkauf.endbetrag)} erstellen?`)) return;
+    if (!confirm(istTranche
+      ? `Weitere Teilrechnung für ${verkauf.kaeufer} erstellen? Es werden ausschliesslich noch nicht verrechnete Positionen berücksichtigt.`
+      : `${bezeichnung} für ${verkauf.kaeufer} über ${chf(verkauf.endbetrag)} erstellen?`)) return;
     erstellenId = verkauf._id;
     fehler = '';
     erfolg = '';
     try {
-      const antwort = await fetch('/api/vereinskleider/verrechnung', {
+      const antwort = await fetch(istTranche ? '/api/vereinskleider/verrechnung/tranche' : '/api/vereinskleider/verrechnung', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ verkaufId: verkauf._id })
@@ -260,7 +260,7 @@
       const daten: { erfolg?: boolean; fehler?: string; rechnung?: { rechnungsnummer: string } } =
         await antwort.json().catch(() => ({}));
       if (!antwort.ok || !daten.erfolg) throw new Error(daten.fehler ?? 'Rechnung konnte nicht erstellt werden.');
-      erfolg = `${bezeichnung} ${daten.rechnung?.rechnungsnummer ?? ''} wurde erstellt.`;
+      erfolg = `${istTranche ? 'Teilrechnung' : bezeichnung} ${daten.rechnung?.rechnungsnummer ?? ''} wurde erstellt.`;
       await ladenAktualisieren();
     } catch (e) {
       fehler = e instanceof Error ? e.message : 'Rechnung konnte nicht erstellt werden.';
@@ -324,8 +324,8 @@
                   <td>{zahlungsartText(verkauf.zahlungsart)}</td>
                   <td><span class="status" class:bezahlt={istBezahlt(verkauf)}>{verkauf.preisOffen ? 'Preis offen' : istBezahlt(verkauf) ? 'Bezahlt' : 'Offen'}</span></td>
                   <td class="rechts">{chf(verkauf.endbetrag)}</td>
-                  <td><button type="button" onclick={() => rechnungErstellen(verkauf)} disabled={erstellenId !== null || verkauf.preisOffen === true} title={verkauf.preisOffen ? 'Zuerst offene Preise festlegen' : undefined}>
-                    {erstellenId === verkauf._id ? 'Wird erstellt ...' : istQuittung(verkauf) ? 'Quittung erfassen' : 'Rechnung erstellen'}
+                  <td><button type="button" onclick={() => rechnungErstellen(verkauf)} disabled={erstellenId !== null}>
+                    {erstellenId === verkauf._id ? 'Wird erstellt ...' : (verkauf.preisOffen || (verkauf.trancheRechnungIds?.length ?? 0) > 0) ? 'Teilrechnung erstellen' : istQuittung(verkauf) ? 'Quittung erfassen' : 'Rechnung erstellen'}
                   </button></td>
                 </tr>
               {/each}
