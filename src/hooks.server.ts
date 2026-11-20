@@ -29,6 +29,7 @@ export const handle = async ({
 }: ClubMatiqHandle): Promise<Response> => {
   event.locals.benutzer = null;
   event.locals.sessionId = null;
+  let passwortwechselErforderlich = false;
 
   const token = event.cookies.get('clubmatiq_session');
   if (token) {
@@ -43,6 +44,7 @@ export const handle = async ({
           email: benutzer.email, rolle: benutzer.rolle
         };
         event.locals.sessionId = session._id.toString();
+        passwortwechselErforderlich = benutzer.passwortwechselErforderlich === true;
       }
     }
     if (!event.locals.benutzer) event.cookies.delete('clubmatiq_session', { path: '/' });
@@ -54,6 +56,14 @@ export const handle = async ({
   if (!event.locals.benutzer && !istOeffentlich && !oeffentlicheAPIs.has(pfad)) {
     if (istAPI) return Response.json({ fehler: 'Nicht angemeldet.', code: 'NICHT_ANGEMELDET' }, { status: 401 });
     redirect(303, `/anmelden?redirect=${encodeURIComponent(pfad)}`);
+  }
+  if (event.locals.benutzer && passwortwechselErforderlich) {
+    const erlaubt = pfad === '/passwort-aendern' || pfad === '/api/passwort-aendern' ||
+      pfad === '/api/abmelden' || pfad.startsWith('/_app/') || pfad === '/favicon.ico';
+    if (!erlaubt) {
+      if (istAPI) return Response.json({ fehler: 'Bitte zuerst das Startpasswort ändern.', code: 'PASSWORTWECHSEL_ERFORDERLICH' }, { status: 403 });
+      redirect(303, '/passwort-aendern');
+    }
   }
   if (event.locals.benutzer && pfad === '/anmelden') redirect(303, '/dashboard');
   return resolve(event);
