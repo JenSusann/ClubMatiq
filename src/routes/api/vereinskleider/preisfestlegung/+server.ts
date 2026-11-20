@@ -101,7 +101,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
       const aktualisiert = await collection.updateOne(
         { _id, vereinId, rechnungId: { $exists: false },
           [`positionen.${index}.preisOffen`]: true,
-          [`positionen.${index}.einzelpreis`]: null },
+          [`positionen.${index}.einzelpreis`]: null,
+          aktualisiertAm: verkauf.aktualisiertAm },
         { $set: {
           positionen, zwischentotal: stand.faellig, endbetrag: stand.faellig,
           bezahltBetrag: stand.bezahlt, zahlungen, zahlungsstatus,
