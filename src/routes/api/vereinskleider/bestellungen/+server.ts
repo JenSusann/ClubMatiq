@@ -68,6 +68,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
           zahlungsstatus: vorgang.zahlungsstatus ?? 'offen',
           endbetrag: Number(vorgang.endbetrag ?? 0),
           bezahltBetrag: Number(vorgang.bezahltBetrag ?? 0),
+          zahlungen: Array.isArray(vorgang.zahlungen) ? vorgang.zahlungen.map((z: { betrag: number; zahlungsart: string; datum: Date }) => ({ betrag: z.betrag, zahlungsart: z.zahlungsart, datum: z.datum })) : [],
           restbetragBekannt: Math.max(0, Math.round((Number(vorgang.endbetrag ?? 0) - Number(vorgang.bezahltBetrag ?? 0)) * 100) / 100),
           artikelId: position.artikelId,
           artikelname: position.artikelname,
