@@ -42,7 +42,7 @@ describe('Coverage P16 – CSV Inventar/Bewertung Branches', () => {
     ['ohne Lagerort-ID', { artikel: [{ ...base.artikel[0], lagerortId: undefined }] }, 'Unbekannt'],
     ['ohne Lieferanten-ID', { artikel: [{ ...base.artikel[0], lieferantId: undefined }] }, 'Nicht zugeordnet'],
   ] as const)('%s', async (_name, override, expected) => {
-    setup(override as Data);
+    setup(override as unknown as Data);
     expect(await csv()).toContain(`"${expected}"`);
   });
 
