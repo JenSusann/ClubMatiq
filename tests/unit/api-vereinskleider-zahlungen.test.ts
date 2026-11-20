@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const m = vi.hoisted(() => {
  const collection = {findOne:vi.fn(),updateOne:vi.fn()};
  const session={withTransaction:vi.fn(async(fn:()=>Promise<any>)=>fn()),endSession:vi.fn()};
- return {collection,session,permission:vi.fn(()=>null)};
+ return {collection,session,permission:vi.fn<() => Response | null>(()=>null)};
 });
 vi.mock('@sveltejs/kit',()=>({json:(data:any,init?:any)=>new Response(JSON.stringify(data),{status:init?.status??200})}));
 vi.mock('mongodb',()=>({ObjectId:class {constructor(public value:string){} toString(){return this.value;} }}));
