@@ -1,0 +1,352 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ObjectId } from 'mongodb';
+const mocks = vi.hoisted(() => ({
+  findOne: vi.fn(), find: vi.fn(), insertOne: vi.fn(), updateOne: vi.fn(),
+  updateMany: vi.fn(), deleteOne: vi.fn(), countDocuments: vi.fn(), aggregate: vi.fn(),
+  collection: vi.fn(), startSession: vi.fn()
+}));
+vi.mock('../../../../src/lib/server/mongodb', () => ({
+  db: { collection: mocks.collection },
+  client: { startSession: mocks.startSession }
+}));
+const id = new ObjectId().toHexString();
+const vereinId = new ObjectId().toHexString();
+const event = (method: string, body?: unknown, role: string | null = 'admin') => ({
+  locals: { benutzer: role ? { id, vereinId, rolle: role } : null },
+  params: { id },
+  url: new URL('http://localhost/api/test'),
+  request: new Request('http://localhost/api/test', {
+    method,
+    ...(body === undefined ? {} : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+  })
+});
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.collection.mockImplementation(() => mocks);
+  mocks.findOne.mockResolvedValue(null);
+  mocks.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
+  mocks.updateOne.mockResolvedValue({ modifiedCount: 1, matchedCount: 1 });
+  mocks.find.mockReturnValue({ toArray: async () => [], sort: () => ({ toArray: async () => [], limit: () => ({ toArray: async () => [] }) }) });
+  mocks.startSession.mockReturnValue({
+    withTransaction: async (fn: () => Promise<unknown>) => fn(),
+    endSession: async () => {}
+  });
+});
+import * as route0 from '../../../../src/routes/api/vereinskleider/stornierungen/+server';
+
+// Ursprüngliche Datei: 21-stornierung-bereits-storniert.integration.test.ts
+describe('21-stornierung-bereits-storniert', () => {
+  it('21-stornierung-bereits-storniert', async () => {
+    mocks.findOne.mockResolvedValueOnce({"status": "storniert"});
+    const response = await route0.POST(event('POST', {"verkaufId": id, "positionsIndex": 0, "menge": 1, "grund": "Falsche Bestellung"}) as never);
+    expect(response.status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+});
+import * as route1 from '../../../../src/routes/api/vereinskleider/stornierungen/+server';
+
+// Ursprüngliche Datei: 21-stornierung-bezahlter-verkauf.integration.test.ts
+describe('21-stornierung-bezahlter-verkauf', () => {
+  it('21-stornierung-bezahlter-verkauf', async () => {
+    mocks.findOne.mockResolvedValueOnce({"status": "offen", "bezahltBetrag": 25});
+    const response = await route1.POST(event('POST', {"verkaufId": id, "positionsIndex": 0, "menge": 1, "grund": "Falsche Bestellung"}) as never);
+    expect(response.status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+});
+import * as route2 from '../../../../src/routes/api/vereinskleider/stornierungen/+server';
+
+// Ursprüngliche Datei: 21-stornierung-erfolgreich.integration.test.ts
+describe('21-stornierung-erfolgreich', () => {
+  it('Bestellmenge wird storniert', async () => {
+    mocks.findOne.mockResolvedValueOnce({
+      status: 'offen', rabattTotal: 0, bezahltBetrag: 0,
+      endbetrag: 50, zwischentotal: 50,
+      positionen: [{ artikelId: id, groesseId: null, verkaufsart: 'bestellung',
+        menge: 2, einzelpreis: 25, positionsbetrag: 50, uebergebenMenge: 0, reserviertMenge: 0 }]
+    });
+    const response = await route2.POST(event('POST', {"verkaufId": id, "positionsIndex": 0, "menge": 1, "grund": "Falsche Bestellung"}) as never);
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.erfolg).toBe(true);
+    expect(data.stornierung.storniert).toBe(1);
+    expect(mocks.updateOne).toHaveBeenCalledOnce();
+  });
+});
+import * as route3 from '../../../../src/routes/api/vereinskleider/stornierungen/+server';
+
+// Ursprüngliche Datei: 21-stornierung-fehlender-verkauf.integration.test.ts
+describe('21-stornierung-fehlender-verkauf', () => {
+  it('21-stornierung-fehlender-verkauf', async () => {
+    const response = await route3.POST(event('POST', {"verkaufId": id, "positionsIndex": 0, "menge": 1, "grund": "Falsche Bestellung"}) as never);
+    expect(response.status).toBe(404);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+});
+import * as route4 from '../../../../src/routes/api/vereinskleider/stornierungen/+server';
+
+// Ursprüngliche Datei: 21-stornierung-ohne-positionen.integration.test.ts
+describe('21-stornierung-ohne-positionen', () => {
+  it('21-stornierung-ohne-positionen', async () => {
+    mocks.findOne.mockResolvedValueOnce({"status": "offen", "rabattTotal": 0});
+    const response = await route4.POST(event('POST', {"verkaufId": id, "positionsIndex": 0, "menge": 1, "grund": "Falsche Bestellung"}) as never);
+    expect(response.status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+});
+import * as route5 from '../../../../src/routes/api/vereinskleider/stornierungen/+server';
+
+// Ursprüngliche Datei: 21-stornierung-rabatt-gesperrt.integration.test.ts
+describe('21-stornierung-rabatt-gesperrt', () => {
+  it('21-stornierung-rabatt-gesperrt', async () => {
+    mocks.findOne.mockResolvedValueOnce({"status": "offen", "rabattTotal": 5});
+    const response = await route5.POST(event('POST', {"verkaufId": id, "positionsIndex": 0, "menge": 1, "grund": "Falsche Bestellung"}) as never);
+    expect(response.status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+});
+import * as route6 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-artikel-nicht-gefunden.integration.test.ts
+describe('21-verkauf-artikel-nicht-gefunden', () => {
+  it('21-verkauf-artikel-nicht-gefunden', async () => {
+    const response = await route6.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(404);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+});
+import * as route7 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-automatisch-erfolgreich.integration.test.ts
+describe('21-verkauf-automatisch-erfolgreich', () => {
+  it('21-verkauf-automatisch-erfolgreich', async () => {
+    mocks.collection.mockImplementation((name: string) => ({
+      ...mocks,
+      findOne: vi.fn(async () => name === 'artikel'
+        ? { _id: new ObjectId(id), name: 'Trainerjacke', kategorieId: id, istVereinskleidung: true, hatGroessen: false, menge: 10 }
+        : name === 'vereinskleider_preise' ? { preistyp: 'fix', verkaufspreis: 25 } : null)
+    }));
+    const response = await route7.POST(event('POST', {"verkaufsart": "automatisch", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(201);
+    expect(mocks.insertOne).toHaveBeenCalledOnce();
+    const data = await response.json();
+    expect(data.erfolg).toBe(true);
+    expect(data.verkauf.positionen.length).toBeGreaterThan(0);
+  });
+});
+import * as route8 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-bemerkung.integration.test.ts
+describe('21-verkauf-bemerkung', () => {
+  it('Bemerkung falscher Typ', async () => {
+    const response = await route8.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}], "bemerkung": 123}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('Bemerkung zu lang', async () => {
+    const response = await route8.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}], "bemerkung": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+});
+import * as route9 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-bestellung-erfolgreich.integration.test.ts
+describe('21-verkauf-bestellung-erfolgreich', () => {
+  it('21-verkauf-bestellung-erfolgreich', async () => {
+    mocks.collection.mockImplementation((name: string) => ({
+      ...mocks,
+      findOne: vi.fn(async () => name === 'artikel'
+        ? { _id: new ObjectId(id), name: 'Trainerjacke', kategorieId: id, istVereinskleidung: true, hatGroessen: false, menge: 10 }
+        : name === 'vereinskleider_preise' ? { preistyp: 'fix', verkaufspreis: 25 } : null)
+    }));
+    const response = await route9.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(201);
+    expect(mocks.insertOne).toHaveBeenCalledOnce();
+    const data = await response.json();
+    expect(data.erfolg).toBe(true);
+    expect(data.verkauf.positionen.length).toBeGreaterThan(0);
+  });
+});
+import * as route10 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-direkt-erfolgreich.integration.test.ts
+describe('21-verkauf-direkt-erfolgreich', () => {
+  it('21-verkauf-direkt-erfolgreich', async () => {
+    mocks.collection.mockImplementation((name: string) => ({
+      ...mocks,
+      findOne: vi.fn(async () => name === 'artikel'
+        ? { _id: new ObjectId(id), name: 'Trainerjacke', kategorieId: id, istVereinskleidung: true, hatGroessen: false, menge: 10 }
+        : name === 'vereinskleider_preise' ? { preistyp: 'fix', verkaufspreis: 25 } : null)
+    }));
+    const response = await route10.POST(event('POST', {"verkaufsart": "direkt", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(201);
+    expect(mocks.insertOne).toHaveBeenCalledOnce();
+    const data = await response.json();
+    expect(data.erfolg).toBe(true);
+    expect(data.verkauf.positionen.length).toBeGreaterThan(0);
+  });
+});
+import * as route11 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-fremder-artikel.integration.test.ts
+describe('21-verkauf-fremder-artikel', () => {
+  it('21-verkauf-fremder-artikel', async () => {
+    mocks.findOne.mockResolvedValueOnce({"name": "Shirt", "istVereinskleidung": false, "hatGroessen": false});
+    const response = await route11.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+});
+import * as route12 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-groessenzuordnung.integration.test.ts
+describe('21-verkauf-groessenzuordnung', () => {
+  it('21-verkauf-groessenzuordnung', async () => {
+    mocks.findOne.mockResolvedValueOnce({"name": "Shirt", "istVereinskleidung": true, "hatGroessen": true});
+    const response = await route12.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+});
+import * as route13 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-kaeufer.integration.test.ts
+describe('21-verkauf-kaeufer', () => {
+  it('Käufer fehlt', async () => {
+    const response = await route13.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('Käufer zu lang', async () => {
+    const response = await route13.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('Käufer falscher Typ', async () => {
+    const response = await route13.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": 23, "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+});
+import * as route14 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-positionen.integration.test.ts
+describe('21-verkauf-positionen', () => {
+  it('Warenkorb leer', async () => {
+    const response = await route14.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": []}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('Menge null', async () => {
+    const response = await route14.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 0}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('Menge gebrochen', async () => {
+    const response = await route14.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 1.5}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+});
+import * as route15 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-preis-fehlt.integration.test.ts
+describe('21-verkauf-preis-fehlt', () => {
+  it('21-verkauf-preis-fehlt', async () => {
+    mocks.findOne.mockResolvedValueOnce({"name": "Shirt", "istVereinskleidung": true, "hatGroessen": false});
+    const response = await route15.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+});
+import * as route16 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-preiseingabe.integration.test.ts
+describe('21-verkauf-preiseingabe', () => {
+  it('Einzelpreis negativ', async () => {
+    const response = await route16.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 1, "einzelpreis": -1}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('Einzelpreis zu viele Nachkommastellen', async () => {
+    const response = await route16.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 1, "einzelpreis": 2.123}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+});
+import * as route17 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-rabatte.integration.test.ts
+describe('21-verkauf-rabatte', () => {
+  it('Zusatzrabatt negativ', async () => {
+    const response = await route17.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}], "zusaetzlicherRabatt": -1}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('Rabattliste falscher Typ', async () => {
+    const response = await route17.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}], "rabattIds": "abc"}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('Rabatt-ID ungültig', async () => {
+    const response = await route17.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}], "rabattIds": ["falsch"]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+});
+import * as route18 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-riegen.integration.test.ts
+describe('21-verkauf-riegen', () => {
+  it('Riegen fehlen', async () => {
+    const response = await route18.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": [], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('Riege leer', async () => {
+    const response = await route18.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": [""], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('Riege falscher Typ', async () => {
+    const response = await route18.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": [123], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+});
+import * as route19 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-verkaufsart.integration.test.ts
+describe('21-verkauf-verkaufsart', () => {
+  it('Verkaufsart unbekannt', async () => {
+    const response = await route19.POST(event('POST', {"verkaufsart": "reservierung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('Verkaufsart fehlt', async () => {
+    const response = await route19.POST(event('POST', {"kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+});
+import * as route20 from '../../../../src/routes/api/vereinskleider/+server';
+
+// Ursprüngliche Datei: 21-verkauf-zahlungsarten.integration.test.ts
+describe('21-verkauf-zahlungsarten', () => {
+  it('Zahlungsart unbekannt', async () => {
+    const response = await route20.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "karte", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('Zahlungsbestätigung falscher Typ', async () => {
+    const response = await route20.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}], "zahlungErhalten": "ja"}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('Rechnung sofort bezahlt', async () => {
+    const response = await route20.POST(event('POST', {"verkaufsart": "bestellung", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}], "zahlungErhalten": true}) as never);
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+});

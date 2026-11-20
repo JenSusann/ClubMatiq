@@ -245,11 +245,16 @@ Für die Datenbankanbindung wird eine lokale `.env` mit `MONGODB_URI` benötigt.
 - **Bezug zur Evaluation:** Nein. Das ER-Diagramm wurde zur technischen Dokumentation und besseren Nachvollziehbarkeit der Datenbankstruktur erstellt und ist nicht aus einer Nutzerevaluation hervorgegangen.
 
 #### 4.2.4 Systematische Testmatrix und Testprotokolle
-- **Beschreibung & Nutzen:** _[Was wurde zusätzlich erarbeitet oder verbessert und welchen Mehrwert bietet es?]_
-- **Abgrenzung zum Mindestumfang:** _[Was geht konkret über die verbindlichen Anforderungen hinaus?]_
-- **Umsetzung:** _[Wie wurde vorgegangen und was ist das Ergebnis?]_
-- **Nachweise:** _[Screenshot(s) mit Erläuterung; Links auf Artefakte, Konfigurationen oder andere Ergebnisse; bei Code zusätzlich Referenzen auf die relevanten Codestellen]_
-- **Bezug zur Evaluation:** _[Wurde die Erweiterung aus der Evaluation abgeleitet? Falls ja: auf die betreffende Beobachtung bzw. das Issue verweisen. Andernfalls: «Nein».]_
+
+- **Beschreibung & Nutzen:** Zur systematischen Qualitätssicherung wurde ClubMatiq um automatisierte Tests mit Vitest ergänzt. Diese überprüfen zentrale Funktionen, API-Endpunkte, Datenvalidierungen sowie Benutzer- und Berechtigungsprüfungen. Dadurch können Fehler frühzeitig erkannt und Regressionen bei Weiterentwicklungen reduziert werden.
+
+- **Abgrenzung zum Mindestumfang:** Über die manuelle Funktionsprüfung des Prototyps hinaus wurde eine automatisierte Testsuite mit messbarer Codeabdeckung aufgebaut. Als zusätzliches Qualitätsziel wurde eine Testabdeckung von mindestens 95 % in allen vier Coverage-Kennzahlen definiert.
+
+- **Umsetzung:** Die Tests wurden schrittweise parallel zur Weiterentwicklung der Anwendung erstellt und im Verzeichnis `tests/unit/` organisiert. Anschliessend wurden die Dateinamen vereinheitlicht und zusammengehörige Tests konsolidiert. Bei der letzten dokumentierten Coverage-Ausführung wurden 1'652 Tests erfolgreich abgeschlossen. Die Abdeckung betrug 98,88 % bei Statements, 95,13 % bei Branches, 95,89 % bei Functions und 99,69 % bei Lines. Damit wurde das definierte Qualitätsziel erreicht. Die automatisierten Tests ergänzen die manuelle Prüfung und ersetzen keine Nutzerevaluation.
+
+- **Nachweise:** [Automatisierte Tests](tests/unit) · [Testkonfiguration](vitest.config.ts) · [GitHub-Issue #38](https://github.com/JenSusann/ClubMatiq/issues/38) · [Testausführung und Coverage](#93-automatisierte-tests-und-code-coverage)
+
+- **Bezug zur Evaluation:** Nein. Die automatisierten Tests wurden im Rahmen der technischen Qualitätssicherung entwickelt und nicht aus einer durchgeführten Nutzerevaluation abgeleitet.
 
 #### 4.2.5 Anforderungs- und Rückverfolgungsmatrix
 - **Beschreibung & Nutzen:** _[Was wurde zusätzlich erarbeitet oder verbessert und welchen Mehrwert bietet es?]_
@@ -399,6 +404,41 @@ npm run check
 ```
 
 `npm run check` führt SvelteKit-Synchronisierung und TypeScript-/Svelte-Prüfungen aus. Ein fehlerfreier Check ersetzt **keine** funktionalen, Berechtigungs- oder Integrationstests.
+
+### Automatisierte Tests und Code Coverage
+
+Zur Sicherstellung der Softwarequalität werden in ClubMatiq automatisierte Tests mit **Vitest** eingesetzt. Die Tests überprüfen zentrale Funktionen der Anwendung, insbesondere die Geschäftslogik, API-Endpunkte, Datenvalidierung sowie die Benutzer- und Berechtigungsprüfungen.
+
+Die Testabdeckung wird mit dem Coverage-Werkzeug von Vitest ermittelt. Dabei werden vier Kennzahlen berücksichtigt:
+
+| Kennzahl | Testabdeckung |
+|---|---:|
+| Statements | 98,88 % |
+| Branches | 95,13 % |
+| Functions | 95,89 % |
+| Lines | 99,69 % |
+
+Insgesamt wurden **1'652 Tests erfolgreich ausgeführt**. Damit wird das festgelegte Qualitätsziel von mindestens **95 % Testabdeckung in allen vier Kennzahlen** erreicht.
+
+Die Tests sind im Verzeichnis `tests/unit/` abgelegt. Im Rahmen der Qualitätssicherung wurde die Teststruktur bereinigt, die Benennung vereinheitlicht und zusammengehörige Tests wurden konsolidiert, um die Wartbarkeit zu verbessern.
+
+**Tests ausführen:**
+
+```bash
+npm run test
+```
+
+**Tests mit Coverage-Bericht ausführen:**
+
+```bash
+npm run test:coverage
+```
+
+Die automatisierten Tests unterstützen die frühzeitige Erkennung von Fehlern und reduzieren das Risiko von Regressionen bei zukünftigen Erweiterungen.
+
+**GitHub-Issue:** [#38 – Automatisierte Tests für zentrale Funktionen implementieren](https://github.com/JenSusann/ClubMatiq/issues/38)
+
+
 
 ### 9.3 Manuelle Inventur-Testfälle
 

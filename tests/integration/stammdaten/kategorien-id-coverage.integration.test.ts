@@ -1,0 +1,34 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ObjectId } from 'mongodb';
+const m = vi.hoisted(() => ({ collection: vi.fn(), findOne: vi.fn(), updateOne: vi.fn(), deleteOne: vi.fn(), countDocuments: vi.fn() }));
+vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: m.collection } }));
+import { PATCH, DELETE } from '../../../src/routes/api/kategorien/[id]/+server';
+const id = new ObjectId().toHexString();
+const vereinId = new ObjectId().toHexString();
+const benutzer = { id: new ObjectId().toHexString(), vereinId, rolle: 'admin' };
+const ctx = (method: 'PATCH'|'DELETE', data: unknown, itemId=id) => ({
+ params: { id: itemId }, locals: { benutzer },
+ request: new Request('http://localhost/api/kategorien/'+itemId, {method, ...(method==='PATCH' ? {headers:{'content-type':'application/json'},body:JSON.stringify(data)} : {})})
+}) as never;
+const patch=(data:unknown,itemId=id)=>PATCH(ctx('PATCH',data,itemId));
+const del=(itemId=id)=>DELETE(ctx('DELETE',null,itemId));
+const good={ name:'Neu' };
+beforeEach(()=>{
+ vi.clearAllMocks(); vi.spyOn(console,'error').mockImplementation(()=>{});
+ m.collection.mockReturnValue(m);m.findOne.mockResolvedValue({_id:new ObjectId(id)});
+ m.updateOne.mockResolvedValue({matchedCount:1});m.deleteOne.mockResolvedValue({deletedCount:1});m.countDocuments.mockResolvedValue(0);
+});
+describe('kategorien: PATCH und DELETE Zusatzfälle',()=>{
+ it('PATCH ungültige ID',async()=>{expect((await patch(good,'falsch')).status).toBe(400)});
+ it('DELETE ungültige ID',async()=>{expect((await del('falsch')).status).toBe(400)});
+ it.each([null,[],{}, {name:''},{name:'  '},{name:123}])('PATCH ungültige Eingabe %j',async data=>{expect((await patch(data)).status).toBe(400)});
+ it('PATCH Update ohne Treffer',async()=>{m.updateOne.mockResolvedValueOnce({matchedCount:0});expect((await patch(good)).status).toBe(404)});
+ it('PATCH Datenbankfehler',async()=>{m.updateOne.mockRejectedValueOnce(new Error('DB'));expect((await patch(good)).status).toBe(500)});
+ it('PATCH erfolgreich',async()=>{expect((await patch({ name:' Neu ' })).status).toBe(200);expect(m.updateOne).toHaveBeenCalledWith(expect.objectContaining({vereinId}),expect.objectContaining({$set:expect.objectContaining({name:'Neu'})}))});
+ it('DELETE fehlender Datensatz',async()=>{m.findOne.mockResolvedValueOnce(null);expect((await del()).status).toBe(404)});
+ it('DELETE verweigert bei Referenzen',async()=>{m.countDocuments.mockResolvedValueOnce(2);expect((await del()).status).toBe(409);expect(m.deleteOne).not.toHaveBeenCalled()});
+ it('DELETE kein Treffer',async()=>{m.deleteOne.mockResolvedValueOnce({deletedCount:0});expect((await del()).status).toBe(404)});
+ it('DELETE erfolgreich',async()=>{expect((await del()).status).toBe(200)});
+ it('DELETE Referenzprüfung Fehler',async()=>{m.countDocuments.mockRejectedValueOnce(new Error('DB'));expect((await del()).status).toBe(500)});
+ it('DELETE Datenbankfehler',async()=>{m.deleteOne.mockRejectedValueOnce(new Error('DB'));expect((await del()).status).toBe(500)});
+});

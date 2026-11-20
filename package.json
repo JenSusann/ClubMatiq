@@ -14,9 +14,10 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"test": "vitest run",
-		"test:watch": "vitest",
-		"test:coverage": "vitest run --coverage"
+		"test": "vitest run tests/unit",
+		"test:watch": "vitest tests/unit",
+		"test:coverage": "vitest run tests/unit --coverage",
+		"test:integration": "vitest run --config vitest.integration.config.ts --coverage"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^8.0.0",

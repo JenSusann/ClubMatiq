@@ -1,0 +1,36 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ObjectId } from 'mongodb';
+const m = vi.hoisted(() => ({ collection: vi.fn(), findOne: vi.fn(), find: vi.fn(), sort: vi.fn(), toArray: vi.fn(), countDocuments: vi.fn(), updateOne: vi.fn(), insertOne: vi.fn(), insertMany: vi.fn(), deleteOne: vi.fn(), deleteMany: vi.fn(), withTransaction: vi.fn(), endSession: vi.fn(), startSession: vi.fn() }));
+vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: m.collection }, client: { startSession: m.startSession } }));
+const id = new ObjectId().toHexString();
+const id2 = new ObjectId().toHexString();
+const vereinId = new ObjectId().toHexString();
+const benutzer = { id: new ObjectId().toHexString(), vereinId, rolle: 'admin' };
+const ctx = (method: string, data?: unknown, itemId=id) => ({ params: { id: itemId }, locals: { benutzer }, request: new Request('http://localhost/api/test', { method, ...(method !== 'GET' && method !== 'DELETE' ? { headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) } : {}) }) }) as never;
+beforeEach(() => {
+ vi.resetAllMocks(); vi.spyOn(console, 'error').mockImplementation(() => {});
+ m.collection.mockReturnValue(m); m.find.mockReturnValue(m); m.sort.mockReturnValue(m); m.toArray.mockResolvedValue([]);
+ m.findOne.mockResolvedValue(null); m.countDocuments.mockResolvedValue(0); m.updateOne.mockResolvedValue({ matchedCount: 1, modifiedCount: 1 });
+ m.insertOne.mockResolvedValue({ insertedId: new ObjectId() }); m.insertMany.mockResolvedValue({ insertedCount: 1 });
+ m.deleteOne.mockResolvedValue({ deletedCount: 1 }); m.deleteMany.mockResolvedValue({ deletedCount: 1 });
+ m.withTransaction.mockImplementation(async (cb: () => Promise<void>) => { await cb(); });
+ m.startSession.mockReturnValue({ withTransaction: m.withTransaction, endSession: m.endSession });
+});
+import { GET, POST } from '../../../src/routes/api/inventuren/+server';
+const post = (d: unknown) => POST(ctx('POST', d));
+const good = { name: 'Inventur', typ: 'gesamt' };
+describe('Inventuren zusätzliche Fälle', () => {
+ it('GET Datenbankfehler', async () => { m.toArray.mockRejectedValueOnce(new Error('DB')); expect((await GET(ctx('GET'))).status).toBe(500); });
+ it('GET serialisiert die ID', async () => { m.toArray.mockResolvedValueOnce([{ _id: new ObjectId(id), name: 'I' }]); const r=await GET(ctx('GET')); expect((await r.json())[0]._id).toBe(id); });
+ it.each([null, [], 'x', 4])('POST ungültiges Objekt %j', async d => { expect((await post(d)).status).toBe(400); });
+ it.each(['', ' ', 'x'.repeat(151), 4])('POST ungültiger Name %j', async name => { expect((await post({...good,name})).status).toBe(400); });
+ it.each(['falsch', '', null])('POST ungültiger Typ %j', async typ => { expect((await post({...good,typ})).status).toBe(400); });
+ it.each([null, 'falsch', 4])('POST ungültiger Lagerort %j', async lagerortId => { expect((await post({...good,typ:'lagerort',lagerortId})).status).toBe(400); });
+ it('POST Lagerort nicht vorhanden', async () => { expect((await post({...good,typ:'lagerort',lagerortId:id})).status).toBe(404); });
+ it('POST ohne Artikel', async () => { expect((await post(good)).status).toBe(400); });
+ it('POST ohne Variantenpositionen', async () => { m.toArray.mockResolvedValueOnce([{_id:new ObjectId(id),name:'Shirt',hatGroessen:true}]).mockResolvedValueOnce([]); expect((await post(good)).status).toBe(400); });
+ it('POST erstellt Inventur mit einfachem Artikel', async () => { m.toArray.mockResolvedValueOnce([{_id:new ObjectId(id),name:'Ball',menge:3,einzelwert:5,hatGroessen:false,lagerortId:id2}]); const r=await post(good); expect(r.status).toBe(201); expect((await r.json()).anzahlPositionen).toBe(1); expect(m.insertMany).toHaveBeenCalled(); expect(m.endSession).toHaveBeenCalled(); });
+ it('POST erstellt Inventur mit Grössenvarianten', async () => { m.toArray.mockResolvedValueOnce([{_id:new ObjectId(id),name:'Shirt',hatGroessen:true,lagerortId:id2}]).mockResolvedValueOnce([{artikelId:id,groesseId:id2,menge:4,einzelwert:12}]); const r=await post(good); expect(r.status).toBe(201); expect((await r.json()).anzahlPositionen).toBe(1); });
+ it('POST Fehler beim Laden der Artikel', async () => { m.toArray.mockRejectedValueOnce(new Error('DB')); expect((await post(good)).status).toBe(500); });
+ it('POST Transaktionsfehler beendet Session', async () => { m.toArray.mockResolvedValueOnce([{_id:new ObjectId(id),name:'Ball',menge:1,hatGroessen:false}]); m.insertOne.mockRejectedValueOnce(new Error('DB')); expect((await post(good)).status).toBe(500); expect(m.endSession).toHaveBeenCalled(); });
+});

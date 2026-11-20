@@ -1,0 +1,35 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ObjectId } from 'mongodb';
+const m = vi.hoisted(() => ({ collection: vi.fn(), findOne: vi.fn(), find: vi.fn(), sort: vi.fn(), toArray: vi.fn(), countDocuments: vi.fn(), updateOne: vi.fn(), insertOne: vi.fn(), insertMany: vi.fn(), deleteOne: vi.fn(), deleteMany: vi.fn(), withTransaction: vi.fn(), endSession: vi.fn(), startSession: vi.fn() }));
+vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: m.collection }, client: { startSession: m.startSession } }));
+const id = new ObjectId().toHexString();
+const id2 = new ObjectId().toHexString();
+const vereinId = new ObjectId().toHexString();
+const benutzer = { id: new ObjectId().toHexString(), vereinId, rolle: 'admin' };
+const ctx = (method: string, data?: unknown, itemId=id) => ({ params: { id: itemId }, locals: { benutzer }, request: new Request('http://localhost/api/test', { method, ...(method !== 'GET' && method !== 'DELETE' ? { headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) } : {}) }) }) as never;
+beforeEach(() => {
+ vi.resetAllMocks(); vi.spyOn(console, 'error').mockImplementation(() => {});
+ m.collection.mockReturnValue(m); m.find.mockReturnValue(m); m.sort.mockReturnValue(m); m.toArray.mockResolvedValue([]);
+ m.findOne.mockResolvedValue(null); m.countDocuments.mockResolvedValue(0); m.updateOne.mockResolvedValue({ matchedCount: 1, modifiedCount: 1 });
+ m.insertOne.mockResolvedValue({ insertedId: new ObjectId() }); m.insertMany.mockResolvedValue({ insertedCount: 1 });
+ m.deleteOne.mockResolvedValue({ deletedCount: 1 }); m.deleteMany.mockResolvedValue({ deletedCount: 1 });
+ m.withTransaction.mockImplementation(async (cb: () => Promise<void>) => { await cb(); });
+ m.startSession.mockReturnValue({ withTransaction: m.withTransaction, endSession: m.endSession });
+});
+import { GET, POST } from '../../../src/routes/api/ausleihen/+server';
+const post=(d:unknown)=>POST(ctx('POST',d));
+const good={artikelId:id,person:' Test ',menge:1,ausleihdatum:'2026-11-01',rueckgabedatum:'2026-11-20'};
+describe('Ausleihen zusätzliche Fälle',()=>{
+ it('GET Fehler',async()=>{m.toArray.mockRejectedValueOnce(new Error('DB'));expect((await GET(ctx('GET'))).status).toBe(500)});
+ it('GET serialisiert ID',async()=>{m.toArray.mockResolvedValueOnce([{_id:new ObjectId(id)}]);expect((await (await GET(ctx('GET'))).json())[0]._id).toBe(id)});
+ it.each([null,[],4])('POST ungültiges Objekt %j',async d=>{expect((await post(d)).status).toBe(400)});
+ it.each([{artikelId:'x'},{person:' '},{menge:0},{menge:1.5},{ausleihdatum:'2026-02-30'},{rueckgabedatum:'2026-10-01'},{bemerkung:123}])('POST ungültige Felder %j',async d=>{expect((await post({...good,...d})).status).toBe(400)});
+ it('POST Artikel fehlt',async()=>{const r=await post(good);expect(r.status).toBe(400);expect((await r.json()).fehler).toContain('Artikel nicht gefunden');expect(m.endSession).toHaveBeenCalled()});
+ it('POST Artikel mit Grössen braucht gültige Grösse',async()=>{m.findOne.mockResolvedValueOnce({hatGroessen:true});expect((await post(good)).status).toBe(400)});
+ it('POST normaler Artikel darf keine Grösse haben',async()=>{m.findOne.mockResolvedValueOnce({hatGroessen:false});expect((await post({...good,groesseId:id2})).status).toBe(400)});
+ it('POST Bestand reicht nicht',async()=>{m.findOne.mockResolvedValueOnce({hatGroessen:false});m.updateOne.mockResolvedValueOnce({modifiedCount:0});expect((await post(good)).status).toBe(400)});
+ it('POST erfolgreich ohne Grössen',async()=>{m.findOne.mockResolvedValueOnce({hatGroessen:false});const r=await post(good);expect(r.status).toBe(201);expect(m.insertOne).toHaveBeenCalledWith(expect.objectContaining({person:'Test',groesseId:null}),expect.anything())});
+ it('POST erfolgreich mit Grössen',async()=>{m.findOne.mockResolvedValueOnce({hatGroessen:true});expect((await post({...good,groesseId:id2})).status).toBe(201)});
+ it('POST Gesamtbestand kann nicht reduziert werden',async()=>{m.findOne.mockResolvedValueOnce({hatGroessen:true});m.updateOne.mockResolvedValueOnce({modifiedCount:1}).mockResolvedValueOnce({modifiedCount:0});expect((await post({...good,groesseId:id2})).status).toBe(400)});
+ it('POST Transaktion fehlgeschlagen',async()=>{m.startSession.mockImplementationOnce(()=>{throw new Error('DB')});expect((await post(good)).status).toBe(400)});
+});
