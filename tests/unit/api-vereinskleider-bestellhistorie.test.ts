@@ -26,7 +26,7 @@ const vorgangId = new ObjectId('507f1f77bcf86cd799439011');
 const benutzer = { vereinId, rolle: 'admin' };
 
 function aufrufen(locals: Record<string, unknown> = { benutzer }) {
-  return GET({ locals } as Parameters<typeof GET>[0]);
+  return GET({ locals } as unknown as Parameters<typeof GET>[0]);
 }
 
 function vorgang(overrides: Record<string, unknown> = {}) {
