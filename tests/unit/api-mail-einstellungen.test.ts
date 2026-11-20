@@ -123,6 +123,26 @@ describe('E-Mail-Einstellungen API', () => {
     expect(mocks.updateOne).not.toHaveBeenCalled();
   });
 
+  it('meldet einen fehlenden Verschlüsselungsschlüssel verständlich vor dem Datenbank-Schreiben', async () => {
+    const vorher = process.env.MAIL_ENCRYPTION_KEY;
+    delete process.env.MAIL_ENCRYPTION_KEY;
+    try {
+      const antwort = await PUT(kontext('PUT', { methode: 'microsoft365', microsoft365: {
+        tenantId: 'f7cf9dfa-5f0d-429c-9b64-c4c7a5d66a75',
+        clientId: 'e7cd00c1-cd5d-4d3f-8a35-6324ddb026a8',
+        absender: 'mail@verein.ch',
+        zertifikatPem: '-----BEGIN CERTIFICATE-----\\nTEST\\n-----END CERTIFICATE-----',
+        privaterSchluesselPem: '-----BEGIN PRIVATE KEY-----\\nTEST\\n-----END PRIVATE KEY-----'
+      } }));
+      expect(antwort.status).toBe(503);
+      expect((await antwort.json()).fehler).toContain('MAIL_ENCRYPTION_KEY');
+      expect(mocks.updateOne).not.toHaveBeenCalled();
+    } finally {
+      if (vorher === undefined) delete process.env.MAIL_ENCRYPTION_KEY;
+      else process.env.MAIL_ENCRYPTION_KEY = vorher;
+    }
+  });
+
   it('verwirft alte Zertifikate beim Wechsel zu einer anderen Entra-App', async () => {
     mocks.findOne.mockResolvedValue({ mailEinstellungen: { microsoft365: {
       tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
