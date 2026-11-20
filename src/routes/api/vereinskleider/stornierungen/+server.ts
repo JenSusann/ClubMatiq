@@ -31,7 +31,7 @@ type Verkauf = Document & {
   aktualisiertAm?: Date;
   rabatte?: { betrag: number }[];
   zusaetzlicherRabatt?: number;
-  stornierungen?: { positionsIndex: number; menge: number; grund: string; storniertAm: Date; storniertVon?: string }[];
+  stornierungen?: { positionsIndex: number; menge: number; grund: string; storniertAm: Date; storniertVon?: string; storniertVonName?: string }[];
 };
 type Rechnung = Document & {
   vereinId: string;
@@ -205,7 +205,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           aktualisiertAm: jetzt,
           stornierungen: [
             ...(verkauf.stornierungen ?? []),
-            { positionsIndex: index, menge, grund, storniertAm: jetzt, storniertVon: locals.benutzer!.id }
+            { positionsIndex: index, menge, grund, storniertAm: jetzt, storniertVon: locals.benutzer!.id, storniertVonName: [locals.benutzer!.vorname, locals.benutzer!.nachname].filter(Boolean).join(' ').trim() || undefined }
           ]
         } },
         { session }
