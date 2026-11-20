@@ -2,14 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
 
 const mocks = vi.hoisted(() => ({
-  findOne: vi.fn(), find: vi.fn(), updateOne: vi.fn(),
+  findOne: vi.fn(), find: vi.fn(), updateOne: vi.fn(), insertOne: vi.fn(),
   withTransaction: vi.fn(), endSession: vi.fn(), startSession: vi.fn()
 }));
 vi.mock('../../src/lib/server/mongodb', () => ({
   db: { collection: vi.fn((name: string) => ({
     findOne: (...args: unknown[]) => mocks.findOne(name, ...args),
     find: (...args: unknown[]) => mocks.find(name, ...args),
-    updateOne: (...args: unknown[]) => mocks.updateOne(name, ...args)
+    updateOne: (...args: unknown[]) => mocks.updateOne(name, ...args),
+    insertOne: (...args: unknown[]) => mocks.insertOne(name, ...args)
   })) },
   client: { startSession: () => {
     mocks.startSession();
