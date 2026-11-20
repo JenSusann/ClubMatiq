@@ -94,7 +94,7 @@ beforeEach(() => {
 
   mocks.findOne.mockImplementation(async (name: string) => {
     if (name === 'artikel') return artikel();
-    if (name === 'ausleihen' || name === 'meldungen') return null;
+    if (name === 'ausleihen' || name === 'meldungen' || name === 'vereinskleider_verkaeufe') return null;
     return { _id: new ObjectId() };
   });
 
@@ -226,6 +226,26 @@ describe('ClubMatiq Artikel-Detailverwaltung', () => {
     expect(mocks.deleteMany).toHaveBeenCalled();
     expect(mocks.deleteOne).toHaveBeenCalled();
     expect(mocks.endSession).toHaveBeenCalled();
+  });
+
+  it('verhindert das Löschen bei bestehender Vereinskleider-Verkaufshistorie', async () => {
+    mocks.findOne.mockImplementation(async (name: string) => {
+      if (name === 'artikel') return artikel();
+      if (name === 'vereinskleider_verkaeufe') return { _id: new ObjectId() };
+      return null;
+    });
+
+    const response = await DELETE(kontext());
+    const daten = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(daten.fehler).toContain('Vereinskleiderbestellung');
+    expect(mocks.findOne).toHaveBeenCalledWith(
+      'vereinskleider_verkaeufe',
+      { vereinId, 'positionen.artikelId': artikelId }
+    );
+    expect(mocks.deleteOne).not.toHaveBeenCalled();
+    expect(mocks.deleteMany).not.toHaveBeenCalled();
   });
 
   it('verhindert das Löschen bei vorhandenen Ausleihen', async () => {
