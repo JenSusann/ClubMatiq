@@ -362,7 +362,7 @@ export const GET: RequestHandler = async ({ locals }) => {
       .find({ vereinId })
       .sort({ erstelltAm: -1 })
       .limit(1000)
-      .project({ rechnungId: 1, gutschriftnummer: 1, artikelname: 1, menge: 1, betrag: 1, grund: 1, erstelltAm: 1 })
+      .project({ rechnungId: 1, gutschriftnummer: 1, artikelname: 1, menge: 1, betrag: 1, grund: 1, erstelltAm: 1, bearbeitungsstatus: 1, rueckerstattetBetrag: 1, rueckerstattungen: 1 })
       .toArray();
     return json({
       gutschriften: gutschriften.map((g) => ({ ...g, _id: g._id.toString() })),
