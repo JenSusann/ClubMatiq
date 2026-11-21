@@ -108,7 +108,7 @@ export const PATCH: RequestHandler = async ({ locals, request }) => {
       }, { $set: {
         bearbeitungsstatus: status, rueckerstattetBetrag: rueckerstattetNeu / 100,
         rueckerstattungen: historie, abgeschlossenAm: abgeschlossen ? jetzt : null,
-        abgeschlossenVon: abgeschlossen ? locals.benutzer!.id ?? null
+        abgeschlossenVon: abgeschlossen ? (locals.benutzer!.id ?? null) : null
       } }, { session });
       if (update.modifiedCount !== 1) throw new StatusFehler('Gutschrift wurde zwischenzeitlich geändert.');
       // Den verbleibenden Rückerstattungsbetrag auf der Rechnung ausweisen.
