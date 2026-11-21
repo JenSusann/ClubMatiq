@@ -8,6 +8,8 @@
     uebergaben?: Uebergabe[]; retouren?: Retoure[];
   };
   let verkaeufe = $state<Verkauf[]>([]);
+  let groessen = $state<{ _id: string; bezeichnung: string }[]>([]);
+  const groessenName = (id: string | null | undefined) => !id ? '–' : groessen.find((g) => g._id === id)?.bezeichnung ?? 'Unbekannt';
   let laden = $state(true);
   let speichern = $state(false);
   let fehler = $state('');
@@ -98,7 +100,15 @@
       speichern = false;
     }
   }
-  onMount(() => { void lade(1); });
+  onMount(() => {
+    void lade(1);
+    void fetch('/api/groessen').then(async (r) => {
+      if (!r.ok) return;
+      const daten: unknown = await r.json();
+      groessen = Array.isArray(daten) ? daten :
+        (daten && typeof daten === 'object' && 'groessen' in daten && Array.isArray(daten.groessen)) ? daten.groessen : [];
+    }).catch(() => { /* Grössen bleiben bei Ladefehler unbekannt. */ });
+  });
 </script>
 
 <svelte:head><title>Retouren | ClubMatiq</title></svelte:head>
@@ -120,7 +130,7 @@
     {:else}
       <div class="tabelle">
         <table>
-          <thead><tr><th>Mitglied</th><th>Artikel</th><th>Übergeben, noch offen</th><th>Aktion</th></tr></thead>
+          <thead><tr><th>Mitglied</th><th>Artikel</th><th>Grösse</th><th>Noch retournierbar</th><th>Aktion</th></tr></thead>
           <tbody>
             {#each aktiveVerkaeufe as v (v._id)}
               {#each v.positionen ?? [] as p, i}
@@ -128,6 +138,7 @@
                   <tr>
                     <td>{v.kaeufer ?? 'Unbekannt'}</td>
                     <td>{p.artikelname ?? 'Artikel'}</td>
+                    <td>{groessenName(p.groesseId)}</td>
                     <td>{maximal(v, i)} Stück</td>
                     <td><button class="sekundaer" type="button" onclick={() => auswaehlen(v, i)}>Retoure erfassen</button></td>
                   </tr>
