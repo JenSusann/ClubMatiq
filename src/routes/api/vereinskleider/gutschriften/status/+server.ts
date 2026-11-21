@@ -96,7 +96,8 @@ export const PATCH: RequestHandler = async ({ locals, request }) => {
           bemerkung: body.bemerkung.trim(), erfasstAm: jetzt,
           erfasstVon: locals.benutzer!.id ?? null
         });
-        status = rueckerstattetNeu === betrag ? 'rueckerstattet' : 'teilweise_rueckerstattet';
+        status = ueberzahlung - bereitsGesamt - auszahlung === 0 || rueckerstattetNeu === betrag
+          ? 'rueckerstattet' : 'teilweise_rueckerstattet';
       }
       const abgeschlossen = status !== 'teilweise_rueckerstattet';
       const rueckerstattungOffen = (ueberzahlung - bereitsGesamt - (rueckerstattetNeu - bereits)) / 100;
