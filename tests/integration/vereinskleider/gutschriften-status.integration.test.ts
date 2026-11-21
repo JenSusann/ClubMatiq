@@ -92,7 +92,7 @@ describe('Issue #70 – Gutschriften abschliessen', () => {
       betrag: 20, datum: '2026-11-21', zahlungsart: 'bank', bemerkung: ''
     });
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ rueckerstattungOffen: 0, status: 'teilweise_rueckerstattet' });
+    expect(await response.json()).toMatchObject({ rueckerstattungOffen: 0, status: 'rueckerstattet' });
   });
   it('verweigert inkonsistente Gutschriftensummen', async () => {
     m.credits = [credit(), { ...credit(), _id: new ObjectId() }];
