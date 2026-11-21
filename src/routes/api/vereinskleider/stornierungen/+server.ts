@@ -15,6 +15,8 @@ type Position = {
   uebergebenMenge?: number;
   reserviertMenge?: number;
   storniertMenge?: number;
+  preisOffen?: boolean;
+  positionsIndex?: number;
 };
 type Verkauf = Document & {
   vereinId: string;
@@ -28,6 +30,7 @@ type Verkauf = Document & {
   bezahltBetrag?: number;
   zahlungen?: { betrag: number }[];
   rechnungId?: string;
+  trancheRechnungIds?: string[];
   aktualisiertAm?: Date;
   rabatte?: { betrag: number }[];
   zusaetzlicherRabatt?: number;
@@ -84,12 +87,127 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       const verkauf = await sammlung.findOne({ _id: verkaufId, vereinId }, { session });
       if (!verkauf) throw new Stornierungsfehler('Verkauf nicht gefunden.', 404);
       if (verkauf.status === 'storniert') throw new Stornierungsfehler('Der Verkauf ist bereits storniert.', 409);
-      // Teilrechnungen besitzen eigene Positionsindizes und Zahlungsstände.
-      // Die alte Stornierungslogik kann nur eine einzelne Vollrechnung gutschreiben.
-      // Bis zur positionsgenauen Gutschrift dürfen solche Bestellungen nicht
-      // ohne Finanzkorrektur storniert werden.
+      // Teilrechnungen: ausschliesslich eine eindeutig zuordenbare,
+      // bereits abgerechnete Bestellposition darf gutgeschrieben werden.
+      // Mehrere Teilrechnungen derselben Position werden bis zur expliziten
+      // Aufteilungslogik gesperrt, um doppelte Gutschriften zu verhindern.
       if (Array.isArray(verkauf.trancheRechnungIds) && verkauf.trancheRechnungIds.length > 0) {
-        throw new Stornierungsfehler('Für diese Bestellung existieren Teilrechnungen. Eine positionsgenaue Gutschrift ist erforderlich; Stornierung hier noch nicht möglich.', 409);
+        if (!Array.isArray(verkauf.positionen)) throw new Stornierungsfehler('Verkaufspositionen fehlen.', 409);
+        const p = verkauf.positionen[index];
+        if (!p || p.verkaufsart !== 'bestellung' || p.preisOffen === true ||
+            !Number.isSafeInteger(p.menge) || p.menge < menge ||
+            !gueltigeRappen(p.einzelpreis) || !gueltigeRappen(p.positionsbetrag)) {
+          throw new Stornierungsfehler('Position kann nicht sicher storniert werden.', 409);
+        }
+        const uebergeben = p.uebergebenMenge ?? 0;
+        const reserviert = p.reserviertMenge ?? 0;
+        if (!Number.isSafeInteger(uebergeben) || uebergeben < 0 || uebergeben > p.menge ||
+            !Number.isSafeInteger(reserviert) || reserviert < 0 || reserviert > p.menge - uebergeben ||
+            menge > p.menge - uebergeben) {
+          throw new Stornierungsfehler('Nur noch nicht übergebene Mengen können storniert werden.', 409);
+        }
+        if ((verkauf.rabatte ?? []).length || (verkauf.zusaetzlicherRabatt ?? 0) !== 0 ||
+            verkauf.rabattTotal !== 0 || verkauf.rechnungId) {
+          throw new Stornierungsfehler('Rabatte oder weitere Belege verhindern die sichere Korrektur.', 409);
+        }
+        const rechnungen = db.collection<Rechnung>('vereinskleider_rechnungen');
+        const belege = await rechnungen.find({
+          vereinId, verkaufId: verkaufId.toString(), rechnungstranche: true
+        }, { session }).toArray();
+        if (belege.length !== verkauf.trancheRechnungIds.length ||
+            belege.some((r) => !verkauf.trancheRechnungIds.includes(r._id.toString()))) {
+          throw new Stornierungsfehler('Teilrechnungen sind inkonsistent.', 409);
+        }
+        const passende = belege.filter((r) => r.positionen?.some((bp: Position & { positionsIndex?: number }) =>
+          bp.positionsIndex === index));
+        if (passende.length !== 1) {
+          throw new Stornierungsfehler('Position ist nicht eindeutig einer Teilrechnung zugeordnet.', 409);
+        }
+        const rechnung = passende[0];
+        const belegPositionen = rechnung.positionen.filter((bp: Position & { positionsIndex?: number }) =>
+          bp.positionsIndex === index);
+        if (belegPositionen.length !== 1 || rechnung.status === 'storniert' ||
+            !gueltigeRappen(rechnung.gesamtbetrag) || !gueltigeRappen(rechnung.bezahltBetrag) ||
+            !gueltigeRappen(rechnung.gutgeschriebenBetrag ?? 0)) {
+          throw new Stornierungsfehler('Teilrechnung kann nicht korrigiert werden.', 409);
+        }
+        const bp = belegPositionen[0];
+        const bereitsStorniert = (verkauf.stornierungen ?? [])
+          .filter((st) => st.positionsIndex === index)
+          .reduce((sum, st) => sum + st.menge, 0);
+        if (bp.artikelId !== p.artikelId || bp.groesseId !== p.groesseId ||
+            rappen(bp.einzelpreis) !== rappen(p.einzelpreis) ||
+            !Number.isSafeInteger(bp.menge) || bp.menge < menge + bereitsStorniert ||
+            rappen(p.positionsbetrag) !== rappen(p.einzelpreis) * p.menge) {
+          throw new Stornierungsfehler('Abgerechnete Menge oder Preis stimmt nicht überein.', 409);
+        }
+        const differenz = rappen(p.einzelpreis) * menge;
+        const gesamt = rappen(rechnung.gesamtbetrag);
+        const bezahlt = rappen(rechnung.bezahltBetrag);
+        const gutgeschrieben = rappen(rechnung.gutgeschriebenBetrag ?? 0);
+        if (bezahlt > gesamt || gutgeschrieben > gesamt ||
+            differenz > gesamt - gutgeschrieben ||
+            differenz > rappen(verkauf.endbetrag) ||
+            differenz > rappen(verkauf.zwischentotal)) {
+          throw new Stornierungsfehler('Gutschrift übersteigt den verfügbaren Betrag.', 409);
+        }
+        const jetzt = new Date();
+        const netto = gesamt - gutgeschrieben - differenz;
+        const rueckerstattungOffen = Math.max(0, bezahlt - netto) / 100;
+        const status: Rechnung['status'] = netto === 0 ? 'storniert' :
+          bezahlt >= netto ? 'bezahlt' : bezahlt > 0 ? 'teilweise_bezahlt' : 'offen';
+        const belegUpdate = await rechnungen.updateOne({
+          _id: rechnung._id, vereinId, status: rechnung.status,
+          bezahltBetrag: rechnung.bezahltBetrag,
+          gutgeschriebenBetrag: rechnung.gutgeschriebenBetrag === undefined
+            ? { $exists: false } : rechnung.gutgeschriebenBetrag
+        }, { $set: {
+          gutgeschriebenBetrag: (gutgeschrieben + differenz) / 100,
+          rueckerstattungOffen, status, aktualisiertAm: jetzt
+        } }, { session });
+        if (belegUpdate.modifiedCount !== 1) throw new Stornierungsfehler('Teilrechnung wurde geändert.', 409);
+        const freigegeben = Math.min(menge, reserviert);
+        const positionen = verkauf.positionen.map((alt, i) => i === index ? {
+          ...alt, menge: alt.menge - menge,
+          positionsbetrag: (rappen(alt.positionsbetrag) - differenz) / 100,
+          reserviertMenge: reserviert - freigegeben,
+          storniertMenge: (alt.storniertMenge ?? 0) + menge
+        } : alt);
+        const aktive = positionen.filter((pos) => pos.menge > 0);
+        const offen = aktive.some((pos) => pos.verkaufsart === 'bestellung' &&
+          pos.menge > (pos.uebergebenMenge ?? 0));
+        const neuerStatus = !aktive.length ? 'storniert' : offen ? 'offen' : 'abgeschlossen';
+        const update = await sammlung.updateOne({
+          _id: verkaufId, vereinId, aktualisiertAm: verkauf.aktualisiertAm
+        }, { $set: {
+          positionen, zwischentotal: (rappen(verkauf.zwischentotal) - differenz) / 100,
+          endbetrag: (rappen(verkauf.endbetrag) - differenz) / 100,
+          bestellMenge: positionen.filter((pos) => pos.verkaufsart === 'bestellung')
+            .reduce((sum, pos) => sum + pos.menge, 0),
+          status: neuerStatus, aktualisiertAm: jetzt,
+          stornierungen: [...(verkauf.stornierungen ?? []), {
+            positionsIndex: index, menge, grund, storniertAm: jetzt,
+            storniertVon: locals.benutzer!.id,
+            storniertVonName: [locals.benutzer!.vorname, locals.benutzer!.nachname]
+              .filter(Boolean).join(' ').trim() || undefined
+          }]
+        } }, { session });
+        if (update.modifiedCount !== 1) throw new Stornierungsfehler('Verkauf wurde geändert.', 409);
+        const gutschrift = new ObjectId();
+        await db.collection('vereinskleider_gutschriften').insertOne({
+          _id: gutschrift, vereinId, verkaufId: verkaufId.toString(),
+          rechnungId: rechnung._id.toString(), rechnungsnummer: rechnung.rechnungsnummer,
+          gutschriftnummer: `GS-${gutschrift.toString().slice(-12).toUpperCase()}`,
+          positionsIndex: index, artikelId: p.artikelId, groesseId: p.groesseId,
+          artikelname: p.artikelname ?? '', menge, einzelpreis: p.einzelpreis,
+          betrag: differenz / 100, grund, erstelltAm: jetzt, status: 'erstellt',
+          pdfStatus: 'ausstehend', clubdeskExportStatus: 'nicht_exportiert'
+        }, { session });
+        return {
+          verkaufId: eingabe.verkaufId, positionsIndex: index, storniert: menge,
+          freigegebeneReserve: freigegeben, gutschriftId: gutschrift.toString(),
+          gutschriftBetrag: differenz / 100, rueckerstattungOffen, status: neuerStatus
+        };
       }
       // Ohne Beleg bleibt der bisherige Schutz für bereits bezahlte Verkäufe bestehen.
       if (!verkauf.rechnungId && ((verkauf.bezahltBetrag ?? 0) > 0 ||
