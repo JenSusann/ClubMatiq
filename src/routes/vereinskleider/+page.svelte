@@ -14,6 +14,12 @@
       pfad: '/vereinskleider/bestellungen'
     },
     {
+      titel: 'Retouren',
+      beschreibung: 'Übergebene Vereinskleider zurücknehmen und Retourenhistorie einsehen.',
+      icon: '↩️',
+      pfad: '/vereinskleider/retouren'
+    },
+    {
       titel: 'Verrechnung',
       beschreibung: 'Zahlungen kontrollieren und Verkäufe für ClubDesk aufbereiten.',
       icon: '💳',
