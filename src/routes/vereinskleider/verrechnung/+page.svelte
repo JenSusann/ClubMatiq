@@ -334,13 +334,11 @@
     }
   }
 
+  let bestaetigungVerkauf = $state<Verkauf | null>(null);
   async function rechnungErstellen(verkauf: Verkauf): Promise<void> {
     if (erstellenId !== null) return;
     const istTranche = verkauf.preisOffen === true || (verkauf.trancheRechnungIds?.length ?? 0) > 0;
     const bezeichnung = istQuittung(verkauf) ? 'Quittung' : 'Rechnung';
-    if (!confirm(istTranche
-      ? `Weitere Teilrechnung für ${verkauf.kaeufer} erstellen? Es werden ausschliesslich noch nicht verrechnete Positionen berücksichtigt.`
-      : `${bezeichnung} für ${verkauf.kaeufer} über ${chf(verkauf.endbetrag)} erstellen?`)) return;
     erstellenId = verkauf._id;
     fehler = '';
     erfolg = '';
@@ -362,6 +360,18 @@
     }
   }
 
+  function bestaetigungOeffnen(verkauf: Verkauf): void {
+    if (erstellenId !== null) return;
+    bestaetigungVerkauf = verkauf;
+  }
+
+  async function bestaetigtErstellen(): Promise<void> {
+    const verkauf = bestaetigungVerkauf;
+    if (!verkauf) return;
+    bestaetigungVerkauf = null;
+    await rechnungErstellen(verkauf);
+  }
+
   onMount(() => { void neuLaden(); });
 </script>
 
@@ -369,6 +379,20 @@
   <title>Verrechnung – ClubMatiq</title>
 </svelte:head>
 
+{#if bestaetigungVerkauf}
+  <div class="dialog-hintergrund" role="presentation">
+    <section class="dialog-karte" role="dialog" aria-modal="true" aria-labelledby="beleg-bestaetigen">
+      <h2 id="beleg-bestaetigen">Beleg erstellen</h2>
+      <p>{bestaetigungVerkauf.preisOffen || (bestaetigungVerkauf.trancheRechnungIds?.length ?? 0) > 0
+        ? `Weitere Teilrechnung für ${bestaetigungVerkauf.kaeufer} erstellen? Es werden nur noch nicht verrechnete Positionen berücksichtigt.`
+        : `${istQuittung(bestaetigungVerkauf) ? 'Quittung' : 'Rechnung'} für ${bestaetigungVerkauf.kaeufer} über ${chf(bestaetigungVerkauf.endbetrag)} erstellen?`}</p>
+      <div class="formularaktionen">
+        <button type="button" onclick={() => void bestaetigtErstellen()}>Beleg erstellen</button>
+        <button type="button" class="sekundaer" onclick={() => bestaetigungVerkauf = null}>Abbrechen</button>
+      </div>
+    </section>
+  </div>
+{/if}
 <main>
   <a class="zurueck" href="/vereinskleider">← Zurück zu Vereinskleider</a>
   <header>
@@ -610,6 +634,10 @@
 </main>
 
 <style>
+  .dialog-hintergrund{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:1rem}
+  .dialog-karte{width:min(100%,440px);background:var(--card-bg,#fff);color:var(--text-color,#172b4d);padding:1.5rem;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+  .dialog-karte h2{margin-top:0}
+
   main { max-width: 1250px; margin: 35px auto; padding: 20px; color: #172b4d; }
   .zurueck { color: #2563eb; text-decoration: none; font-weight: 600; font-size: 14px; }
   header { margin: 28px 0; }
