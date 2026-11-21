@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
 
+  type ClubDeskVerbuchung = { datum: string; referenz: string; erfasstVonName: string; erfasstAm: string };
+
   type Verkauf = {
     _id: string;
     kaeufer: string;
@@ -18,6 +20,7 @@
   type Rechnung = {
     _id: string;
     rechnungsnummer: string;
+    clubdeskVerbuchung?: ClubDeskVerbuchung;
     empfaenger: string;
     gesamtbetrag: number;
     bezahltBetrag: number;
@@ -33,6 +36,7 @@
     _id: string;
     rechnungId: string;
     gutschriftnummer: string;
+    clubdeskVerbuchung?: ClubDeskVerbuchung;
     artikelname: string;
     menge: number;
     betrag: number;
@@ -59,6 +63,36 @@
   let rechnungen = $state<Rechnung[]>([]);
   let gutschriften = $state<Gutschrift[]>([]);
   let gutschriftenBegrenzt = $state(false);
+  let clubdeskAuswahl = $state<{ typ: 'rechnung' | 'gutschrift'; id: string; nummer: string } | null>(null);
+  let clubdeskDatum = $state('');
+  let clubdeskReferenz = $state('');
+  let clubdeskSpeichern = $state(false);
+  let clubdeskFehler = $state('');
+  function clubdeskOeffnen(typ: 'rechnung' | 'gutschrift', id: string, nummer: string): void {
+    clubdeskAuswahl = { typ, id, nummer };
+    clubdeskDatum = new Date().toLocaleDateString('en-CA');
+    clubdeskReferenz = '';
+    clubdeskFehler = '';
+  }
+  async function clubdeskBestaetigen(): Promise<void> {
+    if (!clubdeskAuswahl || clubdeskSpeichern) return;
+    clubdeskSpeichern = true;
+    clubdeskFehler = '';
+    try {
+      const antwort = await fetch('/api/vereinskleider/clubdesk-abgleich', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...clubdeskAuswahl, datum: clubdeskDatum, referenz: clubdeskReferenz })
+      });
+      const daten: { erfolg?: boolean; fehler?: string } = await antwort.json();
+      if (!antwort.ok || !daten.erfolg) throw new Error(daten.fehler ?? 'Verbuchung konnte nicht bestätigt werden.');
+      clubdeskAuswahl = null;
+      erfolg = 'Manuelle ClubDesk-Verbuchung dokumentiert.';
+      await neuLaden();
+    } catch (e) {
+      clubdeskFehler = e instanceof Error ? e.message : 'Verbuchung konnte nicht bestätigt werden.';
+    } finally { clubdeskSpeichern = false; }
+  }
+
   let gutschriftSpeichern = $state<string | null>(null);
 
   let aktiveGutschrift = $state<Gutschrift | null>(null);
@@ -393,6 +427,23 @@
     </div>
   </div>
 {/if}
+{#if clubdeskAuswahl}
+  <div class="dialog-hintergrund" role="presentation">
+    <div class="dialog-karte" role="dialog" aria-modal="true" aria-labelledby="clubdesk-titel" tabindex="-1">
+      <h2 id="clubdesk-titel">ClubDesk-Verbuchung bestätigen</h2>
+      <p>Beleg {clubdeskAuswahl.nummer} wurde bereits manuell in ClubDesk verbucht. Diese Bestätigung löst keine Buchung und keine Zahlung aus.</p>
+      {#if clubdeskFehler}<p class="meldung fehler" role="alert">{clubdeskFehler}</p>{/if}
+      <form onsubmit={(e) => { e.preventDefault(); void clubdeskBestaetigen(); }}>
+        <label>Datum der Verbuchung <input type="date" required bind:value={clubdeskDatum} /></label>
+        <label>ClubDesk-Buchungsreferenz (optional) <input type="text" maxlength="120" bind:value={clubdeskReferenz} /></label>
+        <div class="formularaktionen">
+          <button type="submit" disabled={clubdeskSpeichern}>{clubdeskSpeichern ? 'Speichern …' : 'Verbuchung bestätigen'}</button>
+          <button type="button" class="sekundaer" disabled={clubdeskSpeichern} onclick={() => clubdeskAuswahl = null}>Abbrechen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{/if}
 <main>
   <a class="zurueck" href="/vereinskleider">← Zurück zu Vereinskleider</a>
   <header>
@@ -474,7 +525,7 @@
       {:else}
         <div class="tabellenbereich">
           <table>
-            <thead><tr><th>Belegnummer</th><th>Typ</th><th>Datum</th><th>Empfänger</th><th class="rechts">Original</th><th class="rechts">Gutschrift</th><th class="rechts">Netto</th><th class="rechts">Bezahlt</th><th class="rechts">Offen</th><th class="rechts">Rückerstattung offen</th><th>Status</th><th>Aktion</th><th>PDF</th></tr></thead>
+            <thead><tr><th>Belegnummer</th><th>Typ</th><th>Datum</th><th>Empfänger</th><th class="rechts">Original</th><th class="rechts">Gutschrift</th><th class="rechts">Netto</th><th class="rechts">Bezahlt</th><th class="rechts">Offen</th><th class="rechts">Rückerstattung offen</th><th>Status</th><th>ClubDesk</th><th>Aktion</th><th>PDF</th></tr></thead>
             <tbody>
               {#each gefilterteRechnungen as rechnung (rechnung._id)}
                 <tr>
@@ -496,6 +547,13 @@
                   <td class="rechts">{rueckerstattung(rechnung) > 0 ? chf(rueckerstattung(rechnung)) : '–'}</td>
                   <td><span class:bezahlt={rechnung.status === 'bezahlt'} class:storniert={rechnung.status === 'storniert'} class="status">{statusText(rechnung.status)}</span></td>
                   <td>
+                    {#if rechnung.clubdeskVerbuchung}
+                      <span class="hinweis">Verbucht: {rechnung.clubdeskVerbuchung.datum} · {rechnung.clubdeskVerbuchung.erfasstVonName}{rechnung.clubdeskVerbuchung.referenz ? ` · ${rechnung.clubdeskVerbuchung.referenz}` : ''}</span>
+                    {:else}
+                      <button type="button" class="sekundaer" onclick={() => clubdeskOeffnen('rechnung', rechnung._id, rechnung.rechnungsnummer)}>In ClubDesk verbucht</button>
+                    {/if}
+                  </td>
+                  <td>
                     {#if rechnung.status !== 'storniert' && offenerBetrag(rechnung) > 0}
                       <button type="button" onclick={() => zahlungOeffnen(rechnung)} disabled={zahlungSpeichern || erstellenId !== null}>Zahlung erfassen</button>
                     {:else}
@@ -505,11 +563,11 @@
                   <td><a class="pdf-link" href={`/api/vereinskleider/verrechnung/${rechnung._id}/pdf`} target="_blank" rel="noopener noreferrer">PDF öffnen</a></td>
                 </tr>
                 {#if aufgeklappteRechnungen.includes(rechnung._id)}
-                  <tr class="gutschriften-zeile"><td colspan="13">
+                  <tr class="gutschriften-zeile"><td colspan="14">
                     <strong>Gutschriften zu {rechnung.rechnungsnummer}</strong>
                     <div class="tabellenbereich">
                       <table class="gutschriften-tabelle">
-                        <thead><tr><th>Gutschriftnummer</th><th>Datum</th><th>Artikel</th><th>Menge</th><th class="rechts">Betrag</th><th>Grund</th><th>Status / Rückerstattung</th><th>Aktion</th><th>PDF</th></tr></thead>
+                        <thead><tr><th>Gutschriftnummer</th><th>Datum</th><th>Artikel</th><th>Menge</th><th class="rechts">Betrag</th><th>Grund</th><th>Status / Rückerstattung</th><th>ClubDesk</th><th>Aktion</th><th>PDF</th></tr></thead>
                         <tbody>
                           {#each gutschriftenZu(rechnung._id) as gutschrift (gutschrift._id)}
                             <tr>
@@ -529,6 +587,13 @@
                                 {#each gutschrift.rueckerstattungen ?? [] as rueckzahlung}
                                   <div class="hinweis">{datum(rueckzahlung.datum)} · {zahlungsartText(rueckzahlung.zahlungsart)} · {chf(rueckzahlung.betrag)}{rueckzahlung.bemerkung ? ` · ${rueckzahlung.bemerkung}` : ''}</div>
                                 {/each}
+                              </td>
+                              <td>
+                                {#if gutschrift.clubdeskVerbuchung}
+                                  <span class="hinweis">Verbucht: {gutschrift.clubdeskVerbuchung.datum} · {gutschrift.clubdeskVerbuchung.erfasstVonName}{gutschrift.clubdeskVerbuchung.referenz ? ` · ${gutschrift.clubdeskVerbuchung.referenz}` : ''}</span>
+                                {:else}
+                                  <button type="button" class="sekundaer" onclick={() => clubdeskOeffnen('gutschrift', gutschrift._id, gutschrift.gutschriftnummer)}>In ClubDesk verbucht</button>
+                                {/if}
                               </td>
                               <td>
                                 {#if gutschrift.bearbeitungsstatus !== 'erledigt' && gutschrift.bearbeitungsstatus !== 'rueckerstattet'}
