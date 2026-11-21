@@ -71,12 +71,30 @@ describe('Issue #70 – Gutschriften abschliessen', () => {
     expect((await send('erledigt')).status).toBe(409);
     expect(m.updates).toHaveLength(0);
   });
-  it('verweigert falschen oder nur teilweise ausgezahlten Betrag', async () => {
+  it('verweigert zu hohe Rückerstattung', async () => {
     expect((await send('rueckerstattet', {
-      betrag: 10, datum: '2026-11-21', zahlungsart: 'bar', bemerkung: ''
+      betrag: 21, datum: '2026-11-21', zahlungsart: 'bar', bemerkung: ''
     })).status).toBe(409);
   });
-  it('verweigert mehrere Gutschriften derselben Rechnung', async () => {
+  it('unterstützt Teilrückerstattung mit verbleibendem offenen Betrag', async () => {
+    const response = await send('rueckerstattet', {
+      betrag: 10, datum: '2026-11-21', zahlungsart: 'bar', bemerkung: ''
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      status: 'teilweise_rueckerstattet', rueckerstattungOffen: 10
+    });
+  });
+  it('unterstützt mehrere Gutschriften mit eindeutiger Rechnungssumme', async () => {
+    m.credits = [{ ...credit(), betrag: 30 }, { ...credit(), _id: new ObjectId(), betrag: 20 }];
+    m.credit = { ...credit(), betrag: 30 };
+    const response = await send('rueckerstattet', {
+      betrag: 20, datum: '2026-11-21', zahlungsart: 'bank', bemerkung: ''
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ rueckerstattungOffen: 0, status: 'teilweise_rueckerstattet' });
+  });
+  it('verweigert inkonsistente Gutschriftensummen', async () => {
     m.credits = [credit(), { ...credit(), _id: new ObjectId() }];
     expect((await send('erledigt')).status).toBe(409);
   });
