@@ -381,7 +381,7 @@
 
 {#if bestaetigungVerkauf}
   <div class="dialog-hintergrund" role="presentation">
-    <section class="dialog-karte" role="dialog" aria-modal="true" aria-labelledby="beleg-bestaetigen">
+    <div class="dialog-karte" role="dialog" aria-modal="true" aria-labelledby="beleg-bestaetigen" tabindex="-1">
       <h2 id="beleg-bestaetigen">Beleg erstellen</h2>
       <p>{bestaetigungVerkauf.preisOffen || (bestaetigungVerkauf.trancheRechnungIds?.length ?? 0) > 0
         ? `Weitere Teilrechnung für ${bestaetigungVerkauf.kaeufer} erstellen? Es werden nur noch nicht verrechnete Positionen berücksichtigt.`
@@ -390,7 +390,7 @@
         <button type="button" onclick={() => void bestaetigtErstellen()}>Beleg erstellen</button>
         <button type="button" class="sekundaer" onclick={() => bestaetigungVerkauf = null}>Abbrechen</button>
       </div>
-    </section>
+    </div>
   </div>
 {/if}
 <main>
