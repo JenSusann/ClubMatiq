@@ -34,7 +34,7 @@ export const GET: RequestHandler = async ({ locals }) => {
     const zeilen = [[
       'Rechnungsnummer', 'Verkaufs-ID', 'Rechnungs-ID', 'Teilrechnung',
       'Datum', 'Empfaenger', 'Status', 'Original CHF', 'Gutschriften CHF',
-      'Netto CHF', 'Bezahlt CHF', 'Offen CHF', 'Rueckerstattung offen CHF', 'Rueckerstattet CHF'
+      'Netto CHF', 'Bezahlt CHF', 'Offen CHF', 'Rueckerstattung offen CHF', 'Rueckerstattet CHF', 'In ClubDesk verbucht', 'ClubDesk Buchungsdatum', 'ClubDesk Referenz', 'Erfasst von'
     ].map(feld).join(';')];
     for (const r of rechnungen) {
       const gesamt = geld(r.gesamtbetrag);
@@ -52,7 +52,9 @@ export const GET: RequestHandler = async ({ locals }) => {
         r.rechnungstranche === true ? 'Ja' : 'Nein', erstellt.toISOString().slice(0, 10),
         r.empfaenger, r.status, euro(gesamt), euro(gutschriften),
         euro(netto), euro(bezahlt), euro(Math.max(0, netto - bezahlt)),
-        euro(rueckerstattungOffen), euro(Math.max(0, bezahlt - netto) - rueckerstattungOffen)
+        euro(rueckerstattungOffen), euro(Math.max(0, bezahlt - netto) - rueckerstattungOffen),
+        r.clubdeskVerbuchung ? 'Ja' : 'Nein', r.clubdeskVerbuchung?.datum ?? '',
+        r.clubdeskVerbuchung?.referenz ?? '', r.clubdeskVerbuchung?.erfasstVonName ?? ''
       ].map(feld).join(';'));
     }
     return new Response('\uFEFF' + zeilen.join('\r\n') + '\r\n', {
