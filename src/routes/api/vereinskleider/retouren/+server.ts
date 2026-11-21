@@ -120,32 +120,58 @@ export const POST: RequestHandler = async ({ locals, request }) => {
       if (betrag <= 0 || !Number.isSafeInteger(betrag)) {
         throw new Retourenfehler('Retourenbetrag muss positiv und eindeutig sein.');
       }
-      // Ohne eindeutig zuordenbare Rechnung keine automatische Finanzkorrektur.
+      // Bei mehreren Teilrechnungen muss die betroffene Position eindeutig
+      // genau einer Tranche zugeordnet sein.
       const belege = await rechnungen.find({
         vereinId, verkaufId: verkaufId.toString()
       }, { session }).toArray();
-      if (belege.length !== 1) {
-        throw new Retourenfehler('Retoure benötigt genau eine zuordenbare Rechnung. Mehrere Teilrechnungen sind noch gesperrt.');
+      const trancheIds = Array.isArray(verkauf.trancheRechnungIds) ? verkauf.trancheRechnungIds : [];
+      if (trancheIds.length > 0 && (belege.length !== trancheIds.length ||
+          belege.some((b) => !trancheIds.includes(b._id.toString())) ||
+          verkauf.rechnungId)) {
+        throw new Retourenfehler('Teilrechnungen sind nicht vollständig oder nicht eindeutig zugeordnet.');
       }
-      const rechnung = belege[0];
-      const belegPositionen = (Array.isArray(rechnung.positionen) ? rechnung.positionen : [])
+      if (belege.length === 0) {
+        throw new Retourenfehler('Keine Rechnung vorhanden. Beleglose Retouren benötigen eine separate Finanzkorrektur.');
+      }
+      const passende = belege.flatMap((beleg) => (Array.isArray(beleg.positionen) ? beleg.positionen : [])
         .filter((bp: { positionsIndex?: number; artikelId?: string; groesseId?: string | null }) =>
+          trancheIds.length > 0 ? bp.positionsIndex === index :
           bp.positionsIndex === index ||
-          (belege.length === 1 && bp.artikelId === p.artikelId && bp.groesseId === p.groesseId));
-      if (belegPositionen.length !== 1 || !Number.isSafeInteger(belegPositionen[0].menge) ||
-          belegPositionen[0].menge < menge ||
-          rappen(belegPositionen[0].einzelpreis) !== einzelpreisRappen) {
-        throw new Retourenfehler('Rechnungsposition nicht eindeutig zugeordnet.');
+          (bp.artikelId === p.artikelId && bp.groesseId === p.groesseId))
+        .map((bp: { menge?: number; einzelpreis?: number }) => ({ beleg, bp })));
+      if (passende.length !== 1) {
+        throw new Retourenfehler('Rechnungsposition ist nicht eindeutig zugeordnet.');
+      }
+      const { beleg: rechnung, bp } = passende[0];
+      const bisherRetourniert = (Array.isArray(verkauf.retouren) ? verkauf.retouren : [])
+        .filter((r: { positionsIndex?: number; rechnungId?: string }) =>
+          r.positionsIndex === index && (!r.rechnungId || r.rechnungId === rechnung._id.toString()))
+        .reduce((summe: number, r: { menge?: number }) => summe + (r.menge ?? 0), 0);
+      if (!Number.isSafeInteger(bp.menge) || bp.menge < menge + bisherRetourniert ||
+          rappen(bp.einzelpreis) !== einzelpreisRappen) {
+        throw new Retourenfehler('Rechnungsmenge oder Preis stimmt nicht mit der Retoure überein.');
       }
       const gesamt = rappen(rechnung.gesamtbetrag);
       const bezahlt = rappen(rechnung.bezahltBetrag ?? 0);
       const gutgeschrieben = rappen(rechnung.gutgeschriebenBetrag ?? 0);
-      const rueckerstattungAlt = rappen(rechnung.rueckerstattungOffen ?? 0);
-      const rueckerstattet = Math.max(0, bezahlt - (gesamt - gutgeschrieben) - rueckerstattungAlt);
-      if (![gesamt, bezahlt, gutgeschrieben, rueckerstattungAlt, rueckerstattet].every(Number.isSafeInteger) ||
-          gesamt < 0 || bezahlt < 0 || bezahlt > gesamt || gutgeschrieben < 0 ||
-          gutgeschrieben + betrag > gesamt) {
-        throw new Retourenfehler('Rechnungsbeträge sind inkonsistent.');
+      const gutschriften = db.collection('vereinskleider_gutschriften');
+      const bestehendeGutschriften = await gutschriften.find({
+        vereinId, rechnungId: rechnung._id.toString()
+      }, { session }).toArray();
+      const belegGutschriften = bestehendeGutschriften.reduce(
+        (summe, g) => summe + rappen(g.betrag), 0);
+      const bereitsAusbezahlt = bestehendeGutschriften.reduce(
+        (summe, g) => summe + rappen(g.rueckerstattetBetrag ?? 0), 0);
+      if (![gesamt, bezahlt, gutgeschrieben, belegGutschriften, bereitsAusbezahlt]
+          .every(Number.isSafeInteger) ||
+          gesamt < 0 || bezahlt < 0 || bezahlt > gesamt ||
+          gutgeschrieben < 0 || gutgeschrieben !== belegGutschriften ||
+          bereitsAusbezahlt < 0 || bereitsAusbezahlt > bezahlt ||
+          gutgeschrieben + betrag > gesamt ||
+          rappen(rechnung.rueckerstattungOffen ?? 0) !==
+            Math.max(0, bezahlt - (gesamt - gutgeschrieben) - bereitsAusbezahlt)) {
+        throw new Retourenfehler('Rechnung, Gutschriften und Rückerstattungen sind nicht konsistent.');
       }
       const jetzt = new Date();
       const netto = gesamt - gutgeschrieben - betrag;
@@ -158,7 +184,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
           ? { $exists: false } : rechnung.gutgeschriebenBetrag
       }, { $set: {
         gutgeschriebenBetrag: (gutgeschrieben + betrag) / 100,
-        rueckerstattungOffen: Math.max(0, bezahlt - netto - rueckerstattet) / 100,
+        rueckerstattungOffen: Math.max(0, bezahlt - netto - bereitsAusbezahlt) / 100,
         status, aktualisiertAm: jetzt
       } }, { session });
       if (rechnungUpdate.modifiedCount !== 1) throw new Retourenfehler('Rechnung wurde geändert.');
