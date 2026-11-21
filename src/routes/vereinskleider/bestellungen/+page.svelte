@@ -514,6 +514,7 @@
                           onclick={() => { zahlungAuswahl = b; zahlungBetrag = String(b.restbetragBekannt ?? ''); zahlungFehler = ''; }}>
                           Zahlung erfassen
                         </button>
+                        <a class="uebergabe-knopf" href="/vereinskleider/verrechnung" title="Offenen Betrag als Rechnung erfassen, ohne ihn als bezahlt zu markieren">Rechnung / ClubDesk</a>
                       {/if}
                       {#if b.preisOffen}
                         <button type="button" class="uebergabe-knopf" onclick={() => preisOeffnen(b)} disabled={aktualisieren || preisSpeichernLaeuft}>Preis festlegen</button>
@@ -560,6 +561,7 @@
     <div class="dialog-hintergrund" role="presentation">
       <div class="dialog karte" role="dialog" aria-modal="true" aria-labelledby="teilzahlung-titel">
         <h2 id="teilzahlung-titel">Teilzahlung erfassen</h2>
+        <p>Hier nur tatsächlich erhaltene Zahlungen erfassen. Für eine offene Forderung stattdessen <a href="/vereinskleider/verrechnung">Rechnung / ClubDesk</a> verwenden.</p>
         <p><strong>{zahlungAuswahl.kaeufer}</strong> · Bestellung #{zahlungAuswahl.vorgangId.slice(-8)}</p>
         <p>Bereits bezahlt: {formatCHF(zahlungAuswahl.bezahltBetrag ?? 0)} · Noch bekannte Forderung: <strong>{formatCHF(zahlungAuswahl.restbetragBekannt ?? 0)}</strong></p>
         <label for="teilzahlung-betrag">Erhaltener Betrag (CHF)</label>
