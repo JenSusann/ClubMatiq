@@ -34,7 +34,7 @@ export const GET: RequestHandler = async ({ locals }) => {
     const zeilen = [[
       'Rechnungsnummer', 'Verkaufs-ID', 'Rechnungs-ID', 'Teilrechnung',
       'Datum', 'Empfaenger', 'Status', 'Original CHF', 'Gutschriften CHF',
-      'Netto CHF', 'Bezahlt CHF', 'Offen CHF', 'Rueckerstattung offen CHF'
+      'Netto CHF', 'Bezahlt CHF', 'Offen CHF', 'Rueckerstattung offen CHF', 'Rueckerstattet CHF'
     ].map(feld).join(';')];
     for (const r of rechnungen) {
       const gesamt = geld(r.gesamtbetrag);
@@ -45,12 +45,14 @@ export const GET: RequestHandler = async ({ locals }) => {
       const euro = (rappen: number) => (rappen / 100).toFixed(2).replace('.', ',');
       const erstellt = new Date(r.erstelltAm);
       if (Number.isNaN(erstellt.getTime())) throw new Error('Ungültiges Rechnungsdatum.');
+      const rueckerstattungOffen = geld(r.rueckerstattungOffen ?? Math.max(0, bezahlt - netto));
+      if (rueckerstattungOffen > Math.max(0, bezahlt - netto)) throw new Error('Inkonsistente Rückerstattung.');
       zeilen.push([
         r.rechnungsnummer, r.verkaufId, r._id.toString(),
         r.rechnungstranche === true ? 'Ja' : 'Nein', erstellt.toISOString().slice(0, 10),
         r.empfaenger, r.status, euro(gesamt), euro(gutschriften),
         euro(netto), euro(bezahlt), euro(Math.max(0, netto - bezahlt)),
-        euro(Math.max(0, bezahlt - netto))
+        euro(rueckerstattungOffen), euro(Math.max(0, bezahlt - netto) - rueckerstattungOffen)
       ].map(feld).join(';'));
     }
     return new Response('\uFEFF' + zeilen.join('\r\n') + '\r\n', {
