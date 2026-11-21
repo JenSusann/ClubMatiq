@@ -129,9 +129,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         positionen, rabatte: [], zusaetzlicherRabatt: 0,
         zwischentotal: tranche.gesamtbetrag, rabattTotal: 0,
         gesamtbetrag: tranche.gesamtbetrag, bezahltBetrag: neuBezahlt / 100,
-        // Zahlungseingänge gehören zum Verkauf; die Tranche hält nur die
-        // zugeordnete Summe. Keine zweite Zahlungsbuchung erzeugen.
-        zahlungen: [],
+        // Bereits gebuchte Verkaufseingänge als Nachweis übernehmen, ohne
+        // einen neuen Zahlungseingang zu erzeugen.
+        zahlungen: zugeordneteZahlungen,
         status, erstelltAm: jetzt, aktualisiertAm: jetzt,
         clubdeskExportStatus: 'nicht_exportiert' as const
       };
