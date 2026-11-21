@@ -126,6 +126,42 @@ describe('Issue #69 – Retouren API', () => {
     expect((await POST(request({}))).status).toBe(409);
     expect(mock.insertOne).not.toHaveBeenCalled();
   });
+  it('berücksichtigt eine bereits dokumentierte Rückerstattung bei der nächsten Gutschrift', async () => {
+    vorbereiten();
+    mock.find.mockImplementation((filter: { rechnungId?: string }) => ({
+      toArray: async () => filter.rechnungId ? [{
+        betrag: 28, rueckerstattetBetrag: 28
+      }] : [{
+        _id: id, vereinId: 'verein-1', rechnungsnummer: '2026-001',
+        positionen: [{ positionsIndex: 0, artikelId: id, groesseId: null,
+          menge: 2, einzelpreis: 28 }],
+        gesamtbetrag: 56, bezahltBetrag: 56, gutgeschriebenBetrag: 28,
+        rueckerstattungOffen: 0
+      }]
+    }));
+    const antwort = await POST(request({}));
+    expect(antwort.status).toBe(201);
+    expect(mock.updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({ vereinId: 'verein-1' }),
+      expect.objectContaining({ $set: expect.objectContaining({
+        rueckerstattungOffen: 28
+      }) }), expect.any(Object)
+    );
+  });
+  it('sperrt inkonsistente Gutschriften ohne Bestandsänderung', async () => {
+    vorbereiten();
+    mock.find.mockImplementation((filter: { rechnungId?: string }) => ({
+      toArray: async () => filter.rechnungId ? [] : [{
+        _id: id, vereinId: 'verein-1', rechnungsnummer: '2026-001',
+        positionen: [{ positionsIndex: 0, artikelId: id, groesseId: null,
+          menge: 2, einzelpreis: 28 }],
+        gesamtbetrag: 56, bezahltBetrag: 56, gutgeschriebenBetrag: 28,
+        rueckerstattungOffen: 0
+      }]
+    }));
+    expect((await POST(request({}))).status).toBe(409);
+    expect(mock.updateOne).not.toHaveBeenCalled();
+  });
   it('GET validiert Verkaufs-ID', async () => {
     const response = await GET({
       locals: { benutzer: { vereinId: 'verein-1' } },
