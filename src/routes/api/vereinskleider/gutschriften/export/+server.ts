@@ -60,7 +60,7 @@ export const GET: RequestHandler = async ({ locals }) => {
         chf(betrag - ausbezahlt), g.clubdeskExportStatus ?? 'nicht_exportiert'
       ].map(feld).join(';'));
     }
-    return new Response('\\uFEFF' + zeilen.join('\\r\\n') + '\\r\\n', {
+    return new Response('\uFEFF' + zeilen.join('\r\n') + '\r\n', {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': 'attachment; filename="ClubMatiq_Gutschriftenabgleich.csv"',
