@@ -442,7 +442,7 @@
                   <td>{zahlungsartText(verkauf.zahlungsart)}</td>
                   <td><span class="status" class:bezahlt={istBezahlt(verkauf)}>{verkauf.preisOffen ? 'Preis offen' : istBezahlt(verkauf) ? 'Bezahlt' : 'Offen'}</span></td>
                   <td class="rechts">{chf(verkauf.endbetrag)}</td>
-                  <td><button type="button" onclick={() => rechnungErstellen(verkauf)} disabled={erstellenId !== null}>
+                  <td><button type="button" onclick={() => bestaetigungOeffnen(verkauf)} disabled={erstellenId !== null}>
                     {erstellenId === verkauf._id ? 'Wird erstellt ...' : (verkauf.preisOffen || (verkauf.trancheRechnungIds?.length ?? 0) > 0) ? 'Teilrechnung erstellen' : istQuittung(verkauf) ? 'Quittung erfassen' : 'Rechnung erstellen'}
                   </button></td>
                 </tr>
