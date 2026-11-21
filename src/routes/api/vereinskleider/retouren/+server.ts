@@ -211,12 +211,18 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         erfasstVon: locals.benutzer!.id,
         rechnungId: rechnung._id.toString()
       };
+      // Optimistischer Konkurrenzschutz: Der gesamte zuvor gelesene
+      // Retourenstand muss unverändert sein. Ein zweiter gleichzeitiger
+      // Vorgang darf nicht auf einer veralteten Menge aufbauen.
+      const bisherigeRetouren = Array.isArray(verkauf.retouren) ? verkauf.retouren : [];
       const verkaufUpdate = await verkaeufe.updateOne({
         _id: verkaufId, vereinId,
+        retouren: verkauf.retouren === undefined
+          ? { $exists: false } : verkauf.retouren,
         aktualisiertAm: verkauf.aktualisiertAm === undefined
           ? { $exists: false } : verkauf.aktualisiertAm
       }, { $set: {
-        retouren: [...(Array.isArray(verkauf.retouren) ? verkauf.retouren : []), retoure],
+        retouren: [...bisherigeRetouren, retoure],
         aktualisiertAm: jetzt
       } }, { session });
       if (verkaufUpdate.modifiedCount !== 1) throw new Retourenfehler('Verkauf wurde zwischenzeitlich geändert.');
