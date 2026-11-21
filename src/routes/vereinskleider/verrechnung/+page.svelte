@@ -422,6 +422,8 @@
     <a href="/api/vereinskleider/gutschriften/export" download="ClubMatiq_Gutschriftenabgleich.csv">Gutschriftenabgleich (CSV)</a>
   </div>
 
+  <p class="hinweis">Die CSV-Dateien sind Kontrollauszüge für den manuellen Abgleich mit ClubDesk – keine ClubDesk-Importdateien. Rechnungen und Gutschriften müssen in ClubDesk separat verbucht werden. Ein CSV-Download bestätigt keine Verbuchung.</p>
+
   {#if laden}
     <section class="karte">Verrechnungsdaten werden geladen ...</section>
   {:else}
