@@ -29,7 +29,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
       const collection = db.collection('vereinskleider_verkaeufe');
       const verkauf = await collection.findOne({ _id, vereinId }, { session });
       if (!verkauf) throw new Zahlungsfehler('Bestellung nicht gefunden.', 404);
-      if (verkauf.rechnungId) throw new Zahlungsfehler('Zahlungen für bereits verrechnete Bestellungen bitte in der Rechnungsverwaltung erfassen.', 409);
+      if (verkauf.rechnungId || (Array.isArray(verkauf.trancheRechnungIds) && verkauf.trancheRechnungIds.length > 0)) {
+        throw new Zahlungsfehler('Für diese Bestellung existieren bereits Rechnungen. Zahlungseingänge bitte in der Rechnungsverwaltung erfassen.', 409);
+      }
       if (!Array.isArray(verkauf.positionen) || !verkauf.positionen.length) {
         throw new Zahlungsfehler('Die Bestellung hat keine Positionen.', 409);
       }
@@ -55,6 +57,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         ? 'teilweise_bezahlt' : stand.status;
       const result = await collection.updateOne(
         { _id, vereinId, rechnungId: { $exists: false },
+          trancheRechnungIds: { $exists: false },
           aktualisiertAm: verkauf.aktualisiertAm },
         { $set: {
           zahlungen: aktualisierteZahlungen, bezahltBetrag: stand.bezahlt,
