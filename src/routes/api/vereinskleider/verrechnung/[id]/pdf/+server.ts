@@ -172,7 +172,7 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
     const gutgeschriebenRappen = Math.max(0, Math.round((rechnung.gutgeschriebenBetrag ?? 0) * 100));
     const nettoRappen = Math.max(0, gesamtRappen - gutgeschriebenRappen);
     const offenRappen = Math.max(0, nettoRappen - bezahltRappen);
-    const rueckerstattungRappen = Math.max(0, bezahltRappen - nettoRappen);
+    const rueckerstattungRappen = Math.max(0, Math.min(Math.max(0, bezahltRappen - nettoRappen), Math.round((rechnung.rueckerstattungOffen ?? Math.max(0, (bezahltRappen - nettoRappen) / 100)) * 100)));
     const vollBezahlt = offenRappen === 0 && rueckerstattungRappen === 0 && rechnung.status !== 'storniert';
     const istQuittung = vollBezahlt &&
       (rechnung.zahlungsart === 'bar' || rechnung.zahlungsart === 'twint');
