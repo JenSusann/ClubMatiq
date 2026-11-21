@@ -61,32 +61,63 @@
   let gutschriftenBegrenzt = $state(false);
   let gutschriftSpeichern = $state<string | null>(null);
 
-  async function gutschriftAbschliessen(g: Gutschrift, rechnung: Rechnung): Promise<void> {
-    if (gutschriftSpeichern || g.bearbeitungsstatus === 'erledigt' || g.bearbeitungsstatus === 'rueckerstattet') return;
+  let aktiveGutschrift = $state<Gutschrift | null>(null);
+  let aktiveGutschriftRechnung = $state<Rechnung | null>(null);
+  let rueckBetrag = $state('');
+  let rueckDatum = $state('');
+  let rueckArt = $state<'bank' | 'twint' | 'bar'>('bank');
+  let rueckBemerkung = $state('');
+  let rueckBestaetigt = $state(false);
+
+  function gutschriftOeffnen(g: Gutschrift, rechnung: Rechnung): void {
+    if (gutschriftSpeichern) return;
+    aktiveGutschrift = g;
+    aktiveGutschriftRechnung = rechnung;
+    rueckBetrag = Math.min(rueckerstattung(rechnung),
+      Math.max(0, g.betrag - (g.rueckerstattetBetrag ?? 0))).toFixed(2);
+    rueckDatum = lokalesDatum();
+    rueckArt = 'bank';
+    rueckBemerkung = '';
+    rueckBestaetigt = false;
+    fehler = '';
+    erfolg = '';
+  }
+
+  function gutschriftSchliessen(): void {
+    if (gutschriftSpeichern) return;
+    aktiveGutschrift = null;
+    aktiveGutschriftRechnung = null;
+  }
+
+  async function gutschriftAbschliessen(): Promise<void> {
+    const g = aktiveGutschrift;
+    const rechnung = aktiveGutschriftRechnung;
+    if (!g || !rechnung || gutschriftSpeichern) return;
     const offen = rueckerstattung(rechnung);
     const aktion = offen > 0 ? 'rueckerstattet' : 'erledigt';
-    let daten: Record<string, unknown> = { gutschriftId: g._id, aktion };
+    const daten: Record<string, unknown> = { gutschriftId: g._id, aktion };
     if (aktion === 'rueckerstattet') {
-      const betrag = prompt(
-        `Bereits tatsächlich zurückbezahlter Betrag für ${g.gutschriftnummer} (CHF):`,
-        Math.min(offen, Math.max(0, g.betrag - (g.rueckerstattetBetrag ?? 0))).toFixed(2)
-      );
-      if (betrag === null) return;
-      const wert = Number(betrag.replace(',', '.'));
-      if (!Number.isFinite(wert) || wert <= 0 || Math.round(wert * 100) > Math.round(Math.min(offen, g.betrag - (g.rueckerstattetBetrag ?? 0)) * 100)) {
-        fehler = `Bitte einen Betrag bis maximal ${chf(Math.min(offen, g.betrag - (g.rueckerstattetBetrag ?? 0)))} erfassen.`;
+      const wert = Number(rueckBetrag.replace(',', '.'));
+      const rappen = Math.round(wert * 100);
+      const maximal = Math.round(Math.min(offen,
+        g.betrag - (g.rueckerstattetBetrag ?? 0)) * 100);
+      if (!Number.isFinite(wert) || !Number.isSafeInteger(rappen) ||
+          rappen <= 0 || rappen > maximal || Math.abs(wert * 100 - rappen) > 0.000001) {
+        fehler = `Bitte einen gültigen Betrag bis ${chf(maximal / 100)} eingeben.`;
         return;
       }
-      const datumWert = prompt('Datum der bereits erfolgten Rückzahlung (JJJJ-MM-TT):', lokalesDatum());
-      if (datumWert === null) return;
-      const zahlungsart = prompt('Zahlungsweg (bank, twint oder bar):', 'bank');
-      if (zahlungsart === null) return;
-      const bemerkung = prompt('Bemerkung / Zahlungsreferenz (optional):', '');
-      if (bemerkung === null) return;
-      daten = { ...daten, betrag: wert, datum: datumWert, zahlungsart: zahlungsart.toLowerCase().trim(), bemerkung };
-      if (!confirm(`Bestätigen, dass ${chf(wert)} bereits tatsächlich zurückbezahlt wurden?`)) return;
-    } else if (!confirm(`Gutschrift ${g.gutschriftnummer} ohne ausstehende Auszahlung als erledigt markieren?`)) {
-      return;
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(rueckDatum)) {
+        fehler = 'Bitte ein gültiges Rückerstattungsdatum eingeben.';
+        return;
+      }
+      if (!rueckBestaetigt) {
+        fehler = 'Bitte bestätigen, dass die Rückerstattung tatsächlich erfolgt ist.';
+        return;
+      }
+      Object.assign(daten, {
+        betrag: rappen / 100, datum: rueckDatum, zahlungsart: rueckArt,
+        bemerkung: rueckBemerkung
+      });
     }
     gutschriftSpeichern = g._id;
     fehler = '';
@@ -99,13 +130,16 @@
       const ergebnis: { erfolg?: boolean; fehler?: string } = await antwort.json().catch(() => ({}));
       if (!antwort.ok || !ergebnis.erfolg) throw new Error(ergebnis.fehler ?? 'Gutschrift konnte nicht abgeschlossen werden.');
       await ladenAktualisieren();
-      erfolg = `Gutschrift ${g.gutschriftnummer} wurde abgeschlossen.`;
+      aktiveGutschrift = null;
+      aktiveGutschriftRechnung = null;
+      erfolg = `Gutschrift ${g.gutschriftnummer} wurde aktualisiert.`;
     } catch (e) {
       fehler = e instanceof Error ? e.message : 'Gutschrift konnte nicht abgeschlossen werden.';
     } finally {
       gutschriftSpeichern = null;
     }
   }
+
   let aufgeklappteRechnungen = $state<string[]>([]);
   let verkaeufe = $state<Verkauf[]>([]);
   let laden = $state(true);
@@ -463,7 +497,7 @@
                               <td>
                                 {#if gutschrift.bearbeitungsstatus !== 'erledigt' && gutschrift.bearbeitungsstatus !== 'rueckerstattet'}
                                   <button type="button" disabled={gutschriftSpeichern !== null}
-                                    onclick={() => void gutschriftAbschliessen(gutschrift, rechnung)}>
+                                    onclick={() => gutschriftOeffnen(gutschrift, rechnung)}>
                                     {gutschriftSpeichern === gutschrift._id ? 'Speichern ...' :
                                       rueckerstattung(rechnung) > 0 ? 'Rückerstattung erfassen' : 'Als erledigt markieren'}
                                   </button>
@@ -486,6 +520,51 @@
       {/if}
       <p class="hinweis">Gutschriften vermindern den zahlbaren Rechnungsbetrag. Bereits erhaltene Zahlungen bleiben unverändert; allfällige Rückerstattungen werden separat ausgewiesen. Über die aufklappbare Liste können die separaten Gutschrift-PDFs geöffnet werden.</p>
     </section>
+
+    {#if aktiveGutschrift && aktiveGutschriftRechnung}
+      <section class="karte zahlungsformular" aria-label="Gutschrift bearbeiten">
+        <div class="abschnittskopf">
+          <h2>Gutschrift bearbeiten – {aktiveGutschrift.gutschriftnummer}</h2>
+          <button type="button" class="sekundaer" onclick={gutschriftSchliessen} disabled={gutschriftSpeichern !== null}>Schliessen</button>
+        </div>
+        <p class="hinweis">Rechnung {aktiveGutschriftRechnung.rechnungsnummer} · Gutschrift: {chf(aktiveGutschrift.betrag)} · Noch offene Rückerstattung der Rechnung: <strong>{chf(rueckerstattung(aktiveGutschriftRechnung))}</strong></p>
+        <form onsubmit={(ereignis) => { ereignis.preventDefault(); void gutschriftAbschliessen(); }}>
+          {#if rueckerstattung(aktiveGutschriftRechnung) > 0}
+            <div class="formularfelder">
+              <label for="rueck-betrag">Bereits rückerstatteter Betrag (CHF)
+                <input id="rueck-betrag" type="number" min="0.01" step="0.01"
+                  max={Math.min(rueckerstattung(aktiveGutschriftRechnung), aktiveGutschrift.betrag - (aktiveGutschrift.rueckerstattetBetrag ?? 0))}
+                  required bind:value={rueckBetrag} disabled={gutschriftSpeichern !== null} />
+              </label>
+              <label for="rueck-datum">Datum der Rückerstattung
+                <input id="rueck-datum" type="date" required bind:value={rueckDatum} disabled={gutschriftSpeichern !== null} />
+              </label>
+              <label for="rueck-art">Zahlungsweg
+                <select id="rueck-art" bind:value={rueckArt} disabled={gutschriftSpeichern !== null}>
+                  <option value="bank">Bank</option>
+                  <option value="twint">TWINT</option>
+                  <option value="bar">Bar</option>
+                </select>
+              </label>
+            </div>
+            <label for="rueck-bemerkung">Bemerkung / Zahlungsreferenz (optional)
+              <input id="rueck-bemerkung" type="text" maxlength="1000" bind:value={rueckBemerkung} disabled={gutschriftSpeichern !== null} />
+            </label>
+            <label class="bestaetigung"><input type="checkbox" bind:checked={rueckBestaetigt} disabled={gutschriftSpeichern !== null} />
+              Ich bestätige, dass dieser Betrag bereits tatsächlich zurückbezahlt wurde. Es wird keine automatische Auszahlung ausgelöst.
+            </label>
+          {:else}
+            <p class="hinweis">Es ist keine Auszahlung mehr offen. Die Gutschrift kann als erledigt markiert werden.</p>
+          {/if}
+          <div class="formularaktionen">
+            <button type="submit" disabled={gutschriftSpeichern !== null}>
+              {gutschriftSpeichern ? 'Wird gespeichert ...' : rueckerstattung(aktiveGutschriftRechnung) > 0 ? 'Rückerstattung bestätigen' : 'Als erledigt markieren'}
+            </button>
+            <button type="button" class="sekundaer" onclick={gutschriftSchliessen} disabled={gutschriftSpeichern !== null}>Abbrechen</button>
+          </div>
+        </form>
+      </section>
+    {/if}
 
     {#if zahlungRechnung}
       <section class="karte zahlungsformular" aria-label="Zahlung erfassen">
@@ -551,7 +630,9 @@
   .status.bezahlt { background: #dcfce7; color: #166534; }
   .zahlungsformular { border-color: #93c5fd; }
   .formularfelder { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 20px 0; }
-  .formularaktionen { display: flex; gap: 10px; }
+  .formularaktionen { display: flex; gap: 10px; margin-top: 18px; }
+  .bestaetigung { display: flex; align-items: center; gap: 10px; margin-top: 18px; font-weight: 400; }
+  .bestaetigung input { width: auto; margin: 0; }
   button.sekundaer { background: #e2e8f0; color: #172b4d; }
   .pdf-link { color: #2563eb; font-size: 13px; font-weight: 600; white-space: nowrap; }
   .gutschriften-schalter { display: block; margin-top: 7px; padding: 4px 7px; background: #eff6ff; color: #1d4ed8; font-size: 12px; }
