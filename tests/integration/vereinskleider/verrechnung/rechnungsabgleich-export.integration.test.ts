@@ -36,7 +36,7 @@ describe('Issue #68 – Rechnungsabgleich mit mehreren Teilrechnungen', () => {
     expect(csv).toContain('2026-00002');
     expect(csv).toContain('"28,00"');
     expect(csv).toContain('"50,00"');
-    expect(csv.split('\\r\\n').filter(Boolean)).toHaveLength(3);
+    expect(csv.split('\r\n').filter(Boolean)).toHaveLength(3);
   });
   it('berechnet Gutschrift und Rückerstattung ohne negative Forderung', async () => {
     m.daten = [{ ...rechnung('2026-00003', 28, true), bezahltBetrag: 28, gutgeschriebenBetrag: 10 }];
