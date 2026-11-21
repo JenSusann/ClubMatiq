@@ -419,6 +419,7 @@
     </label>
     <button type="button" onclick={neuLaden} disabled={laden || erstellenId !== null || zahlungSpeichern}>Aktualisieren</button>
     <a href="/api/vereinskleider/verrechnung/export" download="ClubMatiq_Rechnungsabgleich.csv">Rechnungsabgleich (CSV)</a>
+    <a href="/api/vereinskleider/gutschriften/export" download="ClubMatiq_Gutschriftenabgleich.csv">Gutschriftenabgleich (CSV)</a>
   </div>
 
   {#if laden}
