@@ -14,6 +14,15 @@ describe('Issue #69 – sichere Retourenprüfung', () => {
   it('erlaubt eine vollständige Retoure über mehrere Übergaben', () => {
     expect(pruefeRetourenmenge(basis(), 0, 3)).toEqual({ maximal: 3, einzelpreisRappen: 2800 });
   });
+  it('erlaubt Direktverkäufe ohne separaten Übergabebeleg', () => {
+    const v: RetourenVorgang = {
+      positionen: [{ menge: 1, verkaufsart: 'direkt', einzelpreis: 28 }],
+      uebergaben: [], retouren: []
+    };
+    expect(pruefeRetourenmenge(v, 0, 1).maximal).toBe(1);
+    v.retouren = [{ positionsIndex: 0, menge: 1 }];
+    expect(() => pruefeRetourenmenge(v, 0, 1)).toThrow(/Nur 0/);
+  });
   it('zieht bereits retournierte Mengen ab', () => {
     const v = basis();
     v.retouren = [{ positionsIndex: 0, menge: 2 }];
