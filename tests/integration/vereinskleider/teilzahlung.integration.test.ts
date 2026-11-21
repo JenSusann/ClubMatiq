@@ -53,6 +53,12 @@ describe('Issue #68 – Teilzahlungen für gemischte Bestellungen', () => {
     const response = await POST(event({ verkaufId: id, betrag: 20, zahlungsart: 'twint' }) as never);
     expect(response.status).toBe(409);
   });
+  it('verhindert Zahlungen ohne Rechnungszuordnung nach einer Teilrechnung', async () => {
+    m.findOne.mockResolvedValue({ ...bestellung(), trancheRechnungIds: [id] });
+    const response = await POST(event({ verkaufId: id, betrag: 20, zahlungsart: 'bar' }) as never);
+    expect(response.status).toBe(409);
+    expect(m.updateOne).not.toHaveBeenCalled();
+  });
   it('erkennt gleichzeitige Änderungen vor der Verbuchung', async () => {
     m.updateOne.mockResolvedValue({ modifiedCount: 0 });
     const response = await POST(event({ verkaufId: id, betrag: 20, zahlungsart: 'bar' }) as never);
