@@ -148,7 +148,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         .filter((r: { positionsIndex?: number; rechnungId?: string }) =>
           r.positionsIndex === index && (!r.rechnungId || r.rechnungId === rechnung._id.toString()))
         .reduce((summe: number, r: { menge?: number }) => summe + (r.menge ?? 0), 0);
-      if (!Number.isSafeInteger(bp.menge) || bp.menge < menge + bisherRetourniert ||
+      if (typeof bp.menge !== 'number' || !Number.isSafeInteger(bp.menge) ||
+          bp.menge < menge + bisherRetourniert ||
+          typeof bp.einzelpreis !== 'number' || !Number.isFinite(bp.einzelpreis) ||
           rappen(bp.einzelpreis) !== einzelpreisRappen) {
         throw new Retourenfehler('Rechnungsmenge oder Preis stimmt nicht mit der Retoure überein.');
       }
