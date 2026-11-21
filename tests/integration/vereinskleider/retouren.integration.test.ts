@@ -162,6 +162,24 @@ describe('Issue #69 – Retouren API', () => {
     expect((await POST(request({}))).status).toBe(409);
     expect(mock.updateOne).not.toHaveBeenCalled();
   });
+  it('verhindert eine Gutschrift, wenn der Retourenstand parallel geändert wurde', async () => {
+    vorbereiten();
+    mock.updateOne.mockImplementation(async (filter: Record<string, unknown>) => {
+      if ('retouren' in filter) return { modifiedCount: 0 };
+      return { modifiedCount: 1 };
+    });
+    const antwort = await POST(request({}));
+    expect(antwort.status).toBe(409);
+    expect(mock.insertOne).not.toHaveBeenCalled();
+    expect(mock.movement).not.toHaveBeenCalled();
+    expect(mock.updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        vereinId: 'verein-1',
+        retouren: { $exists: false }
+      }),
+      expect.any(Object), expect.any(Object)
+    );
+  });
   it('GET validiert Verkaufs-ID', async () => {
     const response = await GET({
       locals: { benutzer: { vereinId: 'verein-1' } },
