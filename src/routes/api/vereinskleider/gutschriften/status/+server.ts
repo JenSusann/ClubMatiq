@@ -47,32 +47,36 @@ export const PATCH: RequestHandler = async ({ locals, request }) => {
       if (gutgeschrieben > gesamt || bezahlt > gesamt || betrag > gutgeschrieben) {
         throw new StatusFehler('Rechnungs- und Gutschriftbeträge sind inkonsistent.');
       }
-      // Mehrere Gutschriften können gemeinsam eine Überzahlung auslösen.
-      // Ohne explizite Zuordnung darf keine einzelne davon als ausbezahlt
-      // bestätigt werden.
+      // Rückerstattungen werden über alle Gutschriften einer Rechnung abgeglichen.
+      // Bereits ausbezahlte Beträge dürfen niemals erneut ausgezahlt werden.
       const alle = await gutschriften.find({ vereinId, rechnungId: g.rechnungId }, { session }).toArray();
-      if (alle.length !== 1 || alle[0]._id.toString() !== _id.toString()) {
-        throw new StatusFehler('Mehrere Gutschriften zur Rechnung: Auszahlung muss zuerst eindeutig zugeordnet werden.');
+      if (!alle.some((eintrag) => eintrag._id.toString() === _id.toString())) {
+        throw new StatusFehler('Gutschrift ist nicht mehr verfügbar.');
       }
+      const summeGutschriften = alle.reduce((summe, eintrag) => summe + geld(eintrag.betrag), 0);
+      if (summeGutschriften !== gutgeschrieben) {
+        throw new StatusFehler('Gutschriften stimmen nicht mit der Rechnung überein.');
+      }
+      const bereitsGesamt = alle.reduce((summe, eintrag) => summe + geld(eintrag.rueckerstattetBetrag ?? 0), 0);
       const bereits = geld(g.rueckerstattetBetrag ?? 0);
       const ueberzahlung = Math.max(0, bezahlt - (gesamt - gutgeschrieben));
-      if (bereits > betrag || bereits > ueberzahlung) {
+      if (bereitsGesamt > ueberzahlung || bereits > betrag) {
         throw new StatusFehler('Bereits dokumentierte Rückerstattung ist inkonsistent.');
       }
       if (g.bearbeitungsstatus === 'erledigt' || g.bearbeitungsstatus === 'rueckerstattet') {
         throw new StatusFehler('Gutschrift ist bereits abgeschlossen.');
       }
       const jetzt = new Date();
-      let status: 'erledigt' | 'rueckerstattet';
+      let status: 'erledigt' | 'rueckerstattet' | 'teilweise_rueckerstattet';
       let rueckerstattetNeu = bereits;
-      let historie = Array.isArray(g.rueckerstattungen) ? [...g.rueckerstattungen] : [];
+      const historie = Array.isArray(g.rueckerstattungen) ? [...g.rueckerstattungen] : [];
       if (body.aktion === 'erledigt') {
-        if (ueberzahlung > bereits) {
-          throw new StatusFehler('Es besteht noch eine offene Rückerstattung. Zuerst Auszahlung erfassen.');
+        if (ueberzahlung > bereitsGesamt) {
+          throw new StatusFehler('Es besteht noch eine offene Rückerstattung auf der Rechnung.');
         }
         status = bereits > 0 ? 'rueckerstattet' : 'erledigt';
       } else {
-        if (typeof body.datum !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.datum) ||
+        if (typeof body.datum !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}$/.test(body.datum) ||
             !['bank', 'twint', 'bar'].includes(String(body.zahlungsart)) ||
             typeof body.bemerkung !== 'string' || body.bemerkung.length > 1000) {
           throw new StatusFehler('Datum, Zahlungsweg oder Bemerkung ungültig.', 400);
@@ -82,11 +86,9 @@ export const PATCH: RequestHandler = async ({ locals, request }) => {
           throw new StatusFehler('Ungültiges Rückerstattungsdatum.', 400);
         }
         const auszahlung = geld(body.betrag);
-        const rest = ueberzahlung - bereits;
-        // Zunächst nur vollständige Auszahlung: keine Teilbeträge als
-        // fälschlich abgeschlossen markieren.
-        if (rest <= 0 || auszahlung !== rest || auszahlung > betrag - bereits) {
-          throw new StatusFehler('Es muss der gesamte noch offene Rückerstattungsbetrag erfasst werden.');
+        const rechnungsRest = ueberzahlung - bereitsGesamt;
+        if (auszahlung <= 0 || auszahlung > rechnungsRest || auszahlung > betrag - bereits) {
+          throw new StatusFehler('Rückerstattung überschreitet den offenen Betrag der Gutschrift oder Rechnung.');
         }
         rueckerstattetNeu += auszahlung;
         historie.push({
@@ -94,16 +96,19 @@ export const PATCH: RequestHandler = async ({ locals, request }) => {
           bemerkung: body.bemerkung.trim(), erfasstAm: jetzt,
           erfasstVon: locals.benutzer!.id ?? null
         });
-        status = 'rueckerstattet';
+        status = rueckerstattetNeu === betrag ? 'rueckerstattet' : 'teilweise_rueckerstattet';
       }
+      const abgeschlossen = status !== 'teilweise_rueckerstattet';
+      const rueckerstattungOffen = (ueberzahlung - bereitsGesamt - (rueckerstattetNeu - bereits)) / 100;
       const update = await gutschriften.updateOne({
-        _id, vereinId, bearbeitungsstatus: { $exists: false },
+        _id, vereinId, bearbeitungsstatus: g.bearbeitungsstatus === undefined
+          ? { $exists: false } : g.bearbeitungsstatus,
         rueckerstattetBetrag: g.rueckerstattetBetrag === undefined
           ? { $exists: false } : g.rueckerstattetBetrag
       }, { $set: {
         bearbeitungsstatus: status, rueckerstattetBetrag: rueckerstattetNeu / 100,
-        rueckerstattungen: historie, abgeschlossenAm: jetzt,
-        abgeschlossenVon: locals.benutzer!.id ?? null
+        rueckerstattungen: historie, abgeschlossenAm: abgeschlossen ? jetzt : null,
+        abgeschlossenVon: abgeschlossen ? locals.benutzer!.id ?? null
       } }, { session });
       if (update.modifiedCount !== 1) throw new StatusFehler('Gutschrift wurde zwischenzeitlich geändert.');
       // Den verbleibenden Rückerstattungsbetrag auf der Rechnung ausweisen.
@@ -112,11 +117,11 @@ export const PATCH: RequestHandler = async ({ locals, request }) => {
         gutgeschriebenBetrag: rechnung.gutgeschriebenBetrag === undefined
           ? { $exists: false } : rechnung.gutgeschriebenBetrag
       }, { $set: {
-        rueckerstattungOffen: (ueberzahlung - rueckerstattetNeu) / 100,
+        rueckerstattungOffen,
         aktualisiertAm: jetzt
       } }, { session });
       if (rechnungsUpdate.modifiedCount !== 1) throw new StatusFehler('Rechnung wurde zwischenzeitlich geändert.');
-      return { status, rueckerstattungOffen: (ueberzahlung - rueckerstattetNeu) / 100 };
+      return { status, rueckerstattungOffen };
     });
     return json({ erfolg: true, ...ergebnis });
   } catch (e) {
