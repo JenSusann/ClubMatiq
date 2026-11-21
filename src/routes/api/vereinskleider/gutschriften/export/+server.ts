@@ -37,7 +37,7 @@ export const GET: RequestHandler = async ({ locals }) => {
       'Gutschrift-ID', 'Gutschriftnummer', 'Rechnungs-ID', 'Rechnungsnummer',
       'Verkaufs-ID', 'Retouren-ID', 'Datum', 'Artikel', 'Menge', 'Grund',
       'Gutschrift CHF', 'Rueckerstattet CHF', 'Rueckerstattung offen CHF',
-      'ClubDesk Exportstatus'
+      'ClubDesk Exportstatus', 'In ClubDesk verbucht', 'ClubDesk Buchungsdatum', 'ClubDesk Referenz', 'Erfasst von'
     ].map(feld).join(';')];
     for (const g of gutschriften) {
       const rechnung = nachId.get(g.rechnungId);
@@ -57,7 +57,9 @@ export const GET: RequestHandler = async ({ locals }) => {
         g._id.toString(), g.gutschriftnummer, g.rechnungId, g.rechnungsnummer,
         g.verkaufId, g.retourId ?? '', datum.toISOString().slice(0, 10),
         g.artikelname, g.menge, g.grund, chf(betrag), chf(ausbezahlt),
-        chf(betrag - ausbezahlt), g.clubdeskExportStatus ?? 'nicht_exportiert'
+        chf(betrag - ausbezahlt), g.clubdeskExportStatus ?? 'nicht_exportiert', g.clubdeskVerbuchung ? 'Ja' : 'Nein',
+        g.clubdeskVerbuchung?.datum ?? '', g.clubdeskVerbuchung?.referenz ?? '',
+        g.clubdeskVerbuchung?.erfasstVonName ?? ''
       ].map(feld).join(';'));
     }
     return new Response('\uFEFF' + zeilen.join('\r\n') + '\r\n', {
