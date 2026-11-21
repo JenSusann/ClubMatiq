@@ -30,7 +30,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
         .filter((r: { positionsIndex?: number }) => r.positionsIndex === i)
         .reduce((summe: number, r: { menge?: number }) => summe + (r.menge ?? 0), 0);
       const maximal = Math.max(0, uebergeben - retourniert);
-      let freigegeben = false;
+      const freigegeben = false;
       let hinweis = '';
       if (maximal > 0) {
         try {
