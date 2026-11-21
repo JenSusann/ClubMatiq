@@ -86,6 +86,8 @@ describe('Issue #68 – mehrere Teilrechnungen zur selben Bestellung', () => {
     expect(rechnungen[0].verkaufId).toBe(rechnungen[1].verkaufId);
   });
   it('zieht spätere Rechnungseingänge nicht erneut vom Verkaufsguthaben ab', async () => {
+    bestellung.bezahltBetrag = 50;
+    bestellung.zahlungen[0].betrag = 50;
     expect((await POST(event() as never)).status).toBe(201);
     rechnungen[0].zahlungen.push({ betrag: 5, zahlungsart: 'bank', datum: new Date(), zahlungId: '12345678-1234-1234-1234-123456789012' });
     rechnungen[0].bezahltBetrag = 55;
