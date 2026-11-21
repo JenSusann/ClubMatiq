@@ -32,14 +32,16 @@ export function pruefeRetourenmenge(
   const p = vorgang.positionen?.[positionsIndex];
   if (!p) throw new Error('Verkaufsposition nicht gefunden.');
   const uebergaben = (vorgang.uebergaben ?? []).filter((u) => u.positionsIndex === positionsIndex);
-  const uebergeben = uebergaben.reduce((summe, u) => {
+  const protokolliert = uebergaben.reduce((summe, u) => {
     if (!Number.isSafeInteger(u.menge) || (u.menge ?? 0) <= 0) throw new Error('Übergabedaten inkonsistent.');
     return summe + (u.menge ?? 0);
   }, 0);
-  // Direktverkäufe können ohne separaten Übergabeeintrag existieren.
-  // Ohne nachweisbare Übergabe wird keine Retoure freigegeben.
+  // Direktverkäufe gelten mit Abschluss als sofort übergeben.
+  // Bestellungen benötigen weiterhin einen expliziten Übergabenachweis.
+  const uebergeben = p.verkaufsart === 'direkt' && protokolliert === 0
+    ? p.menge ?? 0 : protokolliert;
   if (uebergeben <= 0) throw new Error('Keine dokumentierte Übergabe für diese Position.');
-  if (p.uebergebenMenge !== undefined && p.uebergebenMenge !== uebergeben) {
+  if (p.verkaufsart !== 'direkt' && p.uebergebenMenge !== undefined && p.uebergebenMenge !== uebergeben) {
     throw new Error('Übergabemengen stimmen nicht überein.');
   }
   const retouren = (vorgang.retouren ?? []).filter((r) => r.positionsIndex === positionsIndex);
