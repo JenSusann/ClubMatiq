@@ -60,6 +60,20 @@ describe('Issue #68 – spätere Preisfestlegung im selben Vorgang', () => {
     const response = await POST(event({ verkaufId: id, positionsIndex: 2, einzelpreis: 48 }) as never);
     expect(response.status).toBe(409);
   });
+  it('erlaubt die spätere Preisfestlegung nach einer ersten Teilrechnung', async () => {
+    m.findOne.mockResolvedValue({ ...bestellung(), trancheRechnungIds: [id] });
+    const response = await POST(event({ verkaufId: id, positionsIndex: 2, einzelpreis: 48 }) as never);
+    expect(response.status).toBe(200);
+    expect((await response.json()).ergebnis).toMatchObject({ faellig: 103, bezahlt: 55, restbetrag: 48 });
+    expect(m.updateOne).toHaveBeenCalledTimes(1);
+  });
+  it('verhindert unzugeordnete Zahlung bei Preisfestlegung nach Teilrechnung', async () => {
+    m.findOne.mockResolvedValue({ ...bestellung(), trancheRechnungIds: [id] });
+    const response = await POST(event({ verkaufId: id, positionsIndex: 2, einzelpreis: 48,
+      zahlung: { betrag: 48, zahlungsart: 'twint' } }) as never);
+    expect(response.status).toBe(409);
+    expect(m.updateOne).not.toHaveBeenCalled();
+  });
   it('schützt bereits verrechnete Bestellungen', async () => {
     m.findOne.mockResolvedValue({ ...bestellung(), rechnungId: id });
     const response = await POST(event({ verkaufId: id, positionsIndex: 2, einzelpreis: 48 }) as never);
