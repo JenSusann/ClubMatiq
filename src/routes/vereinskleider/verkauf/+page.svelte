@@ -658,7 +658,7 @@
           <p class="warnung" role="alert">{speichernFehler}</p>
         {/if}
         <button type="button" class="speichern" onclick={vorgangSpeichern}
-          disabled={speichernLaeuft || !bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart !== 'bestellung' || rabattId !== '' || rabattZahl !== 0))}>
+          disabled={speichernLaeuft || !bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart === 'direkt' || rabattId !== '' || rabattZahl !== 0))}>
           {speichernLaeuft ? 'Wird gespeichert ...' : 'Gesamten Vorgang speichern'}
         </button>
         <p class="hinweis">Die API speichert den Vorgang. Nur direkt übergebene Stücke reduzieren den Lagerbestand. Bestellte Stücke bleiben offen. Die Zahlungsbestätigung wird nach Anpassung der Verkaufs-API dauerhaft gespeichert.</p>
