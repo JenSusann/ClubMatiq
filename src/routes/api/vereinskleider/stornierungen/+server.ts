@@ -114,8 +114,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         const belege = await rechnungen.find({
           vereinId, verkaufId: verkaufId.toString(), rechnungstranche: true
         }, { session }).toArray();
-        if (belege.length !== verkauf.trancheRechnungIds.length ||
-            belege.some((r) => !verkauf.trancheRechnungIds.includes(r._id.toString()))) {
+        const trancheIds = verkauf.trancheRechnungIds;
+        if (belege.length !== trancheIds.length ||
+            belege.some((r) => !trancheIds.includes(r._id.toString()))) {
           throw new Stornierungsfehler('Teilrechnungen sind inkonsistent.', 409);
         }
         const passende = belege.filter((r) => r.positionen?.some((bp: Position & { positionsIndex?: number }) =>
