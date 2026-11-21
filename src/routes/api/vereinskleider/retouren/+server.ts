@@ -24,9 +24,10 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     });
     if (!verkauf) return json({ fehler: 'Verkauf nicht gefunden.' }, { status: 404 });
     const positionen = (Array.isArray(verkauf.positionen) ? verkauf.positionen : []).map((p, i) => {
-      const uebergeben = (Array.isArray(verkauf.uebergaben) ? verkauf.uebergaben : [])
+      const protokolliert = (Array.isArray(verkauf.uebergaben) ? verkauf.uebergaben : [])
         .filter((u: { positionsIndex?: number }) => u.positionsIndex === i)
         .reduce((summe: number, u: { menge?: number }) => summe + (u.menge ?? 0), 0);
+      const uebergeben = p.verkaufsart === 'direkt' && protokolliert === 0 ? p.menge ?? 0 : protokolliert;
       const retourniert = (Array.isArray(verkauf.retouren) ? verkauf.retouren : [])
         .filter((r: { positionsIndex?: number }) => r.positionsIndex === i)
         .reduce((summe: number, r: { menge?: number }) => summe + (r.menge ?? 0), 0);
