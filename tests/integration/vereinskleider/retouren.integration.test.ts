@@ -76,6 +76,56 @@ describe('Issue #69 – Retouren API', () => {
     expect((await POST(request({}))).status).toBe(403);
     expect(mock.findOne).not.toHaveBeenCalled();
   });
+  const vorbereiten = () => {
+    mock.findOne.mockResolvedValue({
+      _id: id, vereinId: 'verein-1',
+      positionen: [{ artikelId: id, groesseId: null, menge: 2,
+        einzelpreis: 28, verkaufsart: 'direkt' }],
+      retouren: [], rabattTotal: 0, rabatte: []
+    });
+    mock.find.mockReturnValue({ toArray: async () => [{
+      _id: id, vereinId: 'verein-1', rechnungsnummer: '2026-001',
+      positionen: [{ positionsIndex: 0, artikelId: id, groesseId: null,
+        menge: 2, einzelpreis: 28 }],
+      gesamtbetrag: 56, bezahltBetrag: 56, gutgeschriebenBetrag: 0,
+      rueckerstattungOffen: 0
+    }] });
+    mock.updateOne.mockResolvedValue({ modifiedCount: 1 });
+    mock.insertOne.mockResolvedValue({ insertedId: id });
+    mock.movement.mockResolvedValue(undefined);
+  };
+  it('verbucht eine wiederverkaufbare Direktverkaufsretoure mit Gutschrift und Lagerzugang', async () => {
+    vorbereiten();
+    const response = await POST(request({}));
+    expect(response.status).toBe(201);
+    expect(mock.updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({ vereinId: 'verein-1' }),
+      expect.objectContaining({ $inc: { menge: 1 } }),
+      expect.any(Object)
+    );
+    expect(mock.insertOne).toHaveBeenCalledTimes(1);
+    expect(mock.movement).toHaveBeenCalledTimes(1);
+  });
+  it('erstellt bei nicht wiederverkaufbarer Ware eine Gutschrift ohne Lagerzugang', async () => {
+    vorbereiten();
+    const response = await POST(request({ wiederverkaufbar: false, grund: 'defekt' }));
+    expect(response.status).toBe(201);
+    expect(mock.movement).not.toHaveBeenCalled();
+    expect(mock.updateOne).not.toHaveBeenCalledWith(
+      expect.anything(), expect.objectContaining({ $inc: { menge: 1 } }), expect.anything()
+    );
+    expect(mock.insertOne).toHaveBeenCalledTimes(1);
+  });
+  it('blockiert bereits vollständig retournierte Positionen ohne zweite Gutschrift', async () => {
+    vorbereiten();
+    mock.findOne.mockResolvedValue({
+      positionen: [{ artikelId: id, groesseId: null, menge: 1,
+        einzelpreis: 28, verkaufsart: 'direkt' }],
+      retouren: [{ positionsIndex: 0, menge: 1 }]
+    });
+    expect((await POST(request({}))).status).toBe(409);
+    expect(mock.insertOne).not.toHaveBeenCalled();
+  });
   it('GET validiert Verkaufs-ID', async () => {
     const response = await GET({
       locals: { benutzer: { vereinId: 'verein-1' } },
