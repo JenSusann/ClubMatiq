@@ -83,13 +83,13 @@ describe('Issue #69 – Retouren API', () => {
         einzelpreis: 28, verkaufsart: 'direkt' }],
       retouren: [], rabattTotal: 0, rabatte: []
     });
-    mock.find.mockReturnValue({ toArray: async () => [{
+    mock.find.mockImplementation((filter: { rechnungId?: string }) => ({ toArray: async () => filter.rechnungId ? [] : [{
       _id: id, vereinId: 'verein-1', rechnungsnummer: '2026-001',
       positionen: [{ positionsIndex: 0, artikelId: id, groesseId: null,
         menge: 2, einzelpreis: 28 }],
       gesamtbetrag: 56, bezahltBetrag: 56, gutgeschriebenBetrag: 0,
       rueckerstattungOffen: 0
-    }] });
+    }] }));
     mock.updateOne.mockResolvedValue({ modifiedCount: 1 });
     mock.insertOne.mockResolvedValue({ insertedId: id });
     mock.movement.mockResolvedValue(undefined);
