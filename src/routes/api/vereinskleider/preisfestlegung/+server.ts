@@ -58,7 +58,14 @@ export const POST: RequestHandler = async ({ locals, request }) => {
       const verkauf = await collection.findOne({ _id, vereinId }, { session });
       if (!verkauf) throw new Preisfehler('Bestellung nicht gefunden.', 404);
       if (verkauf.rechnungId) {
-        throw new Preisfehler('Für diese Bestellung existiert bereits eine Rechnung. Bitte zuerst die Rechnungsverrechnung berücksichtigen.', 409);
+        throw new Preisfehler('Für diese Bestellung existiert bereits eine vollständige Rechnung.', 409);
+      }
+      // Teilrechnungen betreffen nur bereits bepreiste Positionen. Eine später
+      // bepreiste Position darf ergänzt werden, ohne alte Rechnungen zu ändern.
+      // Neue Zahlungseingänge nach einer Teilrechnung müssen dagegen über die
+      // Rechnungsverwaltung zugeordnet werden.
+      if (Array.isArray(verkauf.trancheRechnungIds) && verkauf.trancheRechnungIds.length > 0 && neueZahlung) {
+        throw new Preisfehler('Bei bestehenden Teilrechnungen bitte den Preis ohne gleichzeitige Zahlung festlegen. Zahlungseingänge müssen einer Rechnung zugeordnet werden.', 409);
       }
       if (!Array.isArray(verkauf.positionen) || index >= verkauf.positionen.length) {
         throw new Preisfehler('Bestellposition nicht gefunden.', 404);
