@@ -67,7 +67,14 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         throw new TrancheFehler('Es gibt keine weiteren verrechenbaren Positionen.');
       }
       const bisherVerrechnet = vorherige.reduce((sum, r) => sum + rappen(r.gesamtbetrag), 0);
-      // Nur Zahlungen aus dem ursprünglichen Verkauf verbrauchen dessen Guthaben.\n      // Spätere direkte Rechnungseingänge dürfen nicht nochmals vom Verkauf abgezogen werden.\n      const bisherZugeordnet = vorherige.reduce((sum, r) => {\n        const eintraege = r.zahlungen as { betrag: number; quelle?: string }[] | undefined;\n        return sum + (Array.isArray(eintraege) && eintraege.length\n          ? eintraege.filter((z) => z.quelle === 'verkauf').reduce((teil, z) => teil + rappen(z.betrag), 0)\n          : rappen(r.bezahltBetrag));\n      }, 0);
+      // Nur Zahlungen aus dem ursprünglichen Verkauf verbrauchen dessen Guthaben.
+      // Spätere direkte Rechnungseingänge dürfen nicht nochmals vom Verkauf abgezogen werden.
+      const bisherZugeordnet = vorherige.reduce((sum, r) => {
+        const eintraege = r.zahlungen as { betrag: number; quelle?: string }[] | undefined;
+        return sum + (Array.isArray(eintraege) && eintraege.length
+          ? eintraege.filter((z) => z.quelle === 'verkauf').reduce((teil, z) => teil + rappen(z.betrag), 0)
+          : rappen(r.bezahltBetrag));
+      }, 0);
       const bezahltGesamt = rappen(verkauf.bezahltBetrag ?? 0);
       const zahlungen = verkauf.zahlungen ?? [];
       if (!Array.isArray(zahlungen) || zahlungen.some((z) => rappen(z.betrag) <= 0) ||
@@ -77,7 +84,28 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         throw new TrancheFehler('Die Zahlungshistorie ist nicht konsistent.');
       }
       const gesamtRappen = rappen(tranche.gesamtbetrag);
-      const neuBezahlt = Math.min(gesamtRappen, bezahltGesamt - bisherZugeordnet);\n      // Zahlungen chronologisch und centgenau der neuen Rechnung zuordnen.\n      // Es wird kein zweiter Zahlungseingang gebucht, sondern die bestehende\n      // Verkaufshistorie als Rechnungsnachweis übernommen.\n      let ueberspringen = bisherZugeordnet;\n      let zuordnen = neuBezahlt;\n      const zugeordneteZahlungen: { betrag: number; datum: Date; zahlungsart: string; quelle: 'verkauf' }[] = [];\n      for (const z of zahlungen) {\n        const wert = rappen(z.betrag);\n        const skip = Math.min(wert, ueberspringen);\n        ueberspringen -= skip;\n        const anteil = Math.min(wert - skip, zuordnen);\n        if (anteil > 0) {\n          const datum = new Date(z.datum);\n          if (Number.isNaN(datum.getTime()) || !['bar', 'twint', 'rechnung'].includes(z.zahlungsart)) {\n            throw new TrancheFehler('Ungültige Zahlungshistorie.');\n          }\n          zugeordneteZahlungen.push({ betrag: anteil / 100, datum, zahlungsart: z.zahlungsart, quelle: 'verkauf' });\n          zuordnen -= anteil;\n        }\n      }\n      if (zuordnen !== 0) throw new TrancheFehler('Zahlungszuordnung unvollständig.');
+      const neuBezahlt = Math.min(gesamtRappen, bezahltGesamt - bisherZugeordnet);
+      // Zahlungen chronologisch und centgenau der neuen Rechnung zuordnen.
+      // Es wird kein zweiter Zahlungseingang gebucht, sondern die bestehende
+      // Verkaufshistorie als Rechnungsnachweis übernommen.
+      let ueberspringen = bisherZugeordnet;
+      let zuordnen = neuBezahlt;
+      const zugeordneteZahlungen: { betrag: number; datum: Date; zahlungsart: string; quelle: 'verkauf' }[] = [];
+      for (const z of zahlungen) {
+        const wert = rappen(z.betrag);
+        const skip = Math.min(wert, ueberspringen);
+        ueberspringen -= skip;
+        const anteil = Math.min(wert - skip, zuordnen);
+        if (anteil > 0) {
+          const datum = new Date(z.datum);
+          if (Number.isNaN(datum.getTime()) || !['bar', 'twint', 'rechnung'].includes(z.zahlungsart)) {
+            throw new TrancheFehler('Ungültige Zahlungshistorie.');
+          }
+          zugeordneteZahlungen.push({ betrag: anteil / 100, datum, zahlungsart: z.zahlungsart, quelle: 'verkauf' });
+          zuordnen -= anteil;
+        }
+      }
+      if (zuordnen !== 0) throw new TrancheFehler('Zahlungszuordnung unvollständig.');
       const jetzt = new Date();
       const jahr = jetzt.getFullYear();
       const zaehler = await db.collection<Document & { _id: string; nummer: number }>('vereinskleider_rechnungsnummern').findOneAndUpdate(
