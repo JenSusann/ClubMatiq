@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
 
   type Verkauf = {
     _id: string;
@@ -68,6 +68,12 @@
   let rueckArt = $state<'bank' | 'twint' | 'bar'>('bank');
   let rueckBemerkung = $state('');
   let rueckBestaetigt = $state(false);
+  let rueckFehler = $state('');
+
+  async function zumRueckFormular(): Promise<void> {
+    await tick();
+    document.getElementById('gutschrift-formular')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   function gutschriftOeffnen(g: Gutschrift, rechnung: Rechnung): void {
     if (gutschriftSpeichern) return;
@@ -79,8 +85,10 @@
     rueckArt = 'bank';
     rueckBemerkung = '';
     rueckBestaetigt = false;
+    rueckFehler = '';
     fehler = '';
     erfolg = '';
+    void zumRueckFormular();
   }
 
   function gutschriftSchliessen(): void {
@@ -103,15 +111,15 @@
         g.betrag - (g.rueckerstattetBetrag ?? 0)) * 100);
       if (!Number.isFinite(wert) || !Number.isSafeInteger(rappen) ||
           rappen <= 0 || rappen > maximal || Math.abs(wert * 100 - rappen) > 0.000001) {
-        fehler = `Bitte einen gültigen Betrag bis ${chf(maximal / 100)} eingeben.`;
+        rueckFehler = `Bitte einen gültigen Betrag bis ${chf(maximal / 100)} eingeben.`;
         return;
       }
-      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(rueckDatum)) {
-        fehler = 'Bitte ein gültiges Rückerstattungsdatum eingeben.';
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(rueckDatum)) {
+        rueckFehler = 'Bitte ein gültiges Rückerstattungsdatum eingeben.';
         return;
       }
       if (!rueckBestaetigt) {
-        fehler = 'Bitte bestätigen, dass die Rückerstattung tatsächlich erfolgt ist.';
+        rueckFehler = 'Bitte bestätigen, dass die Rückerstattung tatsächlich erfolgt ist.';
         return;
       }
       Object.assign(daten, {
@@ -119,6 +127,7 @@
         bemerkung: rueckBemerkung
       });
     }
+    rueckFehler = '';
     gutschriftSpeichern = g._id;
     fehler = '';
     erfolg = '';
@@ -134,7 +143,7 @@
       aktiveGutschriftRechnung = null;
       erfolg = `Gutschrift ${g.gutschriftnummer} wurde aktualisiert.`;
     } catch (e) {
-      fehler = e instanceof Error ? e.message : 'Gutschrift konnte nicht abgeschlossen werden.';
+      rueckFehler = e instanceof Error ? e.message : 'Gutschrift konnte nicht abgeschlossen werden.';
     } finally {
       gutschriftSpeichern = null;
     }
@@ -522,12 +531,13 @@
     </section>
 
     {#if aktiveGutschrift && aktiveGutschriftRechnung}
-      <section class="karte zahlungsformular" aria-label="Gutschrift bearbeiten">
+      <section id="gutschrift-formular" class="karte zahlungsformular" aria-label="Gutschrift bearbeiten">
         <div class="abschnittskopf">
           <h2>Gutschrift bearbeiten – {aktiveGutschrift.gutschriftnummer}</h2>
           <button type="button" class="sekundaer" onclick={gutschriftSchliessen} disabled={gutschriftSpeichern !== null}>Schliessen</button>
         </div>
         <p class="hinweis">Rechnung {aktiveGutschriftRechnung.rechnungsnummer} · Gutschrift: {chf(aktiveGutschrift.betrag)} · Noch offene Rückerstattung der Rechnung: <strong>{chf(rueckerstattung(aktiveGutschriftRechnung))}</strong></p>
+        {#if rueckFehler}<p class="meldung fehler" role="alert">{rueckFehler}</p>{/if}
         <form onsubmit={(ereignis) => { ereignis.preventDefault(); void gutschriftAbschliessen(); }}>
           {#if rueckerstattung(aktiveGutschriftRechnung) > 0}
             <div class="formularfelder">
@@ -628,7 +638,7 @@
   .abschnittskopf label { min-width: 190px; }
   .status { display: inline-block; border-radius: 7px; padding: 5px 8px; background: #fef3c7; color: #92400e; white-space: nowrap; font-size: 12px; font-weight: 600; }
   .status.bezahlt { background: #dcfce7; color: #166534; }
-  .zahlungsformular { border-color: #93c5fd; }
+  .zahlungsformular { border-color: #93c5fd; scroll-margin-top: 20px; }
   .formularfelder { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 20px 0; }
   .formularaktionen { display: flex; gap: 10px; margin-top: 18px; }
   .bestaetigung { display: flex; align-items: center; gap: 10px; margin-top: 18px; font-weight: 400; }
