@@ -175,9 +175,27 @@ describe('Issue #69 – Retouren API', () => {
     expect(mock.updateOne).toHaveBeenCalledWith(
       expect.objectContaining({
         vereinId: 'verein-1',
-        retouren: { $exists: false }
+        retouren: []
       }),
       expect.any(Object), expect.any(Object)
+    );
+  });
+  it('verknüpft Retourengutschrift mit Rechnung und markiert ClubDesk-Export als ausstehend', async () => {
+    vorbereiten();
+    const antwort = await POST(request({}));
+    expect(antwort.status).toBe(201);
+    expect(mock.insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        vereinId: 'verein-1',
+        verkaufId: id,
+        rechnungId: id,
+        rechnungsnummer: '2026-001',
+        retourId: expect.any(String),
+        gutschriftnummer: expect.stringMatching(/^GS-/),
+        clubdeskExportStatus: 'nicht_exportiert',
+        pdfStatus: 'ausstehend'
+      }),
+      expect.any(Object)
     );
   });
   it('GET validiert Verkaufs-ID', async () => {
