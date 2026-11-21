@@ -67,7 +67,8 @@ describe('Issue #68 – mehrere Teilrechnungen zur selben Bestellung', () => {
     expect((await res.json()).rechnung).toMatchObject({ gesamtbetrag: 55, offenePreispositionen: 1 });
     expect(rechnungen).toHaveLength(1);
     expect(rechnungen[0].positionen.map((p: any) => p.positionsIndex)).toEqual([0, 1]);
-    expect(rechnungen[0].bezahltBetrag).toBe(55);\n    expect(rechnungen[0].zahlungen).toMatchObject([{ betrag: 55, zahlungsart: 'twint', quelle: 'verkauf' }]);
+    expect(rechnungen[0].bezahltBetrag).toBe(55);
+    expect(rechnungen[0].zahlungen).toMatchObject([{ betrag: 55, zahlungsart: 'twint', quelle: 'verkauf' }]);
     expect(rechnungen[0].verkaufId).toBe(id);
   });
   it('stellt nach Preisfestlegung nur CHF 48 aus – ohne die ersten CHF 55 nochmals zu berechnen', async () => {
@@ -80,7 +81,8 @@ describe('Issue #68 – mehrere Teilrechnungen zur selben Bestellung', () => {
     expect((await res.json()).rechnung.gesamtbetrag).toBe(48);
     expect(rechnungen).toHaveLength(2);
     expect(rechnungen[1].positionen.map((p: any) => p.positionsIndex)).toEqual([2]);
-    expect(rechnungen[1].bezahltBetrag).toBe(0);\n    expect(rechnungen[1].zahlungen).toEqual([]);
+    expect(rechnungen[1].bezahltBetrag).toBe(0);
+    expect(rechnungen[1].zahlungen).toEqual([]);
     expect(rechnungen[0].verkaufId).toBe(rechnungen[1].verkaufId);
   });
   it('zieht spätere Rechnungseingänge nicht erneut vom Verkaufsguthaben ab', async () => {
