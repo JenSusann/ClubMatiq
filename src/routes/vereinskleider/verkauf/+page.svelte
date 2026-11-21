@@ -611,7 +611,7 @@
             {/each}
           </div>
           {#if hatOffenePreise}
-            <p class="hinweis">Offene Preispositionen werden verbindlich bestellt und noch nicht verrechnet. Bitte «Nur Bestellung» wählen. Rabatte sind für diese Bestellungen noch nicht möglich.</p>
+            <p class="hinweis">Offene Preispositionen werden verbindlich bestellt und noch nicht verrechnet. Bei «Automatisch» werden Artikel mit offenem Preis verbindlich bestellt. Rabatte sind für diese Bestellungen noch nicht möglich.</p>
           {/if}
           <div class="rabattbereich">
             <h3>Rabatt</h3>
@@ -656,6 +656,18 @@
         {/if}
         {#if speichernFehler}
           <p class="warnung" role="alert">{speichernFehler}</p>
+        {/if}
+        {#if !speichernLaeuft && (!bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart === 'direkt' || rabattId !== '' || rabattZahl !== 0)))}
+          <p class="warnung" role="status">
+            Speichern gesperrt:
+            {#if !bereit} Käufer oder Warenkorb fehlt. {/if}
+            {#if !warenkorbGueltig} Bestand reicht für den Direktverkauf nicht. {/if}
+            {#if !rabattGueltig} Rabattbetrag ist ungültig. {/if}
+            {#if !rabattAuswahlGueltig} Ausgewählte Rabattregel ist nicht gültig. {/if}
+            {#if riegen.length === 0} Bitte mindestens eine Riege auswählen. {/if}
+            {#if hatOffenePreise && verkaufsart === 'direkt'} Artikel mit offenem Preis benötigen «Automatisch» oder «Nur Bestellung». {/if}
+            {#if hatOffenePreise && (rabattId !== '' || rabattZahl !== 0)} Bei offenen Preisen sind Rabatte nicht möglich. {/if}
+          </p>
         {/if}
         <button type="button" class="speichern" onclick={vorgangSpeichern}
           disabled={speichernLaeuft || !bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart === 'direkt' || rabattId !== '' || rabattZahl !== 0))}>
