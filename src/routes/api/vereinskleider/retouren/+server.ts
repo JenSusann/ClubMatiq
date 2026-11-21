@@ -6,11 +6,7 @@ import { protokolliereLagerbewegung } from '../../../../lib/server/lagerbewegung
 import { pruefeRetourenmenge } from '../../../../lib/server/vereinskleider-retouren';
 import type { RequestHandler } from './$types';
 
-/**
- * Read-only Übersicht für Issue #69. Die POST-Funktion wird erst freigeschaltet,
- * wenn Gutschriften, Zahlungen und Lageränderungen in EINER Transaktion
- * konsistent aktualisiert werden können.
- */
+/** Retourenübersicht. Finanzielle Freigabe erfolgt erst im transaktionalen POST. */
 export const GET: RequestHandler = async ({ locals, url }) => {
   const zugriff = pruefeBerechtigung(locals.benutzer, 'verkauf:verwalten');
   if (zugriff) return zugriff;
@@ -32,6 +28,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
         .filter((r: { positionsIndex?: number }) => r.positionsIndex === i)
         .reduce((summe: number, r: { menge?: number }) => summe + (r.menge ?? 0), 0);
       const maximal = Math.max(0, uebergeben - retourniert);
+      // Die Übersicht garantiert keine Finanzfreigabe; diese wird beim POST erneut geprüft.
       const freigegeben = false;
       let hinweis = '';
       if (maximal > 0) {
@@ -143,9 +140,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
       const gesamt = rappen(rechnung.gesamtbetrag);
       const bezahlt = rappen(rechnung.bezahltBetrag ?? 0);
       const gutgeschrieben = rappen(rechnung.gutgeschriebenBetrag ?? 0);
-      const rueckerstattet = Math.max(0, bezahlt - (gesamt - gutgeschrieben) -
-        rappen(rechnung.rueckerstattungOffen ?? Math.max(0, (bezahlt - gesamt + gutgeschrieben) / 100)));
-      if (![gesamt, bezahlt, gutgeschrieben, rueckerstattet].every(Number.isSafeInteger) ||
+      const rueckerstattungAlt = rappen(rechnung.rueckerstattungOffen ?? 0);
+      const rueckerstattet = Math.max(0, bezahlt - (gesamt - gutgeschrieben) - rueckerstattungAlt);
+      if (![gesamt, bezahlt, gutgeschrieben, rueckerstattungAlt, rueckerstattet].every(Number.isSafeInteger) ||
           gesamt < 0 || bezahlt < 0 || bezahlt > gesamt || gutgeschrieben < 0 ||
           gutgeschrieben + betrag > gesamt) {
         throw new Retourenfehler('Rechnungsbeträge sind inkonsistent.');
