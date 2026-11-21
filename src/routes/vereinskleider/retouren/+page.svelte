@@ -24,6 +24,11 @@
   let datum = $state('');
   let seite = $state(1);
   let seiten = $state(1);
+  let historieSeite = $state(1);
+  let historieSeiten = $state(1);
+  let historieLaden = $state(false);
+  let historieFehler = $state('');
+  let historien = $state<Array<Retoure & { verkaufId: string; kaeufer: string; artikel: string }>>([]);
   const formatGeld = (wert: number) => new Intl.NumberFormat('de-CH', { style: 'currency', currency: 'CHF' }).format(wert);
   const grundText = (wert: string) => ({
     falsche_groesse: 'Falsche Grösse', gefaellt_nicht: 'Gefällt nicht',
@@ -47,10 +52,23 @@
   let aktiveVerkaeufe = $derived(gefiltert.filter((v) => (v.positionen ?? [])
     .some((_, i) => maximal(v, i) > 0)));
   let ausgewaehlterVerkauf = $derived(verkaeufe.find((v) => v._id === ausgewaehlt));
-  let historien = $derived(verkaeufe.flatMap((v) => (v.retouren ?? []).map((r) => ({
-    ...r, verkaufId: v._id, kaeufer: v.kaeufer ?? 'Unbekannt',
-    artikel: v.positionen?.[r.positionsIndex]?.artikelname ?? 'Artikel'
-  }))).sort((a, b) => b.datum.localeCompare(a.datum)));
+  async function ladeHistorie(zielSeite = historieSeite): Promise<void> {
+    historieLaden = true;
+    historieFehler = '';
+    try {
+      const antwort = await fetch(`/api/vereinskleider/retouren/historie?seite=${zielSeite}`);
+      const daten: { retouren?: typeof historien; seiten?: number; fehler?: string } =
+        await antwort.json();
+      if (!antwort.ok) throw new Error(daten.fehler ?? 'Historie konnte nicht geladen werden.');
+      historien = daten.retouren ?? [];
+      historieSeite = zielSeite;
+      historieSeiten = Math.max(1, daten.seiten ?? 1);
+    } catch (e) {
+      historieFehler = e instanceof Error ? e.message : 'Historie konnte nicht geladen werden.';
+    } finally {
+      historieLaden = false;
+    }
+  }
   async function lade(zielSeite = seite): Promise<void> {
     laden = true;
     fehler = '';
@@ -98,6 +116,7 @@
       ausgewaehlt = '';
       erfolg = 'Retoure gespeichert. Die Gutschrift ist erstellt; eine Auszahlung wurde nicht ausgelöst.';
       await lade(seite);
+      await ladeHistorie(1);
     } catch (e) {
       fehler = e instanceof Error ? e.message : 'Retoure konnte nicht gespeichert werden.';
     } finally {
@@ -106,6 +125,7 @@
   }
   onMount(() => {
     void lade(1);
+    void ladeHistorie(1);
     void fetch('/api/groessen').then(async (r) => {
       if (!r.ok) return;
       const daten: unknown = await r.json();
@@ -199,7 +219,8 @@
 
   <section class="karte">
     <h2>Retourenhistorie</h2>
-    {#if historien.length === 0}
+    {#if historieFehler}<p class="meldung fehler" role="alert">{historieFehler}</p>{/if}
+    {#if historieLaden}<p>Retourenhistorie wird geladen …</p>{:else if historien.length === 0}
       <p>Keine Retouren auf der aktuellen Seite vorhanden.</p>
     {:else}
       <div class="tabelle">
@@ -217,7 +238,12 @@
         </table>
       </div>
     {/if}
-    <p class="hinweis">Diese Ansicht zeigt Retouren der aktuellen Verkaufsseite. Alle Gutschriften und Rückerstattungen findest du unter Verrechnung.</p>
+    <div class="seitenwahl">
+      <button type="button" class="sekundaer" disabled={historieLaden || historieSeite <= 1} onclick={() => void ladeHistorie(historieSeite - 1)}>Zurück</button>
+      <span>Seite {historieSeite} von {historieSeiten}</span>
+      <button type="button" class="sekundaer" disabled={historieLaden || historieSeite >= historieSeiten} onclick={() => void ladeHistorie(historieSeite + 1)}>Weiter</button>
+    </div>
+    <p class="hinweis">Alle Retouren des Vereins, unabhängig von der Verkaufsseite. Gutschriften und Rückerstattungen findest du unter Verrechnung.</p>
   </section>
 </main>
 <style>
