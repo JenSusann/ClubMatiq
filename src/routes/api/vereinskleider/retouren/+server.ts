@@ -90,7 +90,10 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     return json({ fehler: 'Ungültiges Retourendatum.' }, { status: 400 });
   }
   const vereinId = locals.benutzer!.vereinId;
-  const verkaufId = new ObjectId(eingabe.verkaufId);
+  const grund = eingabe.grund as string;
+  const wiederverkaufbar = eingabe.wiederverkaufbar as boolean;
+  const bemerkung = (eingabe.bemerkung as string).trim();
+  const verkaufId = new ObjectId(eingabe.verkaufId as string);
   const index = eingabe.positionsIndex as number;
   const menge = eingabe.menge as number;
   const session = client.startSession();
@@ -161,7 +164,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         status, aktualisiertAm: jetzt
       } }, { session });
       if (rechnungUpdate.modifiedCount !== 1) throw new Retourenfehler('Rechnung wurde geändert.');
-      if (eingabe.wiederverkaufbar) {
+      if (wiederverkaufbar) {
         const artikelUpdate = await db.collection('artikel').updateOne({
           _id: new ObjectId(p.artikelId), vereinId
         }, { $inc: { menge }, $set: { aktualisiertAm: jetzt } }, { session });
@@ -177,8 +180,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
       const retoure = {
         _id: retourId.toString(), positionsIndex: index, artikelId: p.artikelId,
         groesseId: p.groesseId, menge, betrag: betrag / 100,
-        grund: eingabe.grund, wiederverkaufbar: eingabe.wiederverkaufbar,
-        bemerkung: eingabe.bemerkung.trim(), datum, erfasstAm: jetzt,
+        grund, wiederverkaufbar,
+        bemerkung, datum, erfasstAm: jetzt,
         erfasstVon: locals.benutzer!.id,
         rechnungId: rechnung._id.toString()
       };
@@ -198,7 +201,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         gutschriftnummer: `GS-${gutschriftId.toString().slice(-12).toUpperCase()}`,
         positionsIndex: index, artikelId: p.artikelId, groesseId: p.groesseId,
         artikelname: p.artikelname ?? '', menge, einzelpreis: p.einzelpreis,
-        betrag: betrag / 100, grund: `Retoure: ${eingabe.grund}`,
+        betrag: betrag / 100, grund: `Retoure: ${grund}`,
         retourId: retourId.toString(), erstelltAm: jetzt, status: 'erstellt',
         pdfStatus: 'ausstehend', clubdeskExportStatus: 'nicht_exportiert'
       }, { session });
