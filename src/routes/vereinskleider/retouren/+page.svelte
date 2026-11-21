@@ -165,7 +165,7 @@
     <section class="karte formular">
       <h2>Retoure: {ausgewaehlterVerkauf.positionen?.[positionsIndex]?.artikelname ?? 'Artikel'}</h2>
       <p>{ausgewaehlterVerkauf.kaeufer} · Maximal {maximal(ausgewaehlterVerkauf, positionsIndex)} Stück</p>
-      <form onsubmit={(e) => { e.preventDefault(); void erfassen(); }}>
+      <form novalidate onsubmit={(e) => { e.preventDefault(); void erfassen(); }}>
         <div class="felder">
           <label>Menge<input type="number" min="1" step="1" required bind:value={menge} /></label>
           {#if !Number.isSafeInteger(Number(menge)) || Number(menge) < 1 || Number(menge) > maximal(ausgewaehlterVerkauf, positionsIndex)}
