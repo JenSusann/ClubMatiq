@@ -84,6 +84,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       const verkauf = await sammlung.findOne({ _id: verkaufId, vereinId }, { session });
       if (!verkauf) throw new Stornierungsfehler('Verkauf nicht gefunden.', 404);
       if (verkauf.status === 'storniert') throw new Stornierungsfehler('Der Verkauf ist bereits storniert.', 409);
+      // Teilrechnungen besitzen eigene Positionsindizes und Zahlungsstände.
+      // Die alte Stornierungslogik kann nur eine einzelne Vollrechnung gutschreiben.
+      // Bis zur positionsgenauen Gutschrift dürfen solche Bestellungen nicht
+      // ohne Finanzkorrektur storniert werden.
+      if (Array.isArray(verkauf.trancheRechnungIds) && verkauf.trancheRechnungIds.length > 0) {
+        throw new Stornierungsfehler('Für diese Bestellung existieren Teilrechnungen. Eine positionsgenaue Gutschrift ist erforderlich; Stornierung hier noch nicht möglich.', 409);
+      }
       // Ohne Beleg bleibt der bisherige Schutz für bereits bezahlte Verkäufe bestehen.
       if (!verkauf.rechnungId && ((verkauf.bezahltBetrag ?? 0) > 0 ||
           (verkauf.zahlungen ?? []).some((z) => z.betrag > 0))) {
