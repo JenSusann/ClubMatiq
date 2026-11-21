@@ -7,6 +7,7 @@
     groesseId?: string | null;
     menge?: number;
     storniertMenge?: number;
+    uebergebenMenge?: number;
     einzelpreis?: number;
     positionsbetrag?: number;
     verkaufsart?: string;
@@ -55,6 +56,8 @@
     positionen?: Position[];
     rabatte?: Rabatt[];
     rechnung?: Rechnung | null;
+    uebergaben?: Array<{ positionsIndex: number; menge: number }>;
+    retouren?: Array<{ positionsIndex: number; menge: number; grund: string; wiederverkaufbar: boolean; datum: string; betrag: number }>;
     stornierungen?: Array<{ menge?: number; grund?: string; datum?: string; erstelltAm?: string; storniertAm?: string }>;
   };
   type Antwort = {
@@ -84,6 +87,62 @@
   let bis = $state('');
   let filterAktiv = $state(false);
   let exportLaden = $state(false);
+  let retourVorgang = $state<string | null>(null);
+  let retourIndex = $state(0);
+  let retourMenge = $state(1);
+  let retourGrund = $state('falsche_groesse');
+  let retourWiederverkaufbar = $state(true);
+  let retourBemerkung = $state('');
+  let retourDatum = $state('');
+  let retourFehler = $state('');
+  let retourErfolg = $state('');
+  let retourSpeichern = $state(false);
+
+  function retourMax(v: Verkauf, i: number): number {
+    const uebergeben = (v.uebergaben ?? []).filter((u) => u.positionsIndex === i)
+      .reduce((sum, u) => sum + u.menge, 0);
+    const retourniert = (v.retouren ?? []).filter((r) => r.positionsIndex === i)
+      .reduce((sum, r) => sum + r.menge, 0);
+    return Math.max(0, uebergeben - retourniert);
+  }
+  function retourOeffnen(v: Verkauf, index: number): void {
+    retourVorgang = v._id;
+    retourIndex = index;
+    retourMenge = 1;
+    retourGrund = 'falsche_groesse';
+    retourWiederverkaufbar = true;
+    retourBemerkung = '';
+    retourDatum = new Date().toLocaleDateString('sv-SE');
+    retourFehler = '';
+    retourErfolg = '';
+  }
+  async function retourErfassen(v: Verkauf): Promise<void> {
+    if (retourSpeichern) return;
+    retourSpeichern = true;
+    retourFehler = '';
+    try {
+      const antwort = await fetch('/api/vereinskleider/retouren', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          verkaufId: v._id, positionsIndex: retourIndex, menge: Number(retourMenge),
+          grund: retourGrund, wiederverkaufbar: retourWiederverkaufbar,
+          bemerkung: retourBemerkung, datum: retourDatum
+        })
+      });
+      const daten: { erfolg?: boolean; fehler?: string } = await antwort.json().catch(() => ({}));
+      if (!antwort.ok || !daten.erfolg) throw new Error(daten.fehler ?? 'Retoure fehlgeschlagen.');
+      retourVorgang = null;
+      retourErfolg = 'Retoure gespeichert. Gutschrift wurde erstellt.';
+      await lade(seite);
+      await ladeGutschriften();
+      offen = [...offen, v._id];
+    } catch (e) {
+      retourFehler = e instanceof Error ? e.message : 'Retoure fehlgeschlagen.';
+    } finally {
+      retourSpeichern = false;
+    }
+  }
+
   let aktiveFilter = $state('');
 
   const groessenName = (id: string | null | undefined) =>
@@ -212,6 +271,8 @@
   }
 
   function details(id: string) {
+    retourVorgang = null;
+    retourFehler = '';
     offen = offen.includes(id) ? offen.filter((x) => x !== id) : [...offen, id];
   }
 
@@ -291,6 +352,7 @@
     </div>
   </form>
 
+  {#if retourErfolg}<div class="meldung" role="status">{retourErfolg}</div>{/if}
   {#if fehler}
     <div class="meldung fehler" role="alert">{fehler}</div>
   {/if}
@@ -353,12 +415,50 @@
                               <td>{artName(p.verkaufsart)}</td>
                               <td class="rechts">{p.menge ?? 0}</td>
                               <td class="rechts">{chf(p.einzelpreis)}</td>
-                              <td class="rechts">{chf(p.positionsbetrag)}</td>
+                              <td class="rechts">{chf(p.positionsbetrag)}{#if retourMax(v, i) > 0}<small><button type="button" class="linkbutton" onclick={() => retourOeffnen(v, i)}>Retoure erfassen ({retourMax(v, i)} möglich)</button></small>{/if}</td>
                             </tr>
                           {/each}
                         </tbody>
                       </table>
                     </div>
+                    {#if retourVorgang === v._id}
+                      <section class="retourformular" aria-label="Retoure erfassen">
+                        <h3>Retoure erfassen – {v.positionen?.[retourIndex]?.artikelname ?? 'Artikel'}</h3>
+                        <p class="hinweis">Maximal {retourMax(v, retourIndex)} Stück. Eine Gutschrift wird erstellt, aber kein Geld automatisch zurückbezahlt.</p>
+                        {#if retourFehler}<p class="meldung fehler" role="alert">{retourFehler}</p>{/if}
+                        <form onsubmit={(e) => { e.preventDefault(); void retourErfassen(v); }}>
+                          <div class="retourfelder">
+                            <label>Menge <input type="number" min="1" max={retourMax(v, retourIndex)} step="1" required bind:value={retourMenge} /></label>
+                            <label>Datum <input type="date" required bind:value={retourDatum} /></label>
+                            <label>Grund
+                              <select bind:value={retourGrund}>
+                                <option value="falsche_groesse">Falsche Grösse</option>
+                                <option value="gefaellt_nicht">Gefällt nicht</option>
+                                <option value="defekt">Defekt</option>
+                                <option value="sonstiges">Sonstiges</option>
+                              </select>
+                            </label>
+                            <label>Zustand
+                              <select bind:value={retourWiederverkaufbar}>
+                                <option value={true}>Wiederverkaufbar – zurück ins Lager</option>
+                                <option value={false}>Nicht wiederverkaufbar – kein Lagerzugang</option>
+                              </select>
+                            </label>
+                          </div>
+                          <label>Bemerkung <input type="text" maxlength="1000" bind:value={retourBemerkung} /></label>
+                          <div class="retouraktionen">
+                            <button type="submit" disabled={retourSpeichern}>{retourSpeichern ? 'Speichern …' : 'Retoure bestätigen'}</button>
+                            <button type="button" class="sekundaer" onclick={() => retourVorgang = null} disabled={retourSpeichern}>Abbrechen</button>
+                          </div>
+                        </form>
+                      </section>
+                    {/if}
+                    {#if (v.retouren ?? []).length > 0}
+                      <h3>Retourenhistorie</h3>
+                      {#each v.retouren ?? [] as r}
+                        <p>{r.menge} Stück · {r.grund} · {r.wiederverkaufbar ? 'Wiederverkaufbar' : 'Nicht wiederverkaufbar'} · {chf(r.betrag)} · {datum(r.datum)}</p>
+                      {/each}
+                    {/if}
                     <div class="zusammenfassung">
                       <span>Zwischentotal</span><strong>{chf(v.zwischentotal)}</strong>
                       <span>Rabatte</span><strong>− {chf(v.rabattTotal)}</strong>
@@ -404,6 +504,11 @@
 </main>
 
 <style>
+  .retourformular{padding:1rem;border:1px solid #cbd5e1;border-radius:12px;margin:1rem 0}
+  .retourfelder{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin:1rem 0}
+  .retourformular label{display:flex;flex-direction:column;gap:.4rem}
+  .retouraktionen{display:flex;gap:.7rem;margin-top:1rem}
+
   .seite{max-width:1450px;margin:0 auto;padding:1.5rem;color:var(--text-color,inherit)}
   .zurueck{display:inline-block;margin-bottom:1rem;color:#2563eb;text-decoration:none;font-weight:600}.zurueck:hover{text-decoration:underline}
   .kopfaktionen{display:flex;gap:.6rem;flex-wrap:wrap}
