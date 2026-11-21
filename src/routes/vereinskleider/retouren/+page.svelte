@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  type Position = { artikelname?: string; groesseId?: string | null; einzelpreis?: number };
+  type Position = { verkaufsart?: string; menge?: number; artikelname?: string; groesseId?: string | null; einzelpreis?: number };
   type Retoure = { positionsIndex: number; menge: number; grund: string; datum: string; betrag: number; wiederverkaufbar: boolean };
   type Uebergabe = { positionsIndex: number; menge: number };
   type Verkauf = {
@@ -29,8 +29,11 @@
   })[wert as 'falsche_groesse' | 'gefaellt_nicht' | 'defekt' | 'sonstiges'] ?? wert;
   const datumText = (wert: string) => new Date(wert).toLocaleDateString('de-CH');
   function maximal(v: Verkauf, i: number): number {
-    const uebergeben = (v.uebergaben ?? []).filter((u) => u.positionsIndex === i)
+    const protokolliert = (v.uebergaben ?? []).filter((u) => u.positionsIndex === i)
       .reduce((sum, u) => sum + u.menge, 0);
+    const p = v.positionen?.[i];
+    const uebergeben = p?.verkaufsart === 'direkt' && protokolliert === 0
+      ? p.menge ?? 0 : protokolliert;
     const retourniert = (v.retouren ?? []).filter((r) => r.positionsIndex === i)
       .reduce((sum, r) => sum + r.menge, 0);
     return Math.max(0, uebergeben - retourniert);
