@@ -7,7 +7,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
   const zugriff = pruefeBerechtigung(locals.benutzer, 'verkauf:verwalten');
   if (zugriff) return zugriff;
   const seiteText = url.searchParams.get('seite') ?? '1';
-  if (!/^[1-9]\\d*$/.test(seiteText) || !Number.isSafeInteger(Number(seiteText))) {
+  if (!/^[1-9]\d*$/.test(seiteText) || !Number.isSafeInteger(Number(seiteText))) {
     return json({ fehler: 'Ungültige Seitennummer.' }, { status: 400 });
   }
   const seite = Number(seiteText);
