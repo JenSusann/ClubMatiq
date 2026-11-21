@@ -76,7 +76,7 @@ export const PATCH: RequestHandler = async ({ locals, request }) => {
         }
         status = bereits > 0 ? 'rueckerstattet' : 'erledigt';
       } else {
-        if (typeof body.datum !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}$/.test(body.datum) ||
+        if (typeof body.datum !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.datum) ||
             !['bank', 'twint', 'bar'].includes(String(body.zahlungsart)) ||
             typeof body.bemerkung !== 'string' || body.bemerkung.length > 1000) {
           throw new StatusFehler('Datum, Zahlungsweg oder Bemerkung ungültig.', 400);
