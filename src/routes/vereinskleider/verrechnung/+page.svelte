@@ -38,7 +38,7 @@
     betrag: number;
     grund: string;
     erstelltAm: string;
-    bearbeitungsstatus?: 'erledigt' | 'rueckerstattet';
+    bearbeitungsstatus?: 'erledigt' | 'rueckerstattet' | 'teilweise_rueckerstattet';
     rueckerstattetBetrag?: number;
     rueckerstattungen?: { betrag: number; datum: string; zahlungsart: string; bemerkung?: string }[];
   };
@@ -62,19 +62,19 @@
   let gutschriftSpeichern = $state<string | null>(null);
 
   async function gutschriftAbschliessen(g: Gutschrift, rechnung: Rechnung): Promise<void> {
-    if (gutschriftSpeichern || g.bearbeitungsstatus) return;
+    if (gutschriftSpeichern || g.bearbeitungsstatus === 'erledigt' || g.bearbeitungsstatus === 'rueckerstattet') return;
     const offen = rueckerstattung(rechnung);
     const aktion = offen > 0 ? 'rueckerstattet' : 'erledigt';
     let daten: Record<string, unknown> = { gutschriftId: g._id, aktion };
     if (aktion === 'rueckerstattet') {
       const betrag = prompt(
         `Bereits tatsächlich zurückbezahlter Betrag für ${g.gutschriftnummer} (CHF):`,
-        offen.toFixed(2)
+        Math.min(offen, Math.max(0, g.betrag - (g.rueckerstattetBetrag ?? 0))).toFixed(2)
       );
       if (betrag === null) return;
       const wert = Number(betrag.replace(',', '.'));
-      if (!Number.isFinite(wert) || Math.round(wert * 100) !== Math.round(offen * 100)) {
-        fehler = `Es muss die vollständige offene Rückerstattung von ${chf(offen)} erfasst werden.`;
+      if (!Number.isFinite(wert) || wert <= 0 || Math.round(wert * 100) > Math.round(Math.min(offen, g.betrag - (g.rueckerstattetBetrag ?? 0)) * 100)) {
+        fehler = `Bitte einen Betrag bis maximal ${chf(Math.min(offen, g.betrag - (g.rueckerstattetBetrag ?? 0)))} erfassen.`;
         return;
       }
       const datumWert = prompt('Datum der bereits erfolgten Rückzahlung (JJJJ-MM-TT):', lokalesDatum());
@@ -451,7 +451,8 @@
                               <td>{gutschrift.grund}</td>
                               <td>
                                 {gutschrift.bearbeitungsstatus === 'rueckerstattet' ? 'Rückerstattet' :
-                                  gutschrift.bearbeitungsstatus === 'erledigt' ? 'Erledigt' : 'Offen'}
+                                  gutschrift.bearbeitungsstatus === 'erledigt' ? 'Erledigt' :
+                                  gutschrift.bearbeitungsstatus === 'teilweise_rueckerstattet' ? 'Teilweise rückerstattet' : 'Offen'}
                                 {#if (gutschrift.rueckerstattetBetrag ?? 0) > 0}
                                   <div class="hinweis">{chf(gutschrift.rueckerstattetBetrag ?? 0)} zurückbezahlt</div>
                                 {/if}
@@ -460,7 +461,7 @@
                                 {/each}
                               </td>
                               <td>
-                                {#if !gutschrift.bearbeitungsstatus}
+                                {#if gutschrift.bearbeitungsstatus !== 'erledigt' && gutschrift.bearbeitungsstatus !== 'rueckerstattet'}
                                   <button type="button" disabled={gutschriftSpeichern !== null}
                                     onclick={() => void gutschriftAbschliessen(gutschrift, rechnung)}>
                                     {gutschriftSpeichern === gutschrift._id ? 'Speichern ...' :
