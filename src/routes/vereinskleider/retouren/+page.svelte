@@ -80,6 +80,10 @@
   }
   async function erfassen(): Promise<void> {
     if (!ausgewaehlterVerkauf || speichern) return;
+    if (!Number.isSafeInteger(Number(menge)) || Number(menge) < 1 || Number(menge) > maximal(ausgewaehlterVerkauf, positionsIndex)) {
+      fehler = `Bitte eine ganze Menge zwischen 1 und ${maximal(ausgewaehlterVerkauf, positionsIndex)} eingeben.`;
+      return;
+    }
     speichern = true;
     fehler = '';
     erfolg = '';
@@ -163,7 +167,10 @@
       <p>{ausgewaehlterVerkauf.kaeufer} · Maximal {maximal(ausgewaehlterVerkauf, positionsIndex)} Stück</p>
       <form onsubmit={(e) => { e.preventDefault(); void erfassen(); }}>
         <div class="felder">
-          <label>Menge<input type="number" min="1" max={maximal(ausgewaehlterVerkauf, positionsIndex)} step="1" required bind:value={menge} /></label>
+          <label>Menge<input type="number" min="1" step="1" required bind:value={menge} /></label>
+          {#if !Number.isSafeInteger(Number(menge)) || Number(menge) < 1 || Number(menge) > maximal(ausgewaehlterVerkauf, positionsIndex)}
+            <p class="mengenhinweis">Bitte eine ganze Menge zwischen 1 und {maximal(ausgewaehlterVerkauf, positionsIndex)} eingeben.</p>
+          {/if}
           <label>Datum<input type="date" required bind:value={datum} /></label>
           <label>Retourengrund
             <select bind:value={grund}>
@@ -183,7 +190,7 @@
         <label>Bemerkung<input type="text" maxlength="1000" bind:value={bemerkung} /></label>
         <p class="hinweis">Die Retoure erzeugt eine Gutschrift, aber keine automatische Rückzahlung. Nicht eindeutig abrechenbare Fälle werden gesperrt.</p>
         <div class="aktionen">
-          <button type="submit" disabled={speichern}>{speichern ? 'Speichern …' : 'Retoure bestätigen'}</button>
+          <button type="submit" disabled={speichern || !Number.isSafeInteger(Number(menge)) || Number(menge) < 1 || Number(menge) > maximal(ausgewaehlterVerkauf, positionsIndex)}>{speichern ? 'Speichern …' : 'Retoure bestätigen'}</button>
           <button type="button" class="sekundaer" disabled={speichern} onclick={() => ausgewaehlt = ''}>Abbrechen</button>
         </div>
       </form>
@@ -214,6 +221,8 @@
   </section>
 </main>
 <style>
+  .mengenhinweis{color:#b91c1c;font-size:.85rem;margin:.5rem 0}
+
   main{max-width:1200px;margin:2rem auto;padding:1rem;color:var(--text-color,inherit)}
   .zurueck{display:inline-block;margin-bottom:1rem;color:#2563eb;text-decoration:none}
   h1{font-size:1.9rem;margin:0 0 .4rem}h2{font-size:1.2rem;margin:0 0 1rem}
