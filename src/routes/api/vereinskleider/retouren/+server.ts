@@ -34,7 +34,14 @@ export const GET: RequestHandler = async ({ locals, url }) => {
       let hinweis = '';
       if (maximal > 0) {
         try {
-          pruefeRetourenmenge(verkauf, i, 1);
+          pruefeRetourenmenge({
+            positionen: Array.isArray(verkauf.positionen) ? verkauf.positionen : [],
+            uebergaben: Array.isArray(verkauf.uebergaben) ? verkauf.uebergaben : [],
+            retouren: Array.isArray(verkauf.retouren) ? verkauf.retouren : [],
+            rabattTotal: verkauf.rabattTotal,
+            rabatte: Array.isArray(verkauf.rabatte) ? verkauf.rabatte : [],
+            zusaetzlicherRabatt: verkauf.zusaetzlicherRabatt
+          }, i, 1);
           // Eine Menge ist nicht automatisch finanziell freigegeben.
           hinweis = 'Finanzielle Zuordnung und Gutschrift müssen vor einer Retoure geprüft werden.';
         } catch (e) {
