@@ -38,6 +38,9 @@
     betrag: number;
     grund: string;
     erstelltAm: string;
+    bearbeitungsstatus?: 'erledigt' | 'rueckerstattet';
+    rueckerstattetBetrag?: number;
+    rueckerstattungen?: { betrag: number; datum: string; zahlungsart: string; bemerkung?: string }[];
   };
 
   type GutschriftenAntwort = {
@@ -56,6 +59,53 @@
   let rechnungen = $state<Rechnung[]>([]);
   let gutschriften = $state<Gutschrift[]>([]);
   let gutschriftenBegrenzt = $state(false);
+  let gutschriftSpeichern = $state<string | null>(null);
+
+  async function gutschriftAbschliessen(g: Gutschrift, rechnung: Rechnung): Promise<void> {
+    if (gutschriftSpeichern || g.bearbeitungsstatus) return;
+    const offen = rueckerstattung(rechnung);
+    const aktion = offen > 0 ? 'rueckerstattet' : 'erledigt';
+    let daten: Record<string, unknown> = { gutschriftId: g._id, aktion };
+    if (aktion === 'rueckerstattet') {
+      const betrag = prompt(
+        `Bereits tatsächlich zurückbezahlter Betrag für ${g.gutschriftnummer} (CHF):`,
+        offen.toFixed(2)
+      );
+      if (betrag === null) return;
+      const wert = Number(betrag.replace(',', '.'));
+      if (!Number.isFinite(wert) || Math.round(wert * 100) !== Math.round(offen * 100)) {
+        fehler = `Es muss die vollständige offene Rückerstattung von ${chf(offen)} erfasst werden.`;
+        return;
+      }
+      const datumWert = prompt('Datum der bereits erfolgten Rückzahlung (JJJJ-MM-TT):', lokalesDatum());
+      if (datumWert === null) return;
+      const zahlungsart = prompt('Zahlungsweg (bank, twint oder bar):', 'bank');
+      if (zahlungsart === null) return;
+      const bemerkung = prompt('Bemerkung / Zahlungsreferenz (optional):', '');
+      if (bemerkung === null) return;
+      daten = { ...daten, betrag: wert, datum: datumWert, zahlungsart: zahlungsart.toLowerCase().trim(), bemerkung };
+      if (!confirm(`Bestätigen, dass ${chf(wert)} bereits tatsächlich zurückbezahlt wurden?`)) return;
+    } else if (!confirm(`Gutschrift ${g.gutschriftnummer} ohne ausstehende Auszahlung als erledigt markieren?`)) {
+      return;
+    }
+    gutschriftSpeichern = g._id;
+    fehler = '';
+    erfolg = '';
+    try {
+      const antwort = await fetch('/api/vereinskleider/gutschriften/status', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(daten)
+      });
+      const ergebnis: { erfolg?: boolean; fehler?: string } = await antwort.json().catch(() => ({}));
+      if (!antwort.ok || !ergebnis.erfolg) throw new Error(ergebnis.fehler ?? 'Gutschrift konnte nicht abgeschlossen werden.');
+      await ladenAktualisieren();
+      erfolg = `Gutschrift ${g.gutschriftnummer} wurde abgeschlossen.`;
+    } catch (e) {
+      fehler = e instanceof Error ? e.message : 'Gutschrift konnte nicht abgeschlossen werden.';
+    } finally {
+      gutschriftSpeichern = null;
+    }
+  }
   let aufgeklappteRechnungen = $state<string[]>([]);
   let verkaeufe = $state<Verkauf[]>([]);
   let laden = $state(true);
@@ -389,7 +439,7 @@
                     <strong>Gutschriften zu {rechnung.rechnungsnummer}</strong>
                     <div class="tabellenbereich">
                       <table class="gutschriften-tabelle">
-                        <thead><tr><th>Gutschriftnummer</th><th>Datum</th><th>Artikel</th><th>Menge</th><th class="rechts">Betrag</th><th>Grund</th><th>PDF</th></tr></thead>
+                        <thead><tr><th>Gutschriftnummer</th><th>Datum</th><th>Artikel</th><th>Menge</th><th class="rechts">Betrag</th><th>Grund</th><th>Status / Rückerstattung</th><th>Aktion</th><th>PDF</th></tr></thead>
                         <tbody>
                           {#each gutschriftenZu(rechnung._id) as gutschrift (gutschrift._id)}
                             <tr>
@@ -399,6 +449,27 @@
                               <td>{gutschrift.menge}</td>
                               <td class="rechts">{chf(gutschrift.betrag)}</td>
                               <td>{gutschrift.grund}</td>
+                              <td>
+                                {gutschrift.bearbeitungsstatus === 'rueckerstattet' ? 'Rückerstattet' :
+                                  gutschrift.bearbeitungsstatus === 'erledigt' ? 'Erledigt' : 'Offen'}
+                                {#if (gutschrift.rueckerstattetBetrag ?? 0) > 0}
+                                  <div class="hinweis">{chf(gutschrift.rueckerstattetBetrag ?? 0)} zurückbezahlt</div>
+                                {/if}
+                                {#each gutschrift.rueckerstattungen ?? [] as rueckzahlung}
+                                  <div class="hinweis">{datum(rueckzahlung.datum)} · {zahlungsartText(rueckzahlung.zahlungsart)} · {chf(rueckzahlung.betrag)}{rueckzahlung.bemerkung ? ` · ${rueckzahlung.bemerkung}` : ''}</div>
+                                {/each}
+                              </td>
+                              <td>
+                                {#if !gutschrift.bearbeitungsstatus}
+                                  <button type="button" disabled={gutschriftSpeichern !== null}
+                                    onclick={() => void gutschriftAbschliessen(gutschrift, rechnung)}>
+                                    {gutschriftSpeichern === gutschrift._id ? 'Speichern ...' :
+                                      rueckerstattung(rechnung) > 0 ? 'Rückerstattung erfassen' : 'Als erledigt markieren'}
+                                  </button>
+                                {:else}
+                                  <span class="hinweis">Abgeschlossen</span>
+                                {/if}
+                              </td>
                               <td><a class="pdf-link" href={`/api/vereinskleider/verrechnung/${rechnung._id}/pdf?gutschriftId=${gutschrift._id}`} target="_blank" rel="noopener noreferrer">Gutschrift-PDF</a></td>
                             </tr>
                           {/each}
