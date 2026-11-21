@@ -301,6 +301,7 @@
       <input id="suche" type="search" placeholder="Mitglied, Riege oder Rechnungsnummer" bind:value={suche} />
     </label>
     <button type="button" onclick={neuLaden} disabled={laden || erstellenId !== null || zahlungSpeichern}>Aktualisieren</button>
+    <a href="/api/vereinskleider/verrechnung/export" download="ClubMatiq_Rechnungsabgleich.csv">Rechnungsabgleich (CSV)</a>
   </div>
 
   {#if laden}
