@@ -3,11 +3,14 @@ import { ObjectId } from 'mongodb';
 
 const m = vi.hoisted(() => ({
   collection: vi.fn(), findOne: vi.fn(), find: vi.fn(), toArray: vi.fn(),
+  startSession: vi.fn(), endSession: vi.fn(),
   updateOne: vi.fn(), permission: vi.fn(() => null)
 }));
-vi.mock('../../src/lib/server/mongodb', () => ({ db: { collection: m.collection } }));
+vi.mock('../../src/lib/server/mongodb', () => ({ db: { collection: m.collection }, client: { startSession: m.startSession } }));
+vi.mock('../../src/lib/server/lagerbewegungen', () => ({ protokolliereLagerbewegung: vi.fn() }));
 vi.mock('../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: m.permission }));
 import { PATCH } from '../../src/routes/api/artikel/[id]/archiv/+server';
+import { POST as AUSLEIHE } from '../../src/routes/api/ausleihen/+server';
 
 const id = new ObjectId().toHexString();
 const benutzer = { id: 'user-1', vereinId: 'verein-1', rolle: 'admin', vorname: 'Test', nachname: 'Person' };
@@ -27,6 +30,7 @@ beforeEach(() => {
   m.toArray.mockResolvedValue([]);
   m.updateOne.mockResolvedValue({ modifiedCount: 1 });
   m.permission.mockReturnValue(null);
+  m.startSession.mockReturnValue({ withTransaction: async (cb: () => Promise<void>) => cb(), endSession: m.endSession });
 });
 
 describe('Issue #60 – Artikelarchiv', () => {
@@ -81,5 +85,23 @@ describe('Issue #60 – Artikelarchiv', () => {
   it('verhindert gleichzeitige widersprüchliche Statusänderung', async () => {
     m.updateOne.mockResolvedValue({ modifiedCount: 0 });
     expect((await PATCH(ctx(true))).status).toBe(409);
+  });
+});
+
+describe('Issue #60 – Ausleihe archivierter Artikel', () => {
+  it('verweigert eine neue Ausleihe ohne Lagerabgang', async () => {
+    m.findOne.mockResolvedValue({ archiviert: true, hatGroessen: false, menge: 5 });
+    const antwort = await AUSLEIHE({
+      locals: { benutzer },
+      request: new Request('http://localhost/api/ausleihen', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          artikelId: id, groesseId: null, person: 'Testperson', menge: 1,
+          ausleihdatum: '2026-11-22', rueckgabedatum: '2026-11-29'
+        })
+      })
+    } as never);
+    expect(antwort.ok).toBe(false);
+    expect(m.updateOne).not.toHaveBeenCalled();
   });
 });
