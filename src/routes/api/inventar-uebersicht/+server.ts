@@ -66,6 +66,9 @@ export const GET: RequestHandler = async ({ locals }) => {
       return {
         _id: artikelId,
         name: eintrag.name,
+        archiviert: eintrag.archiviert === true,
+        archiviertAm: eintrag.archiviertAm ?? null,
+        archiviertVonName: eintrag.archiviertVonName ?? null,
         kategorieId: eintrag.kategorieId,
         kategorie: kategorieNamen.get(eintrag.kategorieId) ?? 'Unbekannt',
         lagerortId: eintrag.lagerortId,
