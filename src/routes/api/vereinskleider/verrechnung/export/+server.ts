@@ -45,7 +45,7 @@ export const GET: RequestHandler = async ({ locals }) => {
       const euro = (rappen: number) => (rappen / 100).toFixed(2).replace('.', ',');
       const erstellt = new Date(r.erstelltAm);
       if (Number.isNaN(erstellt.getTime())) throw new Error('Ungültiges Rechnungsdatum.');
-      const rueckerstattungOffen = geld(r.rueckerstattungOffen ?? Math.max(0, bezahlt - netto));
+      const rueckerstattungOffen = geld(r.rueckerstattungOffen ?? Math.max(0, bezahlt - netto) / 100);
       if (rueckerstattungOffen > Math.max(0, bezahlt - netto)) throw new Error('Inkonsistente Rückerstattung.');
       zeilen.push([
         r.rechnungsnummer, r.verkaufId, r._id.toString(),
