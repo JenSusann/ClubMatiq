@@ -131,6 +131,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       for (const position of eingabe.positionen) {
         const artikel = await artikelCollection.findOne({ _id: new ObjectId(position.artikelId), vereinId }, { session });
         if (!artikel) throw new Verkaufsfehler('Ein Artikel wurde nicht gefunden.', 404);
+        if (artikel.archiviert === true) throw new Verkaufsfehler('Dieser Artikel ist archiviert und kann nicht verkauft oder bestellt werden.', 409);
         if (artikel.istVereinskleidung !== true) {
           throw new Verkaufsfehler('Ein Artikel gehört nicht zu den Vereinskleidern.');
         }
