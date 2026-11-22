@@ -525,7 +525,7 @@
       {:else}
         <div class="tabellenbereich">
           <table>
-            <thead><tr><th>Belegnummer</th><th>Typ</th><th>Datum</th><th>Empfänger</th><th class="rechts">Original</th><th class="rechts">Gutschrift</th><th class="rechts">Netto</th><th class="rechts">Bezahlt</th><th class="rechts">Offen</th><th class="rechts">Rückerstattung offen</th><th>Status</th><th>ClubDesk</th><th>Aktion</th><th>PDF</th></tr></thead>
+            <thead><tr><th>Belegnummer</th><th>Typ</th><th>Datum</th><th>Empfänger</th><th class="rechts">Original</th><th class="rechts">Gutschrift</th><th class="rechts">Netto</th><th class="rechts">Bezahlt</th><th class="rechts">Offen</th><th class="rechts">Rückerstattung offen</th><th>Status</th><th>Buchhaltung</th><th>Aktion</th><th>PDF</th></tr></thead>
             <tbody>
               {#each gefilterteRechnungen as rechnung (rechnung._id)}
                 <tr>
@@ -567,7 +567,7 @@
                     <strong>Gutschriften zu {rechnung.rechnungsnummer}</strong>
                     <div class="tabellenbereich">
                       <table class="gutschriften-tabelle">
-                        <thead><tr><th>Gutschriftnummer</th><th>Datum</th><th>Artikel</th><th>Menge</th><th class="rechts">Betrag</th><th>Grund</th><th>Status / Rückerstattung</th><th>ClubDesk</th><th>Aktion</th><th>PDF</th></tr></thead>
+                        <thead><tr><th>Gutschriftnummer</th><th>Datum</th><th>Artikel</th><th>Menge</th><th class="rechts">Betrag</th><th>Grund</th><th>Status / Rückerstattung</th><th>Buchhaltung</th><th>Aktion</th><th>PDF</th></tr></thead>
                         <tbody>
                           {#each gutschriftenZu(rechnung._id) as gutschrift (gutschrift._id)}
                             <tr>
