@@ -86,7 +86,7 @@
       const daten: { erfolg?: boolean; fehler?: string } = await antwort.json();
       if (!antwort.ok || !daten.erfolg) throw new Error(daten.fehler ?? 'Verbuchung konnte nicht bestätigt werden.');
       clubdeskAuswahl = null;
-      erfolg = 'Manuelle ClubDesk-Verbuchung dokumentiert.';
+      erfolg = 'Buchung erfolgreich dokumentiert.';
       await neuLaden();
     } catch (e) {
       clubdeskFehler = e instanceof Error ? e.message : 'Verbuchung konnte nicht bestätigt werden.';
@@ -430,12 +430,12 @@
 {#if clubdeskAuswahl}
   <div class="dialog-hintergrund" role="presentation">
     <div class="dialog-karte" role="dialog" aria-modal="true" aria-labelledby="clubdesk-titel" tabindex="-1">
-      <h2 id="clubdesk-titel">ClubDesk-Verbuchung bestätigen</h2>
-      <p>Beleg {clubdeskAuswahl.nummer} wurde bereits manuell in ClubDesk verbucht. Diese Bestätigung löst keine Buchung und keine Zahlung aus.</p>
+      <h2 id="clubdesk-titel">Buchung bestätigen</h2>
+      <p>Beleg {clubdeskAuswahl.nummer} wurde bereits in der Buchhaltung verbucht. Diese Bestätigung löst keine Buchung und keine Zahlung aus.</p>
       {#if clubdeskFehler}<p class="meldung fehler" role="alert">{clubdeskFehler}</p>{/if}
       <form onsubmit={(e) => { e.preventDefault(); void clubdeskBestaetigen(); }}>
         <label>Datum der Verbuchung <input type="date" required bind:value={clubdeskDatum} /></label>
-        <label>ClubDesk-Buchungsreferenz (optional) <input type="text" maxlength="120" bind:value={clubdeskReferenz} /></label>
+        <label>Buchungsreferenz (optional) <input type="text" maxlength="120" bind:value={clubdeskReferenz} /></label>
         <div class="formularaktionen">
           <button type="submit" disabled={clubdeskSpeichern}>{clubdeskSpeichern ? 'Speichern …' : 'Verbuchung bestätigen'}</button>
           <button type="button" class="sekundaer" disabled={clubdeskSpeichern} onclick={() => clubdeskAuswahl = null}>Abbrechen</button>
@@ -548,9 +548,9 @@
                   <td><span class:bezahlt={rechnung.status === 'bezahlt'} class:storniert={rechnung.status === 'storniert'} class="status">{statusText(rechnung.status)}</span></td>
                   <td>
                     {#if rechnung.clubdeskVerbuchung}
-                      <span class="hinweis">Verbucht: {rechnung.clubdeskVerbuchung.datum} · {rechnung.clubdeskVerbuchung.erfasstVonName}{rechnung.clubdeskVerbuchung.referenz ? ` · ${rechnung.clubdeskVerbuchung.referenz}` : ''}</span>
+                      <span class="hinweis">Verbucht am {rechnung.clubdeskVerbuchung.datum} · {rechnung.clubdeskVerbuchung.erfasstVonName}{rechnung.clubdeskVerbuchung.referenz ? ` · ${rechnung.clubdeskVerbuchung.referenz}` : ''}</span>
                     {:else}
-                      <button type="button" class="sekundaer" onclick={() => clubdeskOeffnen('rechnung', rechnung._id, rechnung.rechnungsnummer)}>In ClubDesk verbucht</button>
+                      <button type="button" class="sekundaer" onclick={() => clubdeskOeffnen('rechnung', rechnung._id, rechnung.rechnungsnummer)}>Als verbucht markieren</button>
                     {/if}
                   </td>
                   <td>
@@ -590,9 +590,9 @@
                               </td>
                               <td>
                                 {#if gutschrift.clubdeskVerbuchung}
-                                  <span class="hinweis">Verbucht: {gutschrift.clubdeskVerbuchung.datum} · {gutschrift.clubdeskVerbuchung.erfasstVonName}{gutschrift.clubdeskVerbuchung.referenz ? ` · ${gutschrift.clubdeskVerbuchung.referenz}` : ''}</span>
+                                  <span class="hinweis">Verbucht am {gutschrift.clubdeskVerbuchung.datum} · {gutschrift.clubdeskVerbuchung.erfasstVonName}{gutschrift.clubdeskVerbuchung.referenz ? ` · ${gutschrift.clubdeskVerbuchung.referenz}` : ''}</span>
                                 {:else}
-                                  <button type="button" class="sekundaer" onclick={() => clubdeskOeffnen('gutschrift', gutschrift._id, gutschrift.gutschriftnummer)}>In ClubDesk verbucht</button>
+                                  <button type="button" class="sekundaer" onclick={() => clubdeskOeffnen('gutschrift', gutschrift._id, gutschrift.gutschriftnummer)}>Als verbucht markieren</button>
                                 {/if}
                               </td>
                               <td>
