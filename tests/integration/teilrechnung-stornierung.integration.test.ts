@@ -62,9 +62,9 @@ beforeEach(() => {
     return { insertOne: m.insertOne };
   });
   m.findOne.mockImplementation(async (filter: { vereinId: string }) =>
-    filter.vereinId === 'verein-a' ? structuredClone(verkauf) : null);
+    filter.vereinId === 'verein-a' ? { ...verkauf, positionen: (verkauf.positionen as Record<string, unknown>[]).map((p) => ({ ...p })) } : null);
   m.find.mockReturnValue({ toArray: m.toArray });
-  m.toArray.mockImplementation(async () => structuredClone(rechnungen));
+  m.toArray.mockImplementation(async () => rechnungen.map((r) => ({ ...r, positionen: (r.positionen as Record<string, unknown>[]).map((p) => ({ ...p })) })));
   m.updateOne.mockImplementation(async (filter: { _id: ObjectId }, update: { $set: Record<string, unknown> }) => {
     if (filter._id.toHexString() === verkaufId.toHexString()) Object.assign(verkauf, update.$set);
     else {
