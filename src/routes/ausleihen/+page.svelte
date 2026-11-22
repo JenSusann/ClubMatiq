@@ -21,6 +21,7 @@
 
   type Artikel = {
     _id: string;
+    archiviert?: boolean;
     name: string;
     kategorie: string;
     lagerort: string;
@@ -94,7 +95,7 @@
         throw new Error('Inventar konnte nicht geladen werden.');
       }
 
-      artikel = await antwort.json();
+      artikel = (await antwort.json() as Artikel[]).filter((a) => a.archiviert !== true);
     } catch (error) {
       fehlermeldung =
         error instanceof Error ? error.message : 'Laden fehlgeschlagen.';
