@@ -19,6 +19,9 @@
   };
   type Artikel = {
     _id: string;
+    archiviert?: boolean;
+    archiviertAm?: string | null;
+    archiviertVonName?: string | null;
     name: string;
     kategorieId: string;
     kategorie: string;
@@ -42,13 +45,14 @@
   let kategorieFilter = $state('');
   let lagerortFilter = $state('');
   let nurUnterMindestbestand = $state(false);
+  let archivFilter = $state<'aktiv' | 'archiviert' | 'alle'>('aktiv');
   let ausgeklappteArtikel = $state<string[]>([]);
   let wirdGeladen = $state(true);
   let fehlermeldung = $state('');
   let wirdGeloescht = $state<string | null>(null);
 
   const exportUrl = $derived('/api/export/inventar?' + new URLSearchParams({
-    modus: 'inventar', suche, kategorie: kategorieFilter, lagerort: lagerortFilter
+    modus: 'inventar', suche, kategorie: kategorieFilter, lagerort: lagerortFilter, archiv: archivFilter
   }).toString());
 
   function lieferantenName(a: Artikel): string {
@@ -67,7 +71,7 @@
       ].some((wert) => wert.toLocaleLowerCase('de-CH').includes(suchtext));
       const passtZurKategorie = !kategorieFilter || a.kategorie === kategorieFilter;
       const passtZumLagerort = !lagerortFilter || a.lagerort === lagerortFilter;
-      return passtZurSuche && passtZurKategorie && passtZumLagerort && (!nurUnterMindestbestand || a.unterMindestbestand === true);
+      return (archivFilter === 'alle' || (archivFilter === 'archiviert' ? a.archiviert === true : a.archiviert !== true)) && passtZurSuche && passtZurKategorie && passtZumLagerort && (!nurUnterMindestbestand || a.unterMindestbestand === true);
     })
   );
 
@@ -105,6 +109,29 @@
     } finally {
       wirdGeloescht = null;
     }
+  }
+
+  async function archivStatusAendern(a: Artikel) {
+    if (!darfBearbeiten) return;
+    const archivieren = a.archiviert !== true;
+    if (!confirm(archivieren
+      ? `Artikel "${a.name}" archivieren? Der Bestand bleibt gespeichert, der Artikel wird aus der aktiven Ansicht ausgeblendet.`
+      : `Artikel "${a.name}" wieder aktivieren?`)) return;
+    wirdGeloescht = a._id;
+    fehlermeldung = '';
+    try {
+      const antwort = await fetch(`/api/artikel/${a._id}/archiv`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archiviert: archivieren })
+      });
+      const daten = await antwort.json();
+      if (!antwort.ok) throw new Error(daten.fehler ?? 'Archivstatus konnte nicht geändert werden.');
+      artikel = artikel.map((eintrag) => eintrag._id === a._id
+        ? { ...eintrag, archiviert: archivieren, archiviertAm: archivieren ? new Date().toISOString() : null }
+        : eintrag);
+    } catch (error) {
+      fehlermeldung = error instanceof Error ? error.message : 'Archivierung fehlgeschlagen.';
+    } finally { wirdGeloescht = null; }
   }
 
   async function artikelLaden() {
@@ -204,6 +231,14 @@
         </div>
       </div>
 
+      <div class="feld archiv-filter">
+        <label for="archiv-filter">Artikelstatus</label>
+        <select id="archiv-filter" bind:value={archivFilter}>
+          <option value="aktiv">Aktive Artikel</option>
+          <option value="archiviert">Archivierte Artikel</option>
+          <option value="alle">Alle Artikel</option>
+        </select>
+      </div>
       <label class="mindest-filter"><input type="checkbox" bind:checked={nurUnterMindestbestand} /> Nur Artikel unter Mindestbestand anzeigen</label>
       <div class="tabellen-container">
         <table>
@@ -217,7 +252,7 @@
           <tbody>
             {#each gefilterteArtikel as a (a._id)}
               <tr>
-                <td><strong>{a.name}</strong>{#if a.unterMindestbestand}<span class="bestandswarnung">Unter Mindestbestand</span>{/if}</td>
+                <td><strong>{a.name}</strong>{#if a.archiviert}<small>Archiviert{a.archiviertAm ? ` am ${new Date(a.archiviertAm).toLocaleDateString("de-CH")}` : ""}{a.archiviertVonName ? ` · ${a.archiviertVonName}` : ""}</small>{/if}{#if a.unterMindestbestand}<span class="bestandswarnung">Unter Mindestbestand</span>{/if}</td>
                 <td>{a.kategorie}</td>
                 <td>{a.lagerort}</td>
                 <td>{lieferantenName(a)}</td>
@@ -233,6 +268,9 @@
                     <a href={`/inventar/${a._id}`} class="bearbeiten-button">Details / Verlauf</a>
                     {#if darfBearbeiten}
                       <a href={`/inventar/${a._id}/bearbeiten`} class="bearbeiten-button">Bearbeiten</a>
+                      <button type="button" class="details-button" disabled={wirdGeloescht !== null} onclick={() => archivStatusAendern(a)}>
+                        {wirdGeloescht === a._id ? 'Speichern ...' : a.archiviert ? 'Reaktivieren' : 'Archivieren'}
+                      </button>
                       <button type="button" class="loeschen-button"
                         disabled={wirdGeloescht !== null}
                         onclick={() => artikelLoeschen(a)}>
@@ -334,6 +372,7 @@
   .varianten-tabelle { max-width:700px; background:white; }
   .varianten-tabelle th { background:#e2e8f0; }
   .kein-bestand { color:#64748b; font-style:italic; }
+  .archiv-filter { max-width: 240px; margin-bottom: 15px; }
   .mindest-filter { display:flex; gap:10px; align-items:center; margin:0 0 20px; }
   .mindest-filter input { width:auto; }
   .bestandswarnung { display:block; color:#b45309; font-size:12px; font-weight:700; margin-top:5px; }
