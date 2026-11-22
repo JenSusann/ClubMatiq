@@ -189,6 +189,10 @@ export const POST: RequestHandler = async ({
           );
         }
 
+        if (artikel.archiviert === true) {
+          throw new Error('Dieser Artikel ist archiviert und kann nicht ausgeliehen werden.');
+        }
+
         const hatGroessen =
           artikel.hatGroessen === true;
 
