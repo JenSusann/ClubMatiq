@@ -12,6 +12,7 @@
     einzelwert: number;
     hatGroessen: boolean;
     istVereinskleidung?: boolean;
+    archiviert?: boolean;
     varianten?: Variante[];
   };
   type Preis = {
@@ -349,7 +350,7 @@
     groessen = await groessenAntwort.json();
     preise = await preiseAntwort.json();
     rabattregeln = await rabatteAntwort.json();
-    const kleider = alleArtikel.filter((a) => a.istVereinskleidung === true);
+    const kleider = alleArtikel.filter((a) => a.istVereinskleidung === true && a.archiviert !== true);
     kategorieGefunden = kleider.length > 0;
     artikel = await Promise.all(kleider.map(async (a) => {
       if (!a.hatGroessen) return a;
