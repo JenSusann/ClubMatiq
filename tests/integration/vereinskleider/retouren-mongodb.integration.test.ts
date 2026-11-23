@@ -1,13 +1,6 @@
 import 'dotenv/config';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MongoClient, ObjectId } from 'mongodb';
-
-const { testClient, testDb } = vi.hoisted(() => {
-  // Dynamischer Import erfolgt ausserhalb von vi.hoisted; die echten Objekte
-  // werden über eine Factory erst beim Modulimport initialisiert.
-  return { testClient: null, testDb: null };
-});
-void testClient; void testDb;
+import { ObjectId } from 'mongodb';
 
 vi.mock('../../../src/lib/server/mongodb', async () => {
   const { MongoClient } = await import('mongodb');
