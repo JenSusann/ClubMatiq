@@ -1,42 +1,62 @@
 /**
  * Einmalige, wiederholbar sichere Migration für Issue #57.
- * Vorschau: node scripts/migrate-vereinskleider.mjs
- * Ausführen: node scripts/migrate-vereinskleider.mjs --apply
+ * Vorschau: node scripts/migrate-vereinskleider.mjs --verein=<vereinId>
+ * Ausführen: node scripts/migrate-vereinskleider.mjs --verein=<vereinId> --apply --confirm=<vereinId>
  *
  * Markiert nur Artikel in einer vorhandenen Kategorie namens "Vereinskleider".
  * Andere Artikel werden nicht verändert. Bestehende true/false-Werte bleiben erhalten.
- * Vor Ausführung ein Atlas-Backup anlegen.
+ * Vor Änderungen wird automatisch ein lokales JSON-Backup geschrieben.
+ * Zusätzlich wird ein Atlas-Snapshot empfohlen.
  */
 import 'dotenv/config';
 import { MongoClient } from 'mongodb';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 
 if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI fehlt.');
 const apply = process.argv.includes('--apply');
+const vereinId = process.argv.find((a) => a.startsWith('--verein='))?.slice('--verein='.length);
+const confirm = process.argv.find((a) => a.startsWith('--confirm='))?.slice('--confirm='.length);
+const dbName = process.argv.find((a) => a.startsWith('--db='))?.slice('--db='.length) ?? 'clubmatiq';
+if (!vereinId) throw new Error('Sicherheitsabbruch: --verein=<vereinId> ist erforderlich.');
+if (apply && confirm !== vereinId) throw new Error('Sicherheitsabbruch: --confirm=<vereinId> muss übereinstimmen.');
+if (!['clubmatiq', 'clubmatiq_test'].includes(dbName)) throw new Error('Unzulässige Datenbank.');
 const client = new MongoClient(process.env.MONGODB_URI);
 try {
   await client.connect();
-  const db = client.db('clubmatiq');
-  const kategorien = await db.collection('kategorien')
-    .find({ name: { $regex: /^\s*vereinskleider\s*$/i } })
-    .project({ _id: 1, vereinId: 1, name: 1 }).toArray();
-  let gesamt = 0;
-  for (const kategorie of kategorien) {
-    const filter = {
-      vereinId: kategorie.vereinId,
-      kategorieId: kategorie._id.toString(),
-      istVereinskleidung: { $exists: false }
-    };
-    const anzahl = await db.collection('artikel').countDocuments(filter);
-    console.log(`Verein ${kategorie.vereinId}: ${anzahl} Artikel zu markieren`);
-    gesamt += anzahl;
-    if (apply && anzahl > 0) {
-      const result = await db.collection('artikel').updateMany(filter, {
-        $set: { istVereinskleidung: true }
-      });
-      console.log(`  Aktualisiert: ${result.modifiedCount}`);
+  const db = client.db(dbName);
+  const kategorien = await db.collection('kategorien').find({ vereinId }).toArray();
+  const alt = kategorien.filter((k) => typeof k.name === 'string' && k.name.trim().toLowerCase() === 'vereinskleider');
+  if (alt.length !== 1) throw new Error('Abbruch: Genau eine historische Kategorie «Vereinskleider» erwartet, gefunden: ' + alt.length);
+  const kategorieId = alt[0]._id.toString();
+  const alle = await db.collection('artikel').find({ vereinId, kategorieId }).toArray();
+  const kandidaten = alle.filter((a) => !Object.hasOwn(a, 'istVereinskleidung'));
+  console.log(JSON.stringify({
+    modus: apply ? 'ANWENDEN' : 'VORSCHAU', dbName, vereinId, kategorieId,
+    artikelInKategorie: alle.length, kandidaten: kandidaten.length,
+    bereitsMarkiert: alle.filter((a) => a.istVereinskleidung === true).length,
+    bewusstAusgeschlossen: alle.filter((a) => a.istVereinskleidung === false).length,
+    artikel: kandidaten.map((a) => ({ id: a._id.toString(), name: a.name }))
+  }, null, 2));
+  if (apply) {
+    const ordner = resolve('migration-backups');
+    await mkdir(ordner, { recursive: true });
+    const datei = resolve(ordner, 'issue57-' + new Date().toISOString().replace(/[:.]/g, '-') + '-' + vereinId.replace(/[^a-zA-Z0-9_-]/g, '_') + '.json');
+    // Backup enthält den vollständigen Originalzustand der betroffenen Artikel.
+    await writeFile(datei, JSON.stringify({ dbName, vereinId, kategorie: alt[0], artikel: alle }, null, 2), { flag: 'wx', mode: 0o600 });
+    console.log('Backup erstellt: ' + datei);
+    let geaendert = 0;
+    for (const artikel of kandidaten) {
+      const ergebnis = await db.collection('artikel').updateOne(
+        { _id: artikel._id, vereinId, kategorieId, istVereinskleidung: { $exists: false } },
+        { $set: { istVereinskleidung: true } }
+      );
+      geaendert += ergebnis.modifiedCount;
     }
+    console.log('Migration abgeschlossen. Aktualisiert: ' + geaendert);
+  } else {
+    console.log('Nur Vorschau: keine Daten verändert.');
   }
-  console.log(`${apply ? 'Migration abgeschlossen' : 'Nur Vorschau'}: ${gesamt} Artikel`);
 } finally {
   await client.close();
 }
