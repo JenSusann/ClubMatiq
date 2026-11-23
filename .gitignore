@@ -29,3 +29,6 @@ coverage/
 certs/
 *.key
 *-private.pem
+
+# Sensitive migration backups (never commit club inventory data)
+migration-backups/
