@@ -13,7 +13,6 @@ import { MongoClient } from 'mongodb';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI fehlt.');
 const apply = process.argv.includes('--apply');
 const vereinId = process.argv.find((a) => a.startsWith('--verein='))?.slice('--verein='.length);
 const confirm = process.argv.find((a) => a.startsWith('--confirm='))?.slice('--confirm='.length);
@@ -21,7 +20,9 @@ const dbName = process.argv.find((a) => a.startsWith('--db='))?.slice('--db='.le
 if (!vereinId) throw new Error('Sicherheitsabbruch: --verein=<vereinId> ist erforderlich.');
 if (apply && confirm !== vereinId) throw new Error('Sicherheitsabbruch: --confirm=<vereinId> muss übereinstimmen.');
 if (!['clubmatiq', 'clubmatiq_test'].includes(dbName)) throw new Error('Unzulässige Datenbank.');
-const client = new MongoClient(process.env.MONGODB_URI);
+const uri = dbName === 'clubmatiq_test' ? process.env.MONGODB_TEST_URI : process.env.MONGODB_URI;
+if (!uri) throw new Error(dbName === 'clubmatiq_test' ? 'MONGODB_TEST_URI fehlt.' : 'MONGODB_URI fehlt.');
+const client = new MongoClient(uri);
 try {
   await client.connect();
   const db = client.db(dbName);
