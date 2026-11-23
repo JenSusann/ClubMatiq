@@ -40,3 +40,31 @@ describe('Sammelbestellungen PATCH',()=>{
  it('verweigert Überlieferung',async()=>{h.one.vereinskleider_sammelbestellungen=bestellung('bestellt');expect((await call({aktion:'wareneingang',positionen:[{artikelId:id2,groesseId:null,menge:5}]})).status).toBe(409);});
  it('meldet Transaktionsfehler',async()=>{h.fail='vereinskleider_sammelbestellungen';h.one.vereinskleider_sammelbestellungen=bestellung();expect((await call({aktion:'bestellen'})).status).toBe(500);});
 });
+const callWithUser=(body:unknown,key=id)=>PATCH({locals:{benutzer:{id:'integration-user',vereinId:'verein-1'}},params:{id:key},request:patch(body)} as any);
+describe('Paket 16: Sammelbestellung Status und Wareneingang',()=>{
+  it('meldet fehlgeschlagene Statusaktualisierung als Konflikt',async()=>{
+    h.one.vereinskleider_sammelbestellungen=bestellung();
+    h.update.mockResolvedValue({matchedCount:1,modifiedCount:0,deletedCount:0});
+    expect((await callWithUser({aktion:'bestellen'})).status).toBe(409);
+  });
+  it('bucht vollständigen Wareneingang ohne Kundenreservierungen',async()=>{
+    h.one.vereinskleider_sammelbestellungen=bestellung('bestellt');
+    h.one.artikel={menge:8};
+    const r=await callWithUser({aktion:'wareneingang',positionen:[{artikelId:id2,groesseId:null,menge:4}]});
+    expect(r.status).toBe(200);
+    expect((await r.json()).status).toBe('geliefert');
+  });
+  it('verweigert ungültigen Lagerbestand bei Wareneingang',async()=>{
+    h.one.vereinskleider_sammelbestellungen=bestellung('bestellt');
+    h.one.artikel={menge:-1};
+    expect((await callWithUser({aktion:'wareneingang',positionen:[{artikelId:id2,groesseId:null,menge:1}]})).status).toBe(409);
+  });
+  it('verweigert inkonsistente Kundenreservierungen',async()=>{
+    h.one.vereinskleider_sammelbestellungen=bestellung('bestellt');
+    h.one.artikel={menge:8};
+    h.rows.vereinskleider_verkaeufe=[{_id:new ObjectId(id3),positionen:[
+      {artikelId:id2,groesseId:null,verkaufsart:'bestellung',menge:2,uebergebenMenge:0,reserviertMenge:3}
+    ]}];
+    expect((await callWithUser({aktion:'wareneingang',positionen:[{artikelId:id2,groesseId:null,menge:1}]})).status).toBe(409);
+  });
+});
