@@ -40,7 +40,7 @@ async function workbook(response: Response) {
   expect(response.status).toBe(200);
   expect(response.headers.get('content-type')).toContain('spreadsheetml.sheet');
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(Buffer.from(await response.arrayBuffer()));
+  await wb.xlsx.load(Buffer.from(await response.arrayBuffer()) as Parameters<typeof wb.xlsx.load>[0]);
   return wb.getWorksheet('Lagerbewegungen')!;
 }
 
