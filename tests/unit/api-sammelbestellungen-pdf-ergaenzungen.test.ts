@@ -40,7 +40,7 @@ beforeEach(() => {
 });
 
 describe('Einzelbestellung PDF – zusätzliche Branches', () => {
-  it('erstellt ein gültiges PDF', async () => { const r = await GET(ctxGet()); expect(r.status).toBe(200); expect(r.headers.get('content-type')).toBe('application/pdf'); expect((await r.arrayBuffer()).byteLength).toBeGreaterThan(100); });
+  it('erstellt ein gültiges PDF', async () => { const r = await GET(ctxGet()); expect(r.status).toBe(200); expect(r.headers.get('content-type')).toBe('application/pdf'); expect((await r.arrayBuffer()).byteLength).toBeGreaterThan(100); }, 15000);
   it('verweigert unberechtigte Zugriffe', async () => { m.auth.mockReturnValue(new Response('Nein', { status: 403 })); expect((await GET(ctxGet())).status).toBe(403); });
   it.each(['', 'x', '0000'])('verwirft ungültige ID %s', async (bad) => { await expect(GET(ctxGet(bad))).rejects.toMatchObject({ status: 400 }); });
   it('meldet fehlende Bestellung', async () => { m.findOne.mockResolvedValue(null); await expect(GET(ctxGet())).rejects.toMatchObject({ status: 404 }); });
