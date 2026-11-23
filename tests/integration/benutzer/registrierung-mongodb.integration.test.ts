@@ -110,6 +110,28 @@ describe('Issue #13 – Registrierung mit echter MongoDB', () => {
     expect(sessions).toBe(1);
   });
 
+  it('rollt bei einem erzwungenen Fehler alle Schreibvorgänge der MongoDB-Transaktion zurück', async () => {
+    const suffix = 'rollback';
+    const mail = email(suffix);
+    const name = vereinsname(suffix);
+    const session = client.startSession();
+    try {
+      await expect(session.withTransaction(async () => {
+        const verein = await db.collection('vereine').insertOne({ name }, { session });
+        await db.collection('benutzer').insertOne({
+          email: mail,
+          vereinId: verein.insertedId.toString(),
+          rolle: 'admin'
+        }, { session });
+        throw new Error('Erzwungener Fehler vor dem Commit');
+      })).rejects.toThrow('Erzwungener Fehler vor dem Commit');
+    } finally {
+      await session.endSession();
+    }
+    expect(await db.collection('vereine').countDocuments({ name })).toBe(0);
+    expect(await db.collection('benutzer').countDocuments({ email: mail })).toBe(0);
+  });
+
   it('legt einen eindeutigen Index für E-Mail-Adressen an', async () => {
     const indexes = await db.collection('benutzer').indexes();
     expect(indexes.some((index) =>
