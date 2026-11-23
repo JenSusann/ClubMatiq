@@ -85,13 +85,13 @@ describe('Benutzereinladungen GET', () => {
 
 
 const againvereinId = '507f1f77bcf86cd799439011'; const againid = '507f1f77bcf86cd799439012';
-const againlocals = { benutzer: { againvereinId, rolle: 'admin' } } as any;
+const againlocals = { benutzer: { vereinId: againvereinId, rolle: 'admin' } } as any;
 const againpost = (theId = againid) => erneutPOST({ locals: againlocals, params: { id: theId }, request: new Request('https://clubmatiq.test/api/benutzer/einladen/' + theId + '/erneut', { method: 'POST' }) } as any);
 let againinvites: any, againclubs: any, againinvitation: any;
 describe('Einladungen – erneut versenden', () => {
  beforeEach(() => {
   vi.clearAllMocks(); vi.spyOn(console, 'error').mockImplementation(() => {});
-  m.permission.mockReturnValue(null); m.send.mockResolvedValue({ againid: 'resend-new' }); m.token.mockReturnValue({ token: 'new-token', tokenHash: 'new-hash' }); m.expiry.mockReturnValue(new Date('2030-01-01'));
+  m.permission.mockReturnValue(null); m.send.mockResolvedValue({ id: 'resend-new' }); m.token.mockReturnValue({ token: 'new-token', tokenHash: 'new-hash' }); m.expiry.mockReturnValue(new Date('2030-01-01'));
   againinvitation = { _id: new ObjectId(againid), vereinId: againvereinId, email: 'ada@example.ch', vorname: 'Ada', status: 'offen' };
   againinvites = { findOne: vi.fn().mockImplementation(async () => againinvitation), updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }) };
   againclubs = { findOne: vi.fn().mockResolvedValue({ name: 'Turnverein' }) };
