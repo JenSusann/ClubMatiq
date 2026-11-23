@@ -33,7 +33,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   }
   if ('email' in daten) {
     if (typeof daten.email !== 'string' || daten.email.trim().length > 254 ||
-      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(daten.email.trim())) {
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(daten.email.trim())) {
       return json({ fehler: 'Ungültige E-Mail-Adresse.' }, { status: 400 });
     }
     aenderungen.email = daten.email.trim().toLowerCase();
