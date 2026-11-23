@@ -13,6 +13,23 @@ import { MongoClient } from 'mongodb';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
+const argumente = process.argv.slice(2);
+const erlaubteArgumente = new Set(['verein', 'confirm', 'db', 'apply']);
+const verwendeteArgumente = new Set();
+for (const argument of argumente) {
+  const treffer = /^--([a-z]+)(?:=(.*))?$/.exec(argument);
+  if (!treffer || !erlaubteArgumente.has(treffer[1])) {
+    throw new Error('Unbekanntes oder ungültiges Argument: ' + argument);
+  }
+  const [, name, wert] = treffer;
+  if (verwendeteArgumente.has(name)) {
+    throw new Error('Doppeltes Argument nicht erlaubt: --' + name);
+  }
+  if (name === 'apply' ? wert !== undefined : wert === undefined || wert.length === 0) {
+    throw new Error('Ungültiger Wert für --' + name);
+  }
+  verwendeteArgumente.add(name);
+}
 const apply = process.argv.includes('--apply');
 const vereinId = process.argv.find((a) => a.startsWith('--verein='))?.slice('--verein='.length);
 const confirm = process.argv.find((a) => a.startsWith('--confirm='))?.slice('--confirm='.length);
