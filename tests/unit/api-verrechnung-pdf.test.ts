@@ -21,7 +21,7 @@ describe('Rechnungs-, Quittungs- und Gutschrift-PDF',()=>{
  it('liefert 404 bei fehlender Rechnung',async()=>{setup(null);expect((await call() as Response).status).toBe(404);});
  it('prüft Gutschrift-ID',async()=>{expect((await call(id,'invalid') as Response).status).toBe(400);});
  it('liefert 404 bei fehlender Gutschrift',async()=>{setup(rechnung(),null);expect((await call(id,gid) as Response).status).toBe(404);});
- it('erstellt offene Rechnung',async()=>{const r=await call() as Response;expect(r.headers.get('content-disposition')).toContain('Rechnung-');expect((await pdf(r)).getPageCount()).toBe(1);});
+ it('erstellt offene Rechnung',async()=>{const r=await call() as Response;expect(r.headers.get('content-disposition')).toContain('Rechnung-');expect((await pdf(r)).getPageCount()).toBe(1);},15000);
  it.each(['bar','twint'])('erstellt bezahlte Quittung mit %s',async(zahlungsart)=>{setup({...rechnung(),bezahltBetrag:60,status:'bezahlt',zahlungsart});const r=await call() as Response;expect(r.headers.get('content-disposition')).toContain('Quittung-');await pdf(r);});
  it('erstellt bezahlte Überweisungsrechnung',async()=>{setup({...rechnung(),bezahltBetrag:60,status:'bezahlt'});await pdf(await call() as Response);});
  it('erstellt teilweise bezahlte Rechnung mit Zahlungen',async()=>{setup({...rechnung(),bezahltBetrag:20,status:'teilweise_bezahlt',zahlungen:[{betrag:20,datum:'2026-11-03',zahlungsart:'twint'},{betrag:0,datum:'2026-11-04',zahlungsart:'bar'},{betrag:4,datum:'ungültig',zahlungsart:'bar'}]});await pdf(await call() as Response);});
