@@ -37,9 +37,8 @@ const excel = async (r: Response) => { expect(r.status).toBe(200); const w = new
 const set = (data: unknown, sizes: unknown = []) => m.fetch.mockImplementation(async (url: string) => url === '/api/groessen' ? reply(sizes) : reply(data));
 const one = (v: Record<string, unknown>, sizes: unknown = []) => set({ gesamt: 1, seiten: 1, verkaeufe: [sale(v)] }, sizes);
 
-beforeEach(() => { vi.resetAllMocks(); m.permission.mockReturnValue(null); vi.spyOn(console, 'error').mockImplementation(() => {}); set({ gesamt: 0, seiten: 0, verkaeufe: [] }); });
-
 describe('Paket 20 – fehlende Export-Verzweigungen', () => {
+  beforeEach(() => { vi.resetAllMocks(); m.permission.mockReturnValue(null); vi.spyOn(console, 'error').mockImplementation(() => {}); set({ gesamt: 0, seiten: 0, verkaeufe: [] }); });
   it('nutzt fehlende gesamt-, seiten- und verkaeufe-Felder als leere Werte', async () => { set({}); const w = await excel(await run()); expect(w.getWorksheet('Verkäufe')?.rowCount).toBe(1); }, 15000);
   it('nutzt bei fehlender verkaeufe-Liste einen leeren Array', async () => { set({ gesamt: 0, seiten: 1 }); const w = await excel(await run()); expect(w.getWorksheet('Positionen')?.rowCount).toBe(1); });
   it('akzeptiert exakt 10000 Verkäufe als Grenze und prüft danach Konsistenz', async () => { set({ gesamt: 10000, seiten: 0, verkaeufe: [] }); expect((await run()).status).toBe(409); });
