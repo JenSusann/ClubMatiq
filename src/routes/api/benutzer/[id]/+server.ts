@@ -7,23 +7,50 @@ import { pruefeBerechtigung } from '../../../../lib/server/berechtigungen';
 export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   const fehler = pruefeBerechtigung(locals.benutzer, 'benutzer:verwalten');
   if (fehler) return fehler;
-
-  if (!ObjectId.isValid(params.id)) {
-    return json({ fehler: 'Ungültige Benutzer-ID.' }, { status: 400 });
-  }
+  if (!ObjectId.isValid(params.id)) return json({ fehler: 'Ungültige Benutzer-ID.' }, { status: 400 });
 
   let eingabe: unknown;
-  try {
-    eingabe = await request.json();
-  } catch {
-    return json({ fehler: 'Ungültige JSON-Daten.' }, { status: 400 });
-  }
-  if (!eingabe || typeof eingabe !== 'object' || Array.isArray(eingabe) ||
-      !('aktiv' in eingabe) || typeof eingabe.aktiv !== 'boolean') {
-    return json({ fehler: 'Der Status muss aktiv oder inaktiv sein.' }, { status: 400 });
+  try { eingabe = await request.json(); }
+  catch { return json({ fehler: 'Ungültige JSON-Daten.' }, { status: 400 }); }
+  if (!eingabe || typeof eingabe !== 'object' || Array.isArray(eingabe)) {
+    return json({ fehler: 'Ungültige Benutzerdaten.' }, { status: 400 });
   }
 
-  const aktiv = eingabe.aktiv;
+  const daten = eingabe as Record<string, unknown>;
+  const erlaubt = ['vorname', 'nachname', 'email', 'rolle', 'aktiv'];
+  const felder = Object.keys(daten);
+  if (!felder.length || felder.some((feld) => !erlaubt.includes(feld))) {
+    return json({ fehler: 'Unbekannte oder fehlende Änderungsfelder.' }, { status: 400 });
+  }
+
+  const aenderungen: Record<string, string | boolean> = {};
+  for (const feld of ['vorname', 'nachname'] as const) {
+    if (!(feld in daten)) continue;
+    if (typeof daten[feld] !== 'string' || !daten[feld].trim() || daten[feld].trim().length > 100) {
+      return json({ fehler: `Ungültiger Wert für ${feld}.` }, { status: 400 });
+    }
+    aenderungen[feld] = daten[feld].trim();
+  }
+  if ('email' in daten) {
+    if (typeof daten.email !== 'string' || daten.email.trim().length > 254 ||
+      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(daten.email.trim())) {
+      return json({ fehler: 'Ungültige E-Mail-Adresse.' }, { status: 400 });
+    }
+    aenderungen.email = daten.email.trim().toLowerCase();
+  }
+  if ('rolle' in daten) {
+    if (!['admin', 'materialverantwortlich', 'leiter', 'mitglied'].includes(String(daten.rolle))) {
+      return json({ fehler: 'Ungültige Benutzerrolle.' }, { status: 400 });
+    }
+    aenderungen.rolle = daten.rolle as string;
+  }
+  if ('aktiv' in daten) {
+    if (typeof daten.aktiv !== 'boolean') {
+      return json({ fehler: 'Der Status muss aktiv oder inaktiv sein.' }, { status: 400 });
+    }
+    aenderungen.aktiv = daten.aktiv;
+  }
+
   const vereinId = locals.benutzer!.vereinId;
   const benutzerId = new ObjectId(params.id);
   try {
@@ -31,29 +58,37 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
     const ziel = await collection.findOne({ _id: benutzerId, vereinId });
     if (!ziel) return json({ fehler: 'Benutzer nicht gefunden.' }, { status: 404 });
 
-    if (!aktiv && params.id === locals.benutzer!.id) {
+    if (aenderungen.aktiv === false && params.id === locals.benutzer!.id) {
       return json({ fehler: 'Du kannst dich nicht selbst deaktivieren.' }, { status: 409 });
     }
-    if (!aktiv && ziel.rolle === 'admin' && ziel.aktiv !== false) {
+    if (aenderungen.rolle && aenderungen.rolle !== 'admin' && params.id === locals.benutzer!.id && ziel.rolle === 'admin') {
+      return json({ fehler: 'Du kannst deine eigene Administratorrolle nicht entfernen.' }, { status: 409 });
+    }
+    const adminEntzug = ziel.rolle === 'admin' && ziel.aktiv !== false &&
+      (aenderungen.aktiv === false || (aenderungen.rolle !== undefined && aenderungen.rolle !== 'admin'));
+    if (adminEntzug) {
       const andereAdmins = await collection.countDocuments({
         vereinId, rolle: 'admin', aktiv: true, _id: { $ne: benutzerId }
       });
       if (andereAdmins === 0) {
-        return json({ fehler: 'Der letzte aktive Administrator kann nicht deaktiviert werden.' }, { status: 409 });
+        return json({ fehler: 'Der letzte aktive Administrator muss erhalten bleiben.' }, { status: 409 });
       }
     }
 
-    await collection.updateOne({ _id: benutzerId, vereinId }, { $set: { aktiv } });
-    if (!aktiv) {
+    const ergebnis = await collection.updateOne({ _id: benutzerId, vereinId }, { $set: aenderungen });
+    if (!ergebnis.matchedCount) return json({ fehler: 'Benutzer wurde zwischenzeitlich entfernt.' }, { status: 409 });
+    if (aenderungen.aktiv === false || (aenderungen.rolle !== undefined && aenderungen.rolle !== ziel.rolle)) {
       await db.collection('sessions').deleteMany({ benutzerId: params.id, vereinId });
     }
-    return json({ erfolg: true, aktiv });
+    return json({ erfolg: true, ...aenderungen });
   } catch (error) {
-    console.error('Fehler beim Ändern des Benutzerstatus:', error);
-    return json({ fehler: 'Benutzerstatus konnte nicht geändert werden.' }, { status: 500 });
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) {
+      return json({ fehler: 'Diese E-Mail-Adresse ist bereits registriert.' }, { status: 409 });
+    }
+    console.error('Fehler beim Ändern des Benutzers:', error);
+    return json({ fehler: 'Benutzer konnte nicht geändert werden.' }, { status: 500 });
   }
 };
-
 
 /**
  * Prüft sämtliche vereinsbezogenen Dokumente auf Referenzen auf eine Benutzer-ID.
