@@ -52,7 +52,7 @@ const paymentInvoiceId='aaaaaaaaaaaaaaaaaaaaaaaa';
 const paymentUuid='12345678-1234-1234-1234-123456789012';
 const paymentInput={betrag:10,datum:'2026-11-17',zahlungsart:'twint',zahlungId:paymentUuid};
 const paymentInvoice=()=>({_id:paymentInvoiceId,vereinId:'verein-1',gesamtbetrag:100,bezahltBetrag:0,status:'offen',zahlungen:[]});
-const patchPayment=(body:any=paymentInput, invoiceId=paymentInvoiceId)=>PATCH({locals:{benutzer:{vereinId:'verein-1'}},params:{paymentInvoiceId:invoiceId},request:{json:async()=>body}} as any);
+const patchPayment=(body:any=paymentInput, invoiceId=paymentInvoiceId)=>PATCH({locals:{benutzer:{vereinId:'verein-1'}},params:{id:invoiceId},request:{json:async()=>body}} as any);
 const paymentResult=async(r:Response)=>({status:r.status,body:await r.json()});
 describe('Zahlungseingänge – Detail-API',()=>{
 beforeEach(()=>{vi.clearAllMocks();m.permission.mockReturnValue(null);m.session.withTransaction.mockImplementation(async(fn:any)=>fn());m.collection('vereinskleider_rechnungen').findOne.mockResolvedValue(paymentInvoice());m.collection('vereinskleider_rechnungen').updateOne.mockResolvedValue({modifiedCount:1});});
