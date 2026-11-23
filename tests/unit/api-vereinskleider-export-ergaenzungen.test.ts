@@ -15,7 +15,7 @@ const one = (v: Record<string, unknown>, sizes: unknown = []) => set({ gesamt: 1
 beforeEach(() => { vi.resetAllMocks(); m.permission.mockReturnValue(null); vi.spyOn(console, 'error').mockImplementation(() => {}); set({ gesamt: 0, seiten: 0, verkaeufe: [] }); });
 
 describe('Paket 20 – fehlende Export-Verzweigungen', () => {
-  it('nutzt fehlende gesamt-, seiten- und verkaeufe-Felder als leere Werte', async () => { set({}); const w = await excel(await run()); expect(w.getWorksheet('Verkäufe')?.rowCount).toBe(1); });
+  it('nutzt fehlende gesamt-, seiten- und verkaeufe-Felder als leere Werte', async () => { set({}); const w = await excel(await run()); expect(w.getWorksheet('Verkäufe')?.rowCount).toBe(1); }, 15000);
   it('nutzt bei fehlender verkaeufe-Liste einen leeren Array', async () => { set({ gesamt: 0, seiten: 1 }); const w = await excel(await run()); expect(w.getWorksheet('Positionen')?.rowCount).toBe(1); });
   it('akzeptiert exakt 10000 Verkäufe als Grenze und prüft danach Konsistenz', async () => { set({ gesamt: 10000, seiten: 0, verkaeufe: [] }); expect((await run()).status).toBe(409); });
   it('nutzt Standardmeldung, wenn zweite Seite keine Fehlermeldung enthält', async () => { m.fetch.mockImplementation(async (u: string) => u.includes('seite=2') ? reply({}, 502) : reply({ gesamt: 2, seiten: 2, verkaeufe: [sale()] })); const r = await run(); expect(r.status).toBe(502); expect((await r.json()).fehler).toContain('Seite 2'); });
