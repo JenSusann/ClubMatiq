@@ -37,3 +37,50 @@ describe('Schadensmeldung bearbeiten',()=>{
   it('liefert 404 bei fremder Meldung',async()=>{const col=setup();col.updateOne.mockResolvedValue({matchedCount:0});expect((await PATCH(patch({status:'erledigt',bearbeitungsnotiz:''}))).status).toBe(404)});
   it('liefert 500 bei Datenbankfehler',async()=>{const col=setup();col.updateOne.mockRejectedValue(Error('db'));expect((await PATCH(patch({status:'erledigt',bearbeitungsnotiz:''}))).status).toBe(500)});
 });
+
+// Ergänzende Randfälle: gemeinsamer MongoDB-Mock und pro Test frische Collection.
+const id = '507f1f77bcf86cd799439011';
+const benutzer = { id, vereinId: 'verein-a', rolle: 'admin', vorname: 'Test', nachname: 'Person' };
+const runRandfall = (body: unknown, user: unknown = benutzer, meldungId = id) => PATCH({
+  params: { id: meldungId },
+  locals: { benutzer: user },
+  request: new Request('http://localhost/api/meldungen/' + meldungId, {
+    method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
+  })
+} as never);
+
+describe('Schadensmeldung bearbeiten – Funktions- und Fehlerpfade', () => {
+  let updateOne: ReturnType<typeof vi.fn>;
+  beforeEach(() => { updateOne = setup().updateOne; });
+  it('weist nicht angemeldete Personen zurück', async () => {
+    expect((await runRandfall({ status: 'offen', bearbeitungsnotiz: '' }, null)).status).toBe(401);
+  });
+  it('weist unberechtigte Rollen zurück', async () => {
+    expect((await runRandfall({ status: 'offen', bearbeitungsnotiz: '' }, { ...benutzer, rolle: 'mitglied' })).status).toBe(403);
+  });
+  it('weist ungültige IDs zurück', async () => {
+    expect((await runRandfall({ status: 'offen', bearbeitungsnotiz: '' }, benutzer, 'ungueltig')).status).toBe(400);
+  });
+  it.each(['offen', 'in_bearbeitung', 'erledigt'])('speichert den Status %s', async (status) => {
+    updateOne.mockResolvedValue({ matchedCount: 1 });
+    const res = await runRandfall({ status, bearbeitungsnotiz: '  Geprüft  ' });
+    expect(res.status).toBe(200);
+    expect(updateOne).toHaveBeenCalledWith(expect.objectContaining({ vereinId: 'verein-a' }), expect.objectContaining({
+      $set: expect.objectContaining({ status, bearbeitungsnotiz: 'Geprüft', bearbeitetVonName: 'Test Person' })
+    }));
+  });
+  it('weist ungültige Statuswerte zurück', async () => {
+    expect((await runRandfall({ status: 'gelöscht', bearbeitungsnotiz: '' })).status).toBe(400);
+  });
+  it('weist zu lange Notizen zurück', async () => {
+    expect((await runRandfall({ status: 'offen', bearbeitungsnotiz: 'a'.repeat(2001) })).status).toBe(400);
+  });
+  it('meldet nicht gefundene Datensätze', async () => {
+    updateOne.mockResolvedValue({ matchedCount: 0 });
+    expect((await runRandfall({ status: 'offen', bearbeitungsnotiz: '' })).status).toBe(404);
+  });
+  it('behandelt Datenbankfehler', async () => {
+    updateOne.mockRejectedValue(new Error('Datenbank nicht erreichbar'));
+    expect((await runRandfall({ status: 'offen', bearbeitungsnotiz: '' })).status).toBe(500);
+  });
+});
