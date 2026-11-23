@@ -95,8 +95,8 @@ const edgeA = 'aaaaaaaaaaaaaaaaaaaaaaaa';
 const edgeB = 'bbbbbbbbbbbbbbbbbbbbbbbb';
 const edgeC = 'cccccccccccccccccccccccc';
 const edgelocals = { benutzer: { vereinId: 'verein-1' } } as any;
-const edgeget = async () => (await GET({ edgelocals } as any)).json();
-const edgepost = (body: unknown) => POST({ edgelocals, request: new Request('http://localhost/api', {
+const edgeget = async () => (await GET({ locals: edgelocals } as any)).json();
+const edgepost = (body: unknown) => POST({ locals: edgelocals, request: new Request('http://localhost/api', {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
 }) } as any);
 const edgeartikel = (extra: Record<string, unknown> = {}) => ({ _id: new ObjectId(edgeA), name: 'Shirt',
