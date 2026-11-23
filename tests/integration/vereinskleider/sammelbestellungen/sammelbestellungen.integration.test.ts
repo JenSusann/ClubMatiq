@@ -111,7 +111,7 @@ const edgesammel = (extra: Record<string, unknown> = {}) => ({ _id: new ObjectId
 describe('Sammelbestellungen – Paket 20 Randfälle', () => {
  beforeEach(() => {
   h.rows = {}; h.auth.mockReset().mockReturnValue(null);
-  h.insert.mockReset().mockResolvedValue({ insertedId: { toString: () => edgeA } });
+  h.insert.mockReset().mockResolvedValue({ insertedId: new ObjectId(edgeA) });
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
