@@ -58,6 +58,28 @@
   let bearbeitung = $state({ vorname: '', nachname: '', email: '', rolle: 'mitglied' as Benutzerrolle });
   let loeschenId = $state<string | null>(null);
   let widerrufenId = $state<string | null>(null);
+  type Bestaetigung = { art: 'status' | 'loeschen' | 'widerrufen'; titel: string; beschreibung: string; knopf: string; kritisch: boolean; person?: Benutzer; einladung?: Einladung };
+  let bestaetigung = $state<Bestaetigung | null>(null);
+  let bestaetigungLaeuft = $state(false);
+
+  function bestaetigungSchliessen() {
+    if (!bestaetigungLaeuft) bestaetigung = null;
+  }
+
+  async function bestaetigungAusfuehren() {
+    if (!bestaetigung || bestaetigungLaeuft) return;
+    const aktion = bestaetigung;
+    bestaetigungLaeuft = true;
+    try {
+      if (aktion.art === 'status' && aktion.person) await statusAendern(aktion.person);
+      else if (aktion.art === 'loeschen' && aktion.person) await benutzerLoeschen(aktion.person);
+      else if (aktion.art === 'widerrufen' && aktion.einladung) await einladungWiderrufen(aktion.einladung);
+      bestaetigung = null;
+    } finally {
+      bestaetigungLaeuft = false;
+    }
+  }
+
 
   // Meldungen
   let fehlermeldung = $state('');
@@ -296,8 +318,6 @@
 
   async function statusAendern(person: Benutzer) {
     if (statusAendernId) return;
-    const aktion = person.aktiv ? 'deaktivieren' : 'reaktivieren';
-    if (!confirm(`${person.vorname} ${person.nachname} wirklich ${aktion}?`)) return;
     statusAendernId = person.id;
     fehlermeldung = '';
     erfolgsmeldung = '';
@@ -319,7 +339,7 @@
   }
 
   async function einladungWiderrufen(einladung: Einladung) {
-    if (widerrufenId || !confirm(`Einladung für ${einladung.email} wirklich widerrufen? Der Link wird ungültig.`)) return;
+    if (widerrufenId) return;
     widerrufenId = einladung.id;
     fehlermeldung = ''; erfolgsmeldung = '';
     try {
@@ -334,7 +354,7 @@
   }
 
   async function benutzerLoeschen(person: Benutzer) {
-    if (loeschenId || !confirm(`Benutzer ${person.vorname} ${person.nachname} endgültig löschen? Dies ist nur ohne gespeicherte Vereinsdaten möglich.`)) return;
+    if (loeschenId) return;
     loeschenId = person.id;
     fehlermeldung = ''; erfolgsmeldung = '';
     try {
@@ -552,10 +572,10 @@
                   <button type="button" class="sekundaer" disabled={bearbeitungSpeichern} onclick={() => bearbeitungStarten(person)}>
                     Bearbeiten
                   </button>
-                  <button type="button" class="sekundaer" style="margin-left:8px" disabled={statusAendernId !== null} onclick={() => statusAendern(person)}>
+                  <button type="button" class="sekundaer" style="margin-left:8px" disabled={statusAendernId !== null} onclick={() => bestaetigung = { art: 'status', titel: person.aktiv ? 'Benutzer deaktivieren' : 'Benutzer reaktivieren', beschreibung: person.aktiv ? `${person.vorname} ${person.nachname} wird der Zugang zu ClubMatiq entzogen. Bestehende Sitzungen werden beendet. Der Benutzer bleibt erhalten und kann später reaktiviert werden.` : `${person.vorname} ${person.nachname} erhält wieder Zugang zu ClubMatiq.`, knopf: person.aktiv ? 'Ja, deaktivieren' : 'Ja, reaktivieren', kritisch: person.aktiv, person }}>
                     {statusAendernId === person.id ? 'Wird gespeichert …' : person.aktiv ? 'Deaktivieren' : 'Reaktivieren'}
                   </button>
-                  <button type="button" class="sekundaer" style="margin-left:8px" disabled={loeschenId !== null} onclick={() => benutzerLoeschen(person)}>
+                  <button type="button" class="sekundaer" style="margin-left:8px" disabled={loeschenId !== null} onclick={() => bestaetigung = { art: 'loeschen', titel: 'Benutzer löschen', beschreibung: `${person.vorname} ${person.nachname} endgültig löschen? Dies ist nur möglich, wenn keine gespeicherten Vereinsdaten mit diesem Benutzer verknüpft sind. Diese Aktion kann nicht rückgängig gemacht werden.`, knopf: 'Endgültig löschen', kritisch: true, person }}>
                     {loeschenId === person.id ? 'Wird gelöscht …' : 'Löschen'}
                   </button>
                 </td>
@@ -689,7 +709,7 @@
                     </button>
                   {/if}
                   {#if einladung.status !== 'angenommen' && einladung.status !== 'widerrufen'}
-                    <button type="button" class="sekundaer" style="margin-left:8px" disabled={widerrufenId !== null} onclick={() => einladungWiderrufen(einladung)}>
+                    <button type="button" class="sekundaer" style="margin-left:8px" disabled={widerrufenId !== null} onclick={() => bestaetigung = { art: 'widerrufen', titel: 'Einladung widerrufen', beschreibung: `Die Einladung an ${einladung.email} wird widerrufen. Der Einladungslink ist danach ungültig.`, knopf: 'Einladung widerrufen', kritisch: true, einladung }}>
                       {widerrufenId === einladung.id ? 'Wird widerrufen …' : 'Widerrufen'}
                     </button>
                   {/if}
@@ -710,7 +730,29 @@
   </section>
 </div>
 
+
+{#if bestaetigung}
+  <div class="dialog-hintergrund" role="presentation">
+    <div class="bestaetigungsdialog" role="dialog" aria-modal="true" aria-labelledby="dialog-titel" aria-describedby="dialog-text">
+      <h2 id="dialog-titel">{bestaetigung.titel}</h2>
+      <p id="dialog-text">{bestaetigung.beschreibung}</p>
+      <div class="dialog-aktionen">
+        <button type="button" class="sekundaer" disabled={bestaetigungLaeuft} onclick={bestaetigungSchliessen}>Abbrechen</button>
+        <button type="button" class:bestaetigung-kritisch={bestaetigung.kritisch} class="primaer" disabled={bestaetigungLaeuft} onclick={() => void bestaetigungAusfuehren()}>
+          {bestaetigungLaeuft ? 'Wird ausgeführt …' : bestaetigung.knopf}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
+  .dialog-hintergrund { position: fixed; inset: 0; z-index: 1000; background: rgba(15, 23, 42, .58); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .bestaetigungsdialog { background: #fff; border-radius: 14px; padding: 28px; width: min(100%, 480px); box-shadow: 0 18px 60px rgba(0,0,0,.2); }
+  .bestaetigungsdialog h2 { margin: 0 0 14px; }
+  .bestaetigungsdialog p { line-height: 1.6; color: #475569; margin: 0 0 24px; }
+  .dialog-aktionen { display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; }
+  .bestaetigung-kritisch { background: #b91c1c !important; border-color: #b91c1c !important; color: #fff !important; }
   .seite {
     max-width: 1100px;
     margin: 0 auto;
