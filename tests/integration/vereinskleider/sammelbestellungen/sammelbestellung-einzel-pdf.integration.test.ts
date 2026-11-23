@@ -39,3 +39,18 @@ describe('Einzelbestellung PDF',()=>{
  it('erstellt PDF mit Grössenbezeichnung',async()=>{h.one.vereinskleider_sammelbestellungen=order([{...position,groesseId:id3}]);h.rows.groessen=[{_id:new ObjectId(id3),bezeichnung:'M'}];h.one.lieferanten={name:'Lieferant'};h.one.vereine={name:'TV Weiningen'};expect((await call()).status).toBe(200);});
  it('meldet Datenbankfehler',async()=>{h.fail='vereinskleider_sammelbestellungen';await expect(call()).rejects.toMatchObject({status:500});});
 });
+
+describe('Paket 16: Einzel-PDF – Randfälle',()=>{
+  it('erstellt mehrseitige Bestellung mit langen Namen und ohne Bemerkung',async()=>{
+    const viele=Array.from({length:70},(_,i)=>({...position,artikelname:'Langer Artikelname '.repeat(15)+i,groesseId:id2,menge:1}));
+    h.one.vereinskleider_sammelbestellungen={...order(viele),bemerkung:''};
+    h.rows.groessen=[{_id:new ObjectId(id2),bezeichnung:'Sehr lange Groesse '.repeat(6)}];
+    const r=await call();expect(r.status).toBe(200);
+    const {PDFDocument}=await import('pdf-lib');
+    expect((await PDFDocument.load(await r.arrayBuffer())).getPageCount()).toBeGreaterThan(1);
+  });
+  it('erstellt PDF mit unbekannter Groesse und ohne Lieferantenstammsatz',async()=>{
+    h.one.vereinskleider_sammelbestellungen={...order([{...position,groesseId:id2}]),bemerkung:''};
+    expect((await call()).status).toBe(200);
+  });
+});
