@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { MongoClient, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { verify } from 'argon2';
 
 // Diese Datei arbeitet mit einer echten MongoDB, niemals mit der Produktivdatenbank.
