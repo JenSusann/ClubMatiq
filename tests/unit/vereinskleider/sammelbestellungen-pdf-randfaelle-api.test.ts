@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
+import { PDFDocument } from 'pdf-lib';
 
 const m = vi.hoisted(() => ({
   find: vi.fn(), findOne: vi.fn(), groessen: vi.fn(), lieferant: vi.fn(), verein: vi.fn(),
@@ -71,4 +72,34 @@ describe('Gesamtbestellung PDF – zusätzliche Branches', () => {
   it('funktioniert ohne Grössen-IDs und mit String-Vereins-ID', async () => { m.find.mockReturnValue({ toArray: async () => [bestellung({ positionen: [position({ groesseId: null })] })] }); expect((await POST({ ...ctxPost(), locals: { benutzer: { vereinId: 'verein-1' } } } as any)).status).toBe(200); });
   it('erstellt mehrere PDF-Seiten und bricht Wörter um', async () => { m.find.mockReturnValue({ toArray: async () => [bestellung({ positionen: Array.from({ length: 70 }, (_, i) => position({ artikelId: new ObjectId().toString(), artikelname: `Artikel ${i} ${'X'.repeat(140)}` })) })] }); expect((await post()).status).toBe(200); });
   it('meldet DB-Fehler mit 500', async () => { m.find.mockImplementation(() => { throw Error('DB'); }); await expect(post()).rejects.toMatchObject({ status: 500 }); });
+});
+
+
+const singlePdfId = 'aaaaaaaaaaaaaaaaaaaaaaaa', singlePdfVereinId = 'club', singlePdfLieferantId = 'bbbbbbbbbbbbbbbbbbbbbbbb', singlePdfGroesseId = 'cccccccccccccccccccccccc';
+const singlePdfBasis = () => ({ _id: new ObjectId(singlePdfId), singlePdfVereinId, singlePdfLieferantId, lieferantName: 'Fallback', status: 'bestellt', erstelltAm: new Date('2026-11-01'), positionen: [{ artikelId: singlePdfId, singlePdfGroesseId, artikelname: 'Trainerjacke', menge: 3 }] });
+const singlePdfProject = vi.fn();
+const singlePdfToArray = vi.fn();
+function singlePdfSetup(order: any = singlePdfBasis()) {
+  m.findOne.mockResolvedValue(order);
+  m.lieferant.mockResolvedValue({ name: 'Lieferant AG' });
+  m.verein.mockResolvedValue({ name: 'Turnverein' });
+  m.groessen.mockReturnValue({ project: singlePdfProject });
+  singlePdfProject.mockReturnValue({ toArray: singlePdfToArray });
+  singlePdfToArray.mockResolvedValue([{ _id: new ObjectId(singlePdfGroesseId), bezeichnung: 'M' }]);
+}
+const singlePdfCall = (customId = singlePdfId) => GET({ params: { singlePdfId: customId }, locals: { benutzer: { singlePdfVereinId } } } as any);
+describe('Einzel-PDF – Metadaten und Langtexte', () => {
+ beforeEach(() => { vi.resetAllMocks(); m.auth.mockReturnValue(null); singlePdfSetup(); });
+describe('Sammelbestellung Einzel-PDF', () => {
+  it('verweigert fehlende Berechtigung', async () => { m.auth.mockReturnValue(new Response('Nein', { status: 403 })); expect((await singlePdfCall() as Response).status).toBe(403); });
+  it.each(['falsch', '', 'z'.repeat(24)])('verweigert ungültige ID %s', async (value) => { await expect(singlePdfCall(value)).rejects.toMatchObject({ status: 400 }); });
+  it('meldet fehlende Bestellung', async () => { singlePdfSetup(null); await expect(singlePdfCall()).rejects.toMatchObject({ status: 404 }); });
+  it.each([[], null])('verweigert leere Positionen %s', async (positionen) => { singlePdfSetup({ ...singlePdfBasis(), positionen }); await expect(singlePdfCall()).rejects.toMatchObject({ status: 409 }); });
+  it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])('verweigert Menge %s', async (menge) => { singlePdfSetup({ ...singlePdfBasis(), positionen: [{ ...singlePdfBasis().positionen[0], menge }] }); await expect(singlePdfCall()).rejects.toMatchObject({ status: 409 }); }, 15000);
+  it('erstellt ein gültiges PDF mit Metadaten', async () => { const r = await singlePdfCall() as Response; expect(r.status).toBe(200); expect(r.headers.get('content-type')).toBe('application/pdf'); expect(r.headers.get('content-disposition')).toContain(singlePdfId.slice(-8)); const pdf = await PDFDocument.load(await r.arrayBuffer()); expect(pdf.getPageCount()).toBe(1); expect(pdf.getTitle()).toContain('Lieferant AG'); });
+  it('erstellt mehrere Seiten und verarbeitet lange Texte', async () => { singlePdfSetup({ ...singlePdfBasis(), bemerkung: 'Sehr lang '.repeat(400), positionen: Array.from({ length: 65 }, (_, i) => ({ artikelId: singlePdfId, singlePdfGroesseId: i % 2 ? null : singlePdfGroesseId, artikelname: `Artikel ${i} ${'ExtraLang'.repeat(25)}`, menge: 1 })) }); const pdf = await PDFDocument.load(await (await singlePdfCall() as Response).arrayBuffer()); expect(pdf.getPageCount()).toBeGreaterThan(1); });
+  it('funktioniert ohne Lieferant, Grösse und Vereinsname', async () => { singlePdfSetup({ ...singlePdfBasis(), singlePdfLieferantId: null, lieferantName: null, positionen: [{ ...singlePdfBasis().positionen[0], singlePdfGroesseId: null }] }); m.findOne.mockResolvedValue({ ...singlePdfBasis(), singlePdfLieferantId: null, lieferantName: null, positionen: [{ ...singlePdfBasis().positionen[0], singlePdfGroesseId: null }] }); expect((await singlePdfCall() as Response).status).toBe(200); });
+  it('behandelt Datenbankfehler', async () => { m.findOne.mockRejectedValue(new Error('DB offline')); await expect(singlePdfCall()).rejects.toMatchObject({ status: 500 }); });
+});
+
 });
