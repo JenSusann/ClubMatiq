@@ -120,4 +120,38 @@ describe('Issue #66 – Lagerjournal mit echter MongoDB', () => {
     // Mitglieder haben im Rollenmodell Leserechte; dieser Fall darf nicht pauschal 403 liefern.
     expect((await journalGET(event('/api/lagerbewegungen/gesamt', mitglied))).status).toBe(200);
   });
+
+  it('misst Vorschau, Tiefensuche und XLSX-Export mit 2500 zusätzlichen Bewegungen', async () => {
+    // Performance-Messung mit echter Testdatenbank; keine starre SLA, da Atlas/Netzwerk schwanken.
+    const anzahl = 2500;
+    const marker = prefix + '-lasttest-';
+    const daten = Array.from({ length: anzahl }, (_, i) => bewegung(i + 300, vereinId, artikelId, marker + i));
+    await db.collection('lagerbewegungen').insertMany(daten, { ordered: false });
+    try {
+      const startVorschau = performance.now();
+      const vorschau = await journalGET(event('/api/lagerbewegungen/gesamt'));
+      const vorschauMs = Math.round(performance.now() - startVorschau);
+      expect(vorschau.status).toBe(200);
+      expect((await vorschau.json()).bewegungen).toHaveLength(200);
+
+      const startSuche = performance.now();
+      const suche = await journalGET(event('/api/lagerbewegungen/gesamt?suche=' + encodeURIComponent(marker + '2499')));
+      const sucheMs = Math.round(performance.now() - startSuche);
+      expect(suche.status).toBe(200);
+      const treffer = (await suche.json()).bewegungen;
+      expect(treffer).toHaveLength(1);
+      expect(treffer[0].referenzId).toBe(marker + '2499');
+
+      const startExport = performance.now();
+      const excel = await exportGET(event('/api/export/lagerbewegungen'));
+      const exportMs = Math.round(performance.now() - startExport);
+      const sheet = await workbook(excel);
+      expect(sheet.rowCount).toBe(4 + 201 + anzahl);
+      console.info('[Issue #66 Performance]', JSON.stringify({
+        bewegungen: 201 + anzahl, vorschauMs, tiefensucheMs: sucheMs, xlsxExportMs: exportMs
+      }));
+    } finally {
+      await db.collection('lagerbewegungen').deleteMany({ vereinId, referenzId: { $regex: '^' + marker } });
+    }
+  }, 60000);
 });
