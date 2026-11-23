@@ -80,3 +80,74 @@ describe('DELETE Lieferanten', () => {
  it('meldet fehlenden Lieferanten',async () => { lieferanten.deleteOne.mockResolvedValueOnce({deletedCount:0}); expect((await invoke('DELETE',{id:ID})).status).toBe(404); });
  it('behandelt Datenbankfehler',async () => { artikel.findOne.mockRejectedValueOnce(new Error('db')); expect((await invoke('DELETE',{id:ID})).status).toBe(500); });
 });
+
+// Zusätzliche Grenzfälle nutzen dieselben Datenbank-Mocks und dieselbe Testvorbereitung.
+const eventEdge = (body: unknown, broken = false) => ({
+  locals: { benutzer },
+  request: { json: broken ? vi.fn().mockRejectedValue(new SyntaxError('JSON')) : vi.fn().mockResolvedValue(body) }
+}) as never;
+
+describe('Paket 17 – Lieferanten: bisher fehlende Eingabe-Verzweigungen', () => {
+  it('POST akzeptiert fehlende optionale Felder und setzt leere Strings ein', async () => {
+    const res = await POST(eventEdge({ name: 'Ohne Kontakt' }));
+    expect(res.status).toBe(201);
+    expect(lieferanten.insertOne).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Ohne Kontakt', kontaktperson: '', email: '', telefon: '', bemerkung: ''
+    }));
+  });
+
+  it.each(['kontaktperson', 'email', 'telefon', 'bemerkung'] as const)(
+    'POST akzeptiert fehlendes optionales Feld %s', async (feld) => {
+      const eingabe: Record<string, string> = { name: 'Test', kontaktperson: 'Kontakt', email: 'test@example.ch', telefon: '123', bemerkung: 'Text' };
+      delete eingabe[feld];
+      const res = await POST(eventEdge(eingabe));
+      expect(res.status).toBe(201);
+      expect(lieferanten.insertOne).toHaveBeenCalledWith(expect.objectContaining({ [feld]: '' }));
+    }
+  );
+
+  it.each(['name', 'kontaktperson', 'email', 'telefon', 'bemerkung'] as const)(
+    'POST akzeptiert explizit undefined für %s', async (feld) => {
+      const eingabe = { name: 'Test', kontaktperson: 'Kontakt', email: 'test@example.ch', telefon: '123', bemerkung: 'Text', [feld]: undefined };
+      const res = await POST(eventEdge(eingabe));
+      expect(res.status).toBe(feld === 'name' ? 400 : 201);
+    }
+  );
+
+  it('POST akzeptiert einen Namen mit genau 150 Zeichen', async () => {
+    expect((await POST(eventEdge({ name: 'a'.repeat(150) }))).status).toBe(201);
+  });
+
+  it('POST akzeptiert optionale Felder an der Längengrenze', async () => {
+    const res = await POST(eventEdge({ name: 'Test', kontaktperson: 'x'.repeat(150), telefon: '1'.repeat(60), bemerkung: 'z'.repeat(2000) }));
+    expect(res.status).toBe(201);
+  });
+
+  it('POST fängt ungültiges JSON ab', async () => {
+    expect((await POST(eventEdge(null, true))).status).toBe(400);
+  });
+
+  it('PATCH fängt ungültiges JSON ab', async () => {
+    expect((await PATCH(eventEdge(null, true))).status).toBe(400);
+  });
+
+  it('DELETE fängt ungültiges JSON ab', async () => {
+    expect((await DELETE(eventEdge(null, true))).status).toBe(400);
+  });
+
+  it('PATCH akzeptiert die ID in Grossbuchstaben und fehlende optionale Felder', async () => {
+    const res = await PATCH(eventEdge({ id: ID.toUpperCase(), name: 'Test' }));
+    expect(res.status).toBe(200);
+    expect(lieferanten.updateOne).toHaveBeenCalled();
+  });
+
+  it('DELETE akzeptiert die ID in Grossbuchstaben', async () => {
+    expect((await DELETE(eventEdge({ id: ID.toUpperCase() }))).status).toBe(200);
+  });
+
+  it('POST maskiert alle Sonderzeichen im Lieferantennamen', async () => {
+    const name = 'A.+*?^${}()|[]\\ B';
+    expect((await POST(eventEdge({ name }))).status).toBe(201);
+    expect(lieferanten.findOne).toHaveBeenCalledWith(expect.objectContaining({ name: expect.objectContaining({ $options: 'i' }) }));
+  });
+});
