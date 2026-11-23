@@ -49,3 +49,108 @@ describe('ClubDesk CSV Import', () => {
   it('importiert Windows-1252 kodierte CSV', async () => { const bytes = new Uint8Array([91,73,100,93,59,86,111,114,110,97,109,101,59,78,97,99,104,110,97,109,101,10,49,59,74,246,114,103,59,77,252,108,108,101,114]); const f = new FormData(); f.set('datei', new File([bytes], 'latin.csv')); const r = await post(new Request('http://localhost/api/mitglieder', { method: 'POST', body: f })); expect(r.status).toBe(200); expect(m.collection.bulkWrite.mock.calls[0][0][0].updateOne.update.$set.vorname).toBe('Jörg'); });
   it('berechnet Neu, Aktualisiert und Unverändert', async () => { m.collection.bulkWrite.mockResolvedValue({ upsertedCount: 1, modifiedCount: 2, matchedCount: 4 }); const r = await post(upload(csv)); expect(await r.json()).toMatchObject({ neu: 1, aktualisiert: 2, unveraendert: 2 }); });
 });
+
+// Zusätzliche Such- und CSV-Fälle mit denselben Modul-Mocks.
+const extraMocks = { sort: vi.fn(), limit: vi.fn(), toArray: vi.fn() };
+const benutzer = { id: 'user-1', vereinId: 'verein-1', rolle: 'admin' };
+const memberZusatz = (vorname: string, nachname: string, clubdeskId: string) => ({
+  _id: 'mongo-id', vorname, nachname, clubdeskId, anrede: '', adresse: '', ort: '', plz: '', status: '', aktiv: true
+});
+const getZusatz = (suche?: string) => GET({ locals: { benutzer }, url: new URL('http://localhost/api/mitglieder' + (suche === undefined ? '' : '?suche=' + encodeURIComponent(suche))) } as never);
+const postZusatz = (csv: string, type = 'text/csv') => {
+  const fd = new FormData();
+  fd.set('datei', new File([csv], 'mitglieder.csv', { type }));
+  return POST({ locals: { benutzer }, request: { headers: new Headers({ 'content-type': 'multipart/form-data; boundary=test' }), formData: async () => fd } } as never);
+};
+const messageZusatz = async (promise: Response | Promise<Response>, status: number, contains: string) => {
+  try { await promise; throw new Error('Expected HTTP error'); }
+  catch (e: any) { expect(e.status).toBe(status); expect(e.body?.message ?? e.message).toContain(contains); }
+};
+
+describe('Paket 18 – Mitglieder CSV und Suchfilter', () => {
+beforeEach(() => {
+  vi.clearAllMocks();
+  m.collection.find.mockReturnValue({ sort: extraMocks.sort });
+  extraMocks.sort.mockReturnValue({ limit: extraMocks.limit });
+  extraMocks.limit.mockReturnValue({ toArray: extraMocks.toArray });
+  extraMocks.toArray.mockResolvedValue([]);
+  m.collection.createIndex.mockResolvedValue('index');
+  m.collection.bulkWrite.mockResolvedValue({ upsertedCount: 1, modifiedCount: 0, matchedCount: 0 });
+  m.permission.mockReturnValue(null);
+});
+
+
+  it('GET ohne Suchbegriff gibt alle Mitglieder zurück', async () => {
+    extraMocks.toArray.mockResolvedValue([memberZusatz('Anna', 'Muster', '123')]);
+    const r = await getZusatz();
+    expect(r.status).toBe(200);
+    expect((await r.json())[0].anzeigename).toBe('Anna Muster');
+  });
+  it('GET filtert Treffer und Nichttreffer nach Name', async () => {
+    extraMocks.toArray.mockResolvedValue([memberZusatz('Anna', 'Muster', '123'), memberZusatz('Max', 'Meier', '456')]);
+    const r = await getZusatz('muster anna');
+    expect((await r.json()).map((v: any) => v.clubdeskId)).toEqual(['123']);
+  });
+  it('GET akzeptiert leere und getrimmte Suche', async () => {
+    extraMocks.toArray.mockResolvedValue([memberZusatz('Anna', 'Muster', '123')]);
+    expect((await (await getZusatz('   ')).json())).toHaveLength(1);
+    expect((await (await getZusatz(' ANNA ')).json())).toHaveLength(1);
+  });
+  it('GET gibt maximal 50 Treffer zurück', async () => {
+    extraMocks.toArray.mockResolvedValue(Array.from({ length: 60 }, (_, i) => memberZusatz('Anna', 'Muster', String(i))));
+    expect((await (await getZusatz()).json())).toHaveLength(50);
+  });
+  it('GET gibt Berechtigungsfehler unverändert zurück', async () => {
+    m.permission.mockReturnValueOnce(new Response('verboten', { status: 403 }));
+    expect((await getZusatz()).status).toBe(403);
+  });
+  it('POST gibt Berechtigungsfehler unverändert zurück', async () => {
+    m.permission.mockReturnValueOnce(new Response('verboten', { status: 403 }));
+    expect((await postZusatz('')).status).toBe(403);
+  });
+  it('POST verweigert falschen Content-Type', async () => {
+    await messageZusatz(POST({ locals: { benutzer }, request: { headers: new Headers({ 'content-type': 'text/plain' }) } } as never), 400, 'CSV-Datei');
+  });
+  it('POST verweigert fehlende Datei', async () => {
+    await messageZusatz(POST({ locals: { benutzer }, request: { headers: new Headers({ 'content-type': 'multipart/form-data' }), formData: async () => new FormData() } } as never), 400, 'Keine CSV-Datei');
+  });
+  it('POST importiert gültige CSV mit optionalen Spalten', async () => {
+    const r = await postZusatz('[Id];Vorname;Nachname\n100;Anna;Muster');
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ erfolg: true, eingelesen: 1 });
+    expect(m.collection.bulkWrite).toHaveBeenCalledOnce();
+  });
+  it('POST verarbeitet BOM, CRLF und Anführungszeichen', async () => {
+    const r = await postZusatz('\uFEFF[Id];Vorname;Nachname;Ort\r\n100;"Anna; Maria";"Muster";Zürich\r\n');
+    expect(r.status).toBe(200);
+    expect(m.collection.bulkWrite.mock.calls[0][0][0].updateOne.update.$set.vorname).toBe('Anna; Maria');
+  });
+  it('POST verarbeitet escaped Anführungszeichen', async () => {
+    const r = await postZusatz('[Id];Vorname;Nachname\n100;"An""na";Muster\n');
+    expect(r.status).toBe(200);
+    expect(m.collection.bulkWrite.mock.calls[0][0][0].updateOne.update.$set.vorname).toBe('An"na');
+  });
+  it('POST verweigert nicht geschlossene Anführungszeichen', async () => {
+    await messageZusatz(postZusatz('[Id];Vorname;Nachname\n100;"Anna;Muster'), 400, 'Anführungszeichen');
+  });
+  it('POST verweigert CSV ohne Datensätze', async () => {
+    await messageZusatz(postZusatz('[Id];Vorname;Nachname\n'), 400, 'keine Mitglieder');
+  });
+  it('POST verweigert fehlende Pflichtspalte', async () => {
+    await messageZusatz(postZusatz('[Id];Vorname\n100;Anna'), 400, 'Pflichtspalte');
+  });
+  it('POST verweigert fehlende ClubDesk-ID', async () => {
+    await messageZusatz(postZusatz('[Id];Vorname;Nachname\n;Anna;Muster'), 400, 'Ungültiger Mitgliedereintrag');
+  });
+  it('POST verweigert fehlende Vor- und Nachnamen', async () => {
+    await messageZusatz(postZusatz('[Id];Vorname;Nachname\n100;;'), 400, 'Ungültiger Mitgliedereintrag');
+  });
+  it('POST verweigert doppelte ClubDesk-ID', async () => {
+    await messageZusatz(postZusatz('[Id];Vorname;Nachname\n100;Anna;Muster\n100;Max;Meier'), 400, 'Doppelte ClubDesk-ID');
+  });
+  it('POST berechnet aktualisierte und unveränderte Einträge', async () => {
+    m.collection.bulkWrite.mockResolvedValue({ upsertedCount: 0, modifiedCount: 1, matchedCount: 2 });
+    const r = await postZusatz('[Id];Vorname;Nachname\n100;Anna;Muster');
+    expect(await r.json()).toMatchObject({ aktualisiert: 1, unveraendert: 1 });
+  });
+});
