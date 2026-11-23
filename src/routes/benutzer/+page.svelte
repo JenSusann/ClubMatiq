@@ -53,6 +53,9 @@
   let startpasswort = $state('');
   let erneutSendenId = $state<string | null>(null);
   let statusAendernId = $state<string | null>(null);
+  let bearbeitenId = $state<string | null>(null);
+  let bearbeitungSpeichern = $state(false);
+  let bearbeitung = $state({ vorname: '', nachname: '', email: '', rolle: 'mitglied' as Benutzerrolle });
   let loeschenId = $state<string | null>(null);
   let widerrufenId = $state<string | null>(null);
 
@@ -258,6 +261,36 @@
       fehlermeldung = error instanceof Error ? error.message : 'Versand fehlgeschlagen.';
     } finally {
       erneutSendenId = null;
+    }
+  }
+
+  function bearbeitungStarten(person: Benutzer) {
+    bearbeitenId = person.id;
+    bearbeitung = { vorname: person.vorname, nachname: person.nachname, email: person.email, rolle: person.rolle };
+    fehlermeldung = '';
+    erfolgsmeldung = '';
+  }
+
+  async function bearbeitungSichern() {
+    if (!bearbeitenId || bearbeitungSpeichern) return;
+    bearbeitungSpeichern = true;
+    fehlermeldung = '';
+    erfolgsmeldung = '';
+    try {
+      const antwort = await fetch(`/api/benutzer/${encodeURIComponent(bearbeitenId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bearbeitung)
+      });
+      const daten = await antwort.json();
+      if (!antwort.ok) throw new Error(daten.fehler ?? 'Benutzer konnte nicht geändert werden.');
+      erfolgsmeldung = 'Benutzerdaten gespeichert.';
+      bearbeitenId = null;
+      await ladeBenutzer();
+    } catch (error) {
+      fehlermeldung = error instanceof Error ? error.message : 'Änderung fehlgeschlagen.';
+    } finally {
+      bearbeitungSpeichern = false;
     }
   }
 
@@ -516,7 +549,10 @@
                   </span>
                 </td>
                 <td>
-                  <button type="button" class="sekundaer" disabled={statusAendernId !== null} onclick={() => statusAendern(person)}>
+                  <button type="button" class="sekundaer" disabled={bearbeitungSpeichern} onclick={() => bearbeitungStarten(person)}>
+                    Bearbeiten
+                  </button>
+                  <button type="button" class="sekundaer" style="margin-left:8px" disabled={statusAendernId !== null} onclick={() => statusAendern(person)}>
                     {statusAendernId === person.id ? 'Wird gespeichert …' : person.aktiv ? 'Deaktivieren' : 'Reaktivieren'}
                   </button>
                   <button type="button" class="sekundaer" style="margin-left:8px" disabled={loeschenId !== null} onclick={() => benutzerLoeschen(person)}>
@@ -528,6 +564,28 @@
           </tbody>
         </table>
       </div>
+
+      {#if bearbeitenId}
+        <form class="bearbeitungsformular" onsubmit={(event) => { event.preventDefault(); void bearbeitungSichern(); }}>
+          <h3>Benutzer bearbeiten</h3>
+          <div class="formular-raster">
+            <label>Vorname <input type="text" bind:value={bearbeitung.vorname} maxlength="100" required /></label>
+            <label>Nachname <input type="text" bind:value={bearbeitung.nachname} maxlength="100" required /></label>
+            <label>E-Mail-Adresse <input type="email" bind:value={bearbeitung.email} maxlength="254" required /></label>
+            <label>Benutzerrolle
+              <select bind:value={bearbeitung.rolle}>
+                {#each rollen as eintrag}
+                  <option value={eintrag.wert}>{eintrag.bezeichnung}</option>
+                {/each}
+              </select>
+            </label>
+          </div>
+          <div class="formular-aktionen">
+            <button type="submit" class="primaer" disabled={bearbeitungSpeichern}>{bearbeitungSpeichern ? 'Wird gespeichert …' : 'Änderungen speichern'}</button>
+            <button type="button" class="sekundaer" style="margin-left:8px" disabled={bearbeitungSpeichern} onclick={() => bearbeitenId = null}>Abbrechen</button>
+          </div>
+        </form>
+      {/if}
 
       <p class="tabellen-info">
         {benutzer.length}
@@ -701,6 +759,8 @@
     padding: 26px;
     margin-bottom: 24px;
   }
+
+  .bearbeitungsformular { margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 20px; }
 
   .abschnitt-titel {
     margin-bottom: 20px;
