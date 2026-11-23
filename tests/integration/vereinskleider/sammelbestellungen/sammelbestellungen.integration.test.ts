@@ -89,3 +89,133 @@ describe('Paket 16: Sammelbestellungen – Randfälle', () => {
     expect(doc.positionen[0].lagerreserveMenge).toBe(2);
   });
 });
+
+
+const edgeA = 'aaaaaaaaaaaaaaaaaaaaaaaa';
+const edgeB = 'bbbbbbbbbbbbbbbbbbbbbbbb';
+const edgeC = 'cccccccccccccccccccccccc';
+const edgelocals = { benutzer: { vereinId: 'verein-1' } } as any;
+const edgeget = async () => (await GET({ edgelocals } as any)).json();
+const edgepost = (body: unknown) => POST({ edgelocals, request: new Request('http://localhost/api', {
+  method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+}) } as any);
+const edgeartikel = (extra: Record<string, unknown> = {}) => ({ _id: new ObjectId(edgeA), name: 'Shirt',
+  menge: 0, hatGroessen: false, lieferantId: edgeB, ...extra });
+const edgelieferant = { _id: new ObjectId(edgeB), name: 'Lieferant' };
+const edgeposition = (extra: Record<string, unknown> = {}) => ({ artikelId: edgeA, groesseId: null,
+  artikelname: 'Shirt', menge: 5, verkaufsart: 'bestellung', ...extra });
+const edgesammel = (extra: Record<string, unknown> = {}) => ({ _id: new ObjectId(edgeC),
+  status: 'bestellt', positionen: [{ artikelId: edgeA, groesseId: null, menge: 3 }],
+  bemerkung: '', erstelltAm: new Date('2026-11-01'), aktualisiertAm: new Date('2026-11-02'), ...extra });
+
+describe('Sammelbestellungen – Paket 20 Randfälle', () => {
+ beforeEach(() => {
+  h.rows = {}; h.auth.mockReset().mockReturnValue(null);
+  h.insert.mockReset().mockResolvedValue({ insertedId: { toString: () => edgeA } });
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+});
+
+describe('Paket 20 – gezielte offene GET-Branches der Sammelbestellungen', () => {
+  it('summiert mehrere Kundenpositionen und berücksichtigt bereits übergebene Stücke', async () => {
+    h.rows.edgeartikel = [edgeartikel()];
+    h.rows.vereinskleider_verkaeufe = [
+      { positionen: [edgeposition({ menge: 4, uebergebenMenge: 1 }), edgeposition({ menge: 3, uebergebenMenge: 2 })] },
+    ];
+    const result = await edgeget();
+    expect(result.bedarf[0]).toMatchObject({ offen: 4, nachbestellen: 4 });
+  });
+  it('ignoriert nicht bestellbare Positionen und ungültige Übergabewerte', async () => {
+    h.rows.edgeartikel = [edgeartikel()];
+    h.rows.vereinskleider_verkaeufe = [
+      { positionen: [edgeposition({ verkaufsart: 'direkt' }), edgeposition({ artikelId: 'ungueltig' }),
+        edgeposition({ groesseId: 'ungueltig' }), edgeposition({ menge: 0 }),
+        edgeposition({ uebergebenMenge: -1 }), edgeposition({ uebergebenMenge: 6 }),
+        edgeposition({ uebergebenMenge: 1.5 }), edgeposition({ menge: 2, uebergebenMenge: 1 })] },
+      { positionen: null },
+    ];
+    expect((await edgeget()).bedarf[0].offen).toBe(1);
+  });
+  it('berechnet nur noch nicht gelieferte Sammelbestellmengen', async () => {
+    h.rows.edgeartikel = [edgeartikel()];
+    h.rows.vereinskleider_verkaeufe = [{ positionen: [edgeposition()] }];
+    h.rows.vereinskleider_sammelbestellungen = [edgesammel({ positionen: [
+      { artikelId: edgeA, groesseId: null, menge: 4, geliefertMenge: 2 },
+      { artikelId: edgeA, groesseId: null, menge: 2, geliefertMenge: 1 },
+    ] })];
+    expect((await edgeget()).bedarf[0]).toMatchObject({ offen: 5, bereitsInSammelbestellungen: 3, nachbestellen: 2 });
+  });
+  it('ignoriert gelieferte Bestellungen und inkonsistente Liefermengen', async () => {
+    h.rows.edgeartikel = [edgeartikel()];
+    h.rows.vereinskleider_verkaeufe = [{ positionen: [edgeposition()] }];
+    h.rows.vereinskleider_sammelbestellungen = [
+      edgesammel({ status: 'geliefert' }),
+      edgesammel({ status: 'bestellt', positionen: [
+        { artikelId: edgeA, groesseId: null, menge: -1 },
+        { artikelId: edgeA, groesseId: null, menge: 2, geliefertMenge: 3 },
+        { artikelId: edgeA, groesseId: null, menge: 2, geliefertMenge: -1 },
+        { artikelId: edgeA, groesseId: null, menge: 2, geliefertMenge: 0.5 },
+      ] }),
+    ];
+    expect((await edgeget()).bedarf[0]).toMatchObject({ bereitsInSammelbestellungen: 0, nachbestellen: 5 });
+  });
+  it('nutzt Ersatzbezeichnung und verwirft unplausiblen Lagerbestand', async () => {
+    h.rows.edgeartikel = [edgeartikel({ name: null, menge: -5, lieferantId: null })];
+    const result = await edgeget();
+    expect(result.bedarf[0]).toMatchObject({ artikelname: 'Unbenannter Artikel', bestand: null, verfuegbar: 0, lieferantId: null });
+  });
+  it('bildet Grössenvarianten ab und berücksichtigt deren eigenen Bestand', async () => {
+    h.rows.edgeartikel = [edgeartikel({ hatGroessen: true, menge: 100 })];
+    h.rows.artikelvarianten = [{ artikelId: edgeA, groesseId: edgeC, menge: 3 }];
+    h.rows.vereinskleider_verkaeufe = [{ positionen: [edgeposition({ groesseId: edgeC, menge: 5 })] }];
+    const result = await edgeget();
+    expect(result.bedarf[0]).toMatchObject({ groesseId: edgeC, bestand: 3, verfuegbar: 2, nachbestellen: 3 });
+  });
+  it('ignoriert verwaiste oder ungültige Varianten', async () => {
+    h.rows.edgeartikel = [edgeartikel({ hatGroessen: true })];
+    h.rows.artikelvarianten = [
+      { artikelId: edgeB, groesseId: edgeC, menge: 3 },
+      { artikelId: edgeA, groesseId: 'falsch', menge: 3 },
+    ];
+    expect((await edgeget()).bedarf).toHaveLength(0);
+  });
+  it('bildet alte Sammelbestellungen ohne Liefer- und Aufteilungsfelder ab', async () => {
+    h.rows.vereinskleider_sammelbestellungen = [edgesammel({ status: 'entwurf', lieferantId: edgeB,
+      positionen: [{ artikelId: edgeA, groesseId: null, menge: 3 }] })];
+    h.rows.lieferanten = [edgelieferant];
+    const result = await edgeget();
+    expect(result.sammelbestellungen[0]).toMatchObject({ lieferantName: 'Lieferant',
+      positionen: [{ geliefertMenge: 0, kundenbedarfMenge: null, lagerreserveMenge: null, offenMenge: 3 }] });
+  });
+  it('verwendet vorhandenen Lieferantennamen und gespeicherte Aufteilung', async () => {
+    h.rows.vereinskleider_sammelbestellungen = [edgesammel({ lieferantName: 'Historischer Lieferant',
+      positionen: [{ artikelId: edgeA, groesseId: null, menge: 4, geliefertMenge: 2,
+        kundenbedarfMenge: 3, lagerreserveMenge: 1 }] })];
+    const result = await edgeget();
+    expect(result.sammelbestellungen[0]).toMatchObject({ lieferantName: 'Historischer Lieferant',
+      positionen: [{ offenMenge: 2, kundenbedarfMenge: 3, lagerreserveMenge: 1 }] });
+  });
+});
+
+describe('Paket 20 – zusätzliche POST-Branches', () => {
+  it('verweigert eine Bestellung ohne Standardlieferanten', async () => {
+    h.rows.edgeartikel = [edgeartikel({ lieferantId: null })];
+    expect((await edgepost({ positionen: [{ artikelId: edgeA, groesseId: null, menge: 2 }] })).status).toBe(409);
+  });
+  it('verweigert eine Sammelbestellung mit zwei verschiedenen Lieferanten', async () => {
+    h.rows.edgeartikel = [edgeartikel(), { _id: new ObjectId(edgeC), name: 'Jacke', menge: 1, hatGroessen: false, lieferantId: edgeA }];
+    h.rows.lieferanten = [edgelieferant, { _id: new ObjectId(edgeA), name: 'Anderer Lieferant' }];
+    expect((await edgepost({ positionen: [
+      { artikelId: edgeA, groesseId: null, menge: 2 }, { artikelId: edgeC, groesseId: null, menge: 2 },
+    ] })).status).toBe(400);
+  });
+  it('speichert Lieferanten-Snapshot und trennt Kundenbedarf von Lagerreserve', async () => {
+    h.rows.edgeartikel = [edgeartikel()]; h.rows.lieferanten = [edgelieferant];
+    h.rows.vereinskleider_verkaeufe = [{ positionen: [edgeposition({ menge: 2 })] }];
+    const response = await edgepost({ positionen: [{ artikelId: edgeA, groesseId: null, menge: 5 }] });
+    expect(response.status).toBe(201);
+    expect(h.insert.mock.calls[0][0]).toMatchObject({ lieferantName: 'Lieferant',
+      positionen: [{ kundenbedarfMenge: 2, lagerreserveMenge: 3 }] });
+  });
+});
+
+});
