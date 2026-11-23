@@ -40,3 +40,32 @@ describe('Gesamtbestellungen PDF',()=>{
  it('erstellt Gesamt-PDF mit aggregierten Positionen',async()=>{h.rows.vereinskleider_sammelbestellungen=[order(id),order(id3)];h.one.lieferanten={name:'Lieferant'};h.one.vereine={name:'TV Weiningen'};expect((await call({bestellungIds:[id,id3]})).headers.get('content-type')).toBe('application/pdf');});
  it('meldet Datenbankfehler',async()=>{h.fail='vereinskleider_sammelbestellungen';await expect(call({bestellungIds:[id]})).rejects.toMatchObject({status:500});});
 });
+
+describe('Paket 16: Gesamt-PDF – Randfälle',()=>{
+  it('verweigert ungültige Lieferanten-ID',async()=>{
+    h.rows.vereinskleider_sammelbestellungen=[order(id,'ungueltig')];
+    await expect(call({bestellungIds:[id]})).rejects.toMatchObject({status:409});
+  });
+  it('verweigert ungültige Artikel-ID und Grössen-ID',async()=>{
+    h.rows.vereinskleider_sammelbestellungen=[order(id,id2,[{...position,artikelId:'falsch'}])];
+    h.one.lieferanten={name:'A'};
+    await expect(call({bestellungIds:[id]})).rejects.toMatchObject({status:409});
+    h.rows.vereinskleider_sammelbestellungen=[order(id,id2,[{...position,groesseId:'falsch'}])];
+    await expect(call({bestellungIds:[id]})).rejects.toMatchObject({status:409});
+  });
+  it('verweigert Überlauf beim Zusammenführen',async()=>{
+    h.rows.vereinskleider_sammelbestellungen=[order(id,id2,[{...position,menge:Number.MAX_SAFE_INTEGER}]),order(id3,id2,[position])];
+    h.one.lieferanten={name:'A'};
+    await expect(call({bestellungIds:[id,id3]})).rejects.toMatchObject({status:409});
+  });
+  it('erstellt mehrseitiges PDF mit langen Artikeln und Grössen',async()=>{
+    const viele=Array.from({length:65},(_,i)=>({...position,artikelId:(i+1).toString(16).padStart(24,'0'),groesseId:id2,artikelname:'Sehr langer Artikelname '.repeat(12)+i,menge:i+1}));
+    h.rows.vereinskleider_sammelbestellungen=[order(id,id2,viele)];
+    h.one.lieferanten={name:'Lieferant'};
+    h.rows.groessen=[{_id:new ObjectId(id2),bezeichnung:'Extra lange Groessenbezeichnung '.repeat(4)}];
+    const r=await call({bestellungIds:[id]});
+    expect(r.status).toBe(200);
+    const {PDFDocument}=await import('pdf-lib');
+    expect((await PDFDocument.load(await r.arrayBuffer())).getPageCount()).toBeGreaterThan(1);
+  });
+});
