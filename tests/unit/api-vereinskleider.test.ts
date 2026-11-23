@@ -112,6 +112,21 @@ beforeEach(() => {
 });
 
 describe('ClubMatiq Vereinskleider – Verkauf', () => {
+  it('verkauft gekennzeichnete Vereinskleider auch nach Umbenennung der Kategorie', async () => {
+    artikel.kategorieId = 'clubkleidung-neu';
+    artikel.istVereinskleidung = true;
+    const response = await verkaufen();
+    expect(response.status).toBe(201);
+    expect(mocks.withTransaction).toHaveBeenCalledOnce();
+  });
+
+  it('verweigert einen Altartikel ohne explizite Kennzeichnung trotz bisheriger Kategorie', async () => {
+    artikel.kategorieId = 'vereinskleider';
+    delete artikel.istVereinskleidung;
+    await verkaufsfehler(eingabe(), 400, 'gehört nicht zu den Vereinskleidern');
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+
   it('verweigert Verkäufe ohne Anmeldung', async () => {
     expect((await POST(postKontext(eingabe(), null))).status).toBe(401);
     expect(mocks.withTransaction).not.toHaveBeenCalled();
