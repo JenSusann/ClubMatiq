@@ -9,6 +9,7 @@ vi.mock('../../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: m
 vi.mock('../../../src/lib/server/email', () => ({ versendeEinladung: m.send }));
 vi.mock('../../../src/lib/server/einladungen', () => ({ erstelleEinladungstoken: m.token, berechneAblaufdatum: m.expiry }));
 import { GET, POST } from '../../../src/routes/api/benutzer/einladen/+server';
+import { POST as erneutPOST } from '../../../src/routes/api/benutzer/einladen/[id]/erneut/+server';
 const vereinId = '507f1f77bcf86cd799439011';
 const insertedId = new ObjectId('507f1f77bcf86cd799439012');
 const locals = { benutzer: { vereinId, rolle: 'admin' } } as any;
@@ -80,4 +81,37 @@ describe('Benutzereinladungen GET', () => {
   });
   it('liefert leere Liste', async () => { invites.find.mockReturnValue({ sort: () => ({ toArray: async () => [] }) }); expect(await (await get()).json()).toEqual([]); });
   it('meldet Datenbankfehler mit 500', async () => { invites.find.mockImplementation(() => { throw new Error('db'); }); expect((await get()).status).toBe(500); });
+});
+
+
+const againvereinId = '507f1f77bcf86cd799439011'; const againid = '507f1f77bcf86cd799439012';
+const againlocals = { benutzer: { againvereinId, rolle: 'admin' } } as any;
+const againpost = (theId = againid) => erneutPOST({ locals: againlocals, params: { id: theId }, request: new Request('https://clubmatiq.test/api/benutzer/einladen/' + theId + '/erneut', { method: 'POST' }) } as any);
+let againinvites: any, againclubs: any, againinvitation: any;
+describe('Einladungen – erneut versenden', () => {
+ beforeEach(() => {
+  vi.clearAllMocks(); vi.spyOn(console, 'error').mockImplementation(() => {});
+  m.permission.mockReturnValue(null); m.send.mockResolvedValue({ againid: 'resend-new' }); m.token.mockReturnValue({ token: 'new-token', tokenHash: 'new-hash' }); m.expiry.mockReturnValue(new Date('2030-01-01'));
+  againinvitation = { _id: new ObjectId(againid), vereinId: againvereinId, email: 'ada@example.ch', vorname: 'Ada', status: 'offen' };
+  againinvites = { findOne: vi.fn().mockImplementation(async () => againinvitation), updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }) };
+  againclubs = { findOne: vi.fn().mockResolvedValue({ name: 'Turnverein' }) };
+  m.collection.mockImplementation((name: string) => ({ einladungen: againinvites, vereine: againclubs } as any)[name]);
+  delete process.env.PUBLIC_APP_URL;
+});
+describe('Einladung erneut versenden', () => {
+  it('prüft Berechtigung zuerst', async () => { m.permission.mockReturnValue(new Response(null, { status: 403 })); expect((await againpost()).status).toBe(403); expect(m.collection).not.toHaveBeenCalled(); });
+  it('weist ungültige ID zurück', async () => { expect((await againpost('invalid')).status).toBe(400); });
+  it('weist fehlende offene Einladung zurück', async () => { againinvites.findOne.mockResolvedValue(null); expect((await againpost()).status).toBe(404); });
+  it('begrenzt wiederholten Versand innerhalb einer Minute', async () => { againinvitation.versendetAm = new Date(); expect((await againpost()).status).toBe(429); expect(m.send).not.toHaveBeenCalled(); });
+  it('versendet ohne früheres Versanddatum', async () => {
+    const r = await againpost(); expect(r.status).toBe(200); expect(await r.json()).toMatchObject({ erfolg: true });
+    expect(m.send).toHaveBeenCalledWith(expect.objectContaining({ email: 'ada@example.ch', vorname: 'Ada', verein: 'Turnverein', link: 'https://clubmatiq.test/einladung?token=new-token' }));
+    expect(againinvites.updateOne).toHaveBeenCalledWith({ _id: againinvitation._id, againvereinId, status: 'offen' }, { $set: expect.objectContaining({ tokenHash: 'new-hash', resendId: 'resend-new', versendetAm: expect.any(Date) }) });
+  });
+  it('erlaubt Versand nach mehr als einer Minute', async () => { againinvitation.versendetAm = new Date(Date.now() - 61_000); expect((await againpost()).status).toBe(200); });
+  it('verwendet konfigurierte URL und Vereinsersatzname', async () => { process.env.PUBLIC_APP_URL = 'https://app.example/'; againclubs.findOne.mockResolvedValue(null); expect((await againpost()).status).toBe(200); expect(m.send).toHaveBeenCalledWith(expect.objectContaining({ verein: 'deinem Verein', link: 'https://app.example/einladung?token=new-token' })); });
+  it('liefert 502 bei Versandfehler', async () => { m.send.mockRejectedValue(new Error('mail')); expect((await againpost()).status).toBe(502); expect(againinvites.updateOne).not.toHaveBeenCalled(); });
+  it('liefert 502 bei Updatefehler', async () => { againinvites.updateOne.mockRejectedValue(new Error('db')); expect((await againpost()).status).toBe(502); });
+});
+
 });
