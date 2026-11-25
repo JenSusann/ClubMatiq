@@ -27,6 +27,16 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       db.collection('inventurpositionen').find({ vereinId, inventurId }).sort({ artikelName: 1, groesseId: 1 }).toArray(),
       db.collection('inventurprotokoll').find({ vereinId, inventurId }).sort({ ausgefuehrtAm: 1, _id: 1 }).toArray()
     ]);
+    const groessenIds = [...new Set(positionen.map(p => String(p.groesseId ?? '')).filter(id => ObjectId.isValid(id)))];
+    const groessen = groessenIds.length
+      ? await db.collection('groessen').find({ vereinId, _id: { $in: groessenIds.map(id => new ObjectId(id)) } }).project({ bezeichnung: 1 }).toArray()
+      : [];
+    const groessenNamen = new Map<string, string>(groessen.map(g => [g._id.toString(), String(g.bezeichnung ?? '').trim()]));
+    const artikelBezeichnung = (p: { artikelName?: unknown; groesseId?: unknown }) => {
+      const artikel = String(p.artikelName ?? 'Unbekannter Artikel');
+      if (!p.groesseId) return artikel;
+      return artikel + '  |  Grösse: ' + (groessenNamen.get(String(p.groesseId)) || 'Unbekannte Grösse');
+    };
     const ids = [...new Set([inventur.erstelltVon, inventur.abgeschlossenVon, inventur.storniertVon, ...protokoll.map(p => p.ausgefuehrtVon)].filter((id): id is string => typeof id === 'string' && ObjectId.isValid(id)))];
     const personen = ids.length ? await db.collection('benutzer').find({ vereinId, _id: { $in: ids.map(id => new ObjectId(id)) } }).project({ vorname: 1, nachname: 1 }).toArray() : [];
     const namen = new Map(personen.map(p => [p._id.toString(), [p.vorname, p.nachname].filter(Boolean).join(' ')]));
@@ -98,7 +108,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       const alt = original.get(p._id.toString());
       const istAlt = alt ? alt.istBestand : undefined;
       platz(46);
-      text(`${p.artikelName ?? 'Unbekannter Artikel'}${p.groesseId ? `  |  Grösse-ID: ${p.groesseId}` : ''}`, { bold: true });
+      text(artikelBezeichnung(p), { bold: true });
       text(`Soll ${zahl(p.sollBestand)}    Abschluss-Ist ${zahl(istAlt)}    Aktuell-Ist ${zahl(p.istBestand)}    Differenz ${vorzeichen(typeof p.istBestand === 'number' ? p.istBestand - p.sollBestand : null)}`, { size: 9, indent: 8 });
       if (p.bemerkung) text(`Bemerkung: ${p.bemerkung}`, { size: 9, indent: 8, color: grau });
     }
@@ -110,7 +120,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       text(`${datum(p.ausgefuehrtAm)}  |  ${sicher(p.aktion)}  |  ${name(p.ausgefuehrtVon)}`, { bold: true });
       if (p.aktion === 'nachtraeglich_korrigiert') {
         const pos = positionen.find(x => x._id.toString() === String(p.positionId));
-        text(`${pos?.artikelName ?? 'Unbekannter Artikel'}: ${zahl(p.alterIstBestand)} -> ${zahl(p.neuerIstBestand)} (${vorzeichen(p.differenz)} Stück)`, { indent: 8 });
+        text(`${artikelBezeichnung(pos ?? {})}: ${zahl(p.alterIstBestand)} -> ${zahl(p.neuerIstBestand)} (${vorzeichen(p.differenz)} Stück)`, { indent: 8 });
       }
       if (p.aktion === 'abgeschlossen') text(`Abschluss: ${zahl(p.anzahlKorrekturen)} Bestandskorrekturen`, { indent: 8 });
       if (p.aktion === 'storniert') text(`Vorheriger Status: ${sicher(p.statusVorher)}; Rückbuchungen: ${zahl(p.anzahlRueckbuchungen)}`, { indent: 8 });
