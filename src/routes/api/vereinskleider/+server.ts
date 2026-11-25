@@ -218,6 +218,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       let regelRabattRappen = 0;
       const angewendeteRabatte: Array<{ rabattId: string; name: string; betrag: number; einmaligProMitglied?: boolean }> = [];
       const erstbezugsIds: string[] = [];
+      const erstbezugsZuordnungen: { anspruch: string; rabattId: string; warenkorbIndex: number; rabattRappen: number }[] = [];
       if (eingabe.rabattIds.length) {
         const regeln = await db.collection<Rabattregel>('rabattregeln').find({
           _id: { $in: eingabe.rabattIds.map((id) => new ObjectId(id)) }, vereinId
@@ -251,6 +252,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             (regel.geltungsbereich === 'kategorie' && regel.kategorieIds?.includes(p.kategorieId))
           ));
           if (!passend.length) throw new Verkaufsfehler(`Für «${regel.name}» gibt es keine passende Position.`);
+          let erstbezugsAnspruch: string | undefined;
           if (regel.einmaligProMitglied === true) {
             if (!mitglied) throw new Verkaufsfehler('Für einen Erstbezug muss ein Mitglied ausgewählt werden.', 409);
             if (regel.rabattart !== 'fixpreis' || regel.geltungsbereich === 'warenkorb' || regel.maximaleMenge !== 1) {
@@ -277,6 +279,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             );
             if (sperre.modifiedCount !== 1) throw new Verkaufsfehler(`Erstbezug «${regel.name}» wurde bereits beansprucht.`, 409);
             erstbezugsIds.push(anspruch);
+            erstbezugsAnspruch = anspruch;
           }
           // Maximale Menge begrenzt die Anzahl rabattierter Stücke, nicht die Warenkorbmenge.
           let restmenge: number = typeof regel.maximaleMenge === 'number' ? regel.maximaleMenge : Number.MAX_SAFE_INTEGER;
@@ -305,6 +308,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           } else throw new Verkaufsfehler('Ungültige Rabattart.');
           rabatt = Math.min(rabatt, Math.max(0, zwischentotalRappen - regelRabattRappen));
           regelRabattRappen += rabatt;
+          if (erstbezugsAnspruch !== undefined) {
+            erstbezugsZuordnungen.push({ anspruch: erstbezugsAnspruch, rabattId: regel._id.toString(), warenkorbIndex: geprueft.indexOf(passend[0]), rabattRappen: rabatt });
+          }
           angewendeteRabatte.push({ rabattId: regel._id.toString(), name: regel.name, betrag: rabatt / 100, ...(regel.einmaligProMitglied ? { einmaligProMitglied: true } : {}) });
         }
       }
@@ -363,7 +369,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
        // deterministisch in Warenkorbreihenfolge.
        const verbleibendDirekt = new Map(direkteMengen);
        const aufgeteiltePositionen: Array<PositionGeprueft & { verkaufsart: 'direkt' | 'bestellung' }> = [];
-       for (const p of geprueft) {
+       const erstbezugsPositionen: { anspruch: string; rabattId: string; positionsIndex: number; rabattBetrag: number }[] = [];
+       for (const [warenkorbIndex, p] of geprueft.entries()) {
+         for (const zuordnung of erstbezugsZuordnungen.filter(z => z.warenkorbIndex === warenkorbIndex)) {
+           erstbezugsPositionen.push({ anspruch: zuordnung.anspruch, rabattId: zuordnung.rabattId, positionsIndex: aufgeteiltePositionen.length, rabattBetrag: zuordnung.rabattRappen / 100 });
+         }
          const schluessel = `${p.artikelId}:${p.groesseId ?? ''}`;
          const direkt = Math.min(p.menge, verbleibendDirekt.get(schluessel) ?? 0);
          verbleibendDirekt.set(schluessel, (verbleibendDirekt.get(schluessel) ?? 0) - direkt);
@@ -415,7 +425,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         bemerkung: eingabe.bemerkung,
         positionen: aufgeteiltePositionen.map(({ kategorieId, positionsbetrag, ...p }) => ({ ...p, positionsbetrag: positionsbetrag / 100 })),
         rabatte: angewendeteRabatte,
-        ...(erstbezugsIds.length ? { erstbezugsIds } : {}),
+        ...(erstbezugsIds.length ? { erstbezugsIds, erstbezugsPositionen } : {}),
         zusaetzlicherRabatt: eingabe.zusaetzlicherRabatt,
         zwischentotal: zwischentotalRappen / 100,
         rabattTotal: (regelRabattRappen + zusatzRappen) / 100,
