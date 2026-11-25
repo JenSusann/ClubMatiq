@@ -25,6 +25,8 @@ type Verkauf = Document & {
   endbetrag: number;
   zwischentotal: number;
   rabattTotal: number;
+  mitgliedId?: string;
+  erstbezugsIds?: string[];
   direktMenge?: number;
   bestellMenge?: number;
   bezahltBetrag?: number;
@@ -209,6 +211,40 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           freigegebeneReserve: freigegeben, gutschriftId: gutschrift.toString(),
           gutschriftBetrag: differenz / 100, rueckerstattungOffen, status: neuerStatus
         };
+      }
+      // Vollständiger unbezahlter Erstbezug mit genau einer Bestellposition:
+      // Rabatt und Anspruch werden gemeinsam mit der Bestellung aufgehoben.
+      if (verkauf.erstbezugsIds?.length && !verkauf.rechnungId &&
+          (verkauf.bezahltBetrag ?? 0) === 0 && !(verkauf.zahlungen ?? []).some(z => z.betrag > 0) &&
+          verkauf.positionen?.length === 1 && index === 0) {
+        const p = verkauf.positionen[0];
+        if (p.verkaufsart === 'bestellung' && (p.uebergebenMenge ?? 0) === 0 &&
+            p.menge === menge && idGueltig(verkauf.mitgliedId) &&
+            verkauf.erstbezugsIds.every(idGueltig)) {
+          const jetzt = new Date();
+          const update = await sammlung.updateOne(
+            { _id: verkaufId, vereinId, aktualisiertAm: verkauf.aktualisiertAm },
+            { $set: {
+              positionen: [{ ...p, menge: 0, positionsbetrag: 0, reserviertMenge: 0,
+                storniertMenge: (p.storniertMenge ?? 0) + menge }],
+              zwischentotal: 0, rabattTotal: 0, endbetrag: 0, bestellMenge: 0,
+              status: 'storniert', aktualisiertAm: jetzt,
+              erstbezugsFreigegebenAm: jetzt,
+              stornierungen: [...(verkauf.stornierungen ?? []), {
+                positionsIndex: index, menge, grund, storniertAm: jetzt,
+                storniertVon: locals.benutzer!.id,
+                storniertVonName: [locals.benutzer!.vorname, locals.benutzer!.nachname].filter(Boolean).join(' ').trim() || undefined
+              }]
+            } }, { session });
+          if (update.modifiedCount !== 1) throw new Stornierungsfehler('Verkauf wurde zwischenzeitlich geändert.', 409);
+          const freigabe = await db.collection<{ erstbezugsRabattIds?: string[]; vereinId: string }>('clubdesk_mitglieder').updateOne(
+            { _id: new ObjectId(verkauf.mitgliedId), vereinId, erstbezugsRabattIds: { $all: verkauf.erstbezugsIds } },
+            { $pullAll: { erstbezugsRabattIds: verkauf.erstbezugsIds } }, { session });
+          if (freigabe.modifiedCount !== 1) throw new Stornierungsfehler('Erstbezugsanspruch konnte nicht freigegeben werden.', 409);
+          return { verkaufId: eingabe.verkaufId, positionsIndex: index, storniert: menge,
+            freigegebeneReserve: p.reserviertMenge ?? 0, gutschriftId: null, gutschriftBetrag: 0,
+            rueckerstattungOffen: 0, status: 'storniert' };
+        }
       }
       // Ohne Beleg bleibt der bisherige Schutz für bereits bezahlte Verkäufe bestehen.
       if (!verkauf.rechnungId && ((verkauf.bezahltBetrag ?? 0) > 0 ||
