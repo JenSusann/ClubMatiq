@@ -50,7 +50,15 @@
 - [6. KI-Deklaration](#6-ki-deklaration)
     - [6.1 KI-Tools](#61-ki-tools)
     - [6.2 Vorgehen mit KI](#62-vorgehen-mit-ki)
+        - [6.2.1 Konzeption und Gestaltung](#621-konzeption-und-gestaltung)
+        - [6.2.2 Implementierung und Fehlersuche](#622-implementierung-und-fehlersuche)
+        - [6.2.3 Prompt-Vorgehen und Kontext](#623-prompt-vorgehen-und-kontext)
+        - [6.2.4 GitHub-gestützter Entwicklungsworkflow](#624-github-gestützter-entwicklungsworkflow)
     - [6.3 Reflexion](#63-reflexion)
+    - [6.4 Abgrenzung der Eigenleistung](#64-abgrenzung-der-eigenleistung)
+    - [6.5 Qualitätssicherung und Überprüfung der KI-Ergebnisse](#65-qualitätssicherung-und-überprüfung-der-ki-ergebnisse)
+    - [6.6 Datenschutz, Sicherheit und Urheberrecht](#66-datenschutz-sicherheit-und-urheberrecht)
+    - [6.7 Nachvollziehbarkeit und Verantwortung](#67-nachvollziehbarkeit-und-verantwortung)
 - [7. Anhang \[Optional\]](#7-anhang-optional)
     - [Projektartefakte](#projektartefakte)
     - [Quellen und Urheberrecht](#quellen-und-urheberrecht)
@@ -324,21 +332,102 @@ Für die Datenbankanbindung wird eine lokale `.env` mit `MONGODB_URI` benötigt.
 
 ### 6.1 KI-Tools
 
-- **Eingesetzte Tools:** ChatGPT (OpenAI) wurde im Projektverlauf als Unterstützung verwendet. **Noch prüfen:** ob weitere KI-Werkzeuge tatsächlich eingesetzt wurden; nur dann ergänzen.
-- **Zweck & Umfang:** Unterstützung bei Ideengenerierung, Personas, Formulierungen, Architekturüberlegungen, TypeScript-/SvelteKit-Codevorschlägen, API-Endpunkten, Fehlersuche, Anpassungen und Dokumentation. Die KI-Unterstützung betraf sowohl Konzeption als auch Teile der Implementierung. Einzelne Codeabschnitte wurden auf Grundlage KI-generierter Vorschläge entwickelt bzw. überarbeitet.
-- **Eigene Leistung (Abgrenzung):** Auswahl des Vereinsproblems, Festlegung der fachlichen Anforderungen und Prioritäten, Entscheidungen zu den Vereinsabläufen, Bereitstellung des Projektkontexts, Integration der Vorschläge in das Projekt, lokale Ausführung und Fehlerrückmeldungen sowie die laufende Abstimmung der Funktionen mit dem gewünschten Anwendungsfall. **Vor Abgabe prüfen:** genaue individuelle Aufgabenverteilung und allfällige weitere Beteiligte.
+Im Projekt ClubMatiq wurde ChatGPT (OpenAI) als zentraler KI-Assistent über mehrere Phasen des Design- und Entwicklungsprozesses eingesetzt. Die Nutzung ging über punktuelle Beratung hinaus: Umfangreiche Codeentwürfe, Testfälle, Dokumentation und einzelne Entwurfsartefakte wurden KI-gestützt erstellt oder überarbeitet.
+
+| Werkzeug | Verwendung |
+|---|---|
+| ChatGPT | Ideenentwicklung, fachliche Analyse, Architektur, Programmierung, Fehlersuche, Tests und Dokumentation |
+| GitHub-Anbindung in ChatGPT | Einsicht in Repository-Dateien, Analyse von Issues und Commits sowie direkte Aktualisierung ausgewählter Dokumentationsdateien |
+| Projektbezogener ChatGPT-Kontext | Fortführung des Entwicklungsprozesses über mehrere Gespräche mit gemeinsamen Anforderungen, Entscheidungen und Testergebnissen |
+
+GitHub, Vitest, MongoDB, Netlify und die lokale Entwicklungsumgebung sind technische Werkzeuge des Projekts und werden nicht allein aufgrund ihrer Verwendung als KI-Werkzeuge eingestuft. Weitere KI-Produkte werden nur ergänzt, sofern ihre tatsächliche Verwendung im Projekt bestätigt ist. Die genaue Modellversion sämtlicher historischer KI-Interaktionen wurde nicht durchgehend protokolliert.
 
 ### 6.2 Vorgehen mit KI
 
-- **Arbeitsablauf & Aufgabenverteilung:** Die Entwicklung erfolgte in kleinen Schritten. Fachliche Anforderungen und beobachtete Probleme wurden beschrieben; ChatGPT lieferte Erklärungen, Codeentwürfe oder konkrete Anpassungsvorschläge. Die Vorschläge wurden in der lokalen Entwicklungsumgebung übernommen, überprüft und bei Fehlermeldungen iterativ überarbeitet. Ein vollständig autonomer Agentenlauf ist anhand der vorliegenden Informationen nicht belegt.
-- **Prompt-Vorgehen & Kontext:** Prompts enthielten konkrete Ziele, bestehende Dateiinhalte, Fehlermeldungen und Vorgaben zur gewünschten Funktion. Bei Fehlern wurden die betroffenen Codeabschnitte und die Resultate der vorherigen Änderung erneut bereitgestellt. Das ermöglichte eine schrittweise Anpassung statt einer vollständigen Neugenerierung des Projekts.
-- **Konfiguration & Werkzeuge:** GitHub wurde zur Versionsverwaltung und zur Einsicht in den Entwicklungsstand verwendet. **Noch prüfen:** allfällige projektspezifische KI-Agentenanweisungen, zusätzliche Kontextdateien oder automatische Agenten-Workflows; falls nicht eingesetzt, ausdrücklich «Keine» eintragen.
-- **Prüfung & Überarbeitung:** Codevorschläge wurden anhand von lokalen Fehlermeldungen und den erwarteten fachlichen Abläufen überprüft und bei Bedarf angepasst. Das Repository stellt `npm run check` und `npm run build` bereit. **Wichtig:** Die tatsächliche erfolgreiche Ausführung dieser Prüfungen für den dokumentierten Commit sowie systematische Sicherheits-, Lizenz- und Funktionstests sind vor der Abgabe separat zu belegen. Für übernommene Fremdinhalte sind Quellen und Lizenzen zu kontrollieren.
+Die Entwicklung erfolgte dialogbasiert und iterativ. Ausgangspunkt waren die fachlichen Anforderungen der entwickelnden Person aus ihrer praktischen Erfahrung in der Vereinsverwaltung. ChatGPT übersetzte diese Anforderungen in Lösungsvorschläge, Code und Prüfkonzepte. Die Vorschläge wurden lokal integriert, ausgeführt, überprüft und anhand der tatsächlichen Ergebnisse weiterentwickelt.
+
+#### 6.2.1 Konzeption und Gestaltung
+
+KI-Unterstützung wurde für die Strukturierung des Problemraums, die Entwicklung von Personas, Ideenvarianten, Crazy-8s, User Journeys, Entscheidungsreflexionen und Entwurfsartefakten genutzt. Auch Vorschläge für Mockups und deren Aufbereitung wurden KI-gestützt erstellt. Die Auswahl des Problems, die fachlichen Vereinsabläufe, die Priorisierung und die Entscheidung für die umzusetzende Lösung lagen bei der entwickelnden Person.
+
+#### 6.2.2 Implementierung und Fehlersuche
+
+ChatGPT erstellte und überarbeitete umfangreiche Teile des TypeScript- und SvelteKit-Codes, darunter Benutzeroberflächen, API-Endpunkte, Datenbankzugriffe, Validierungen, Berechtigungsprüfungen und fachliche Geschäftslogik. Je nach Aufgabe wurden einzelne Änderungen oder vollständige Dateiimplementierungen vorgeschlagen.
+
+Die entwickelnde Person übernahm die Vorschläge in die lokale Entwicklungsumgebung, führte die Anwendung aus und meldete Compilerfehler, Testfehler sowie beobachtete Abweichungen zurück. Die KI analysierte diese Rückmeldungen und schlug Korrekturen vor. Dieser Zyklus wurde bis zur erfolgreichen Prüfung oder zur Dokumentation verbleibender Einschränkungen wiederholt.
+
+Beispiele für KI-gestützte Entwicklung sind die Inventurverwaltung, Bestandsbewegungen, Benutzer- und Session-Verwaltung, Vereinskleiderbestellungen, Teilrechnungen, Stornierungen, Retouren und technische Integrationen. Die KI-generierte Implementierung ist als solche Teil der Projektleistung und wird nicht als ausschliesslich selbst geschriebener Code ausgewiesen.
+
+#### 6.2.3 Prompt-Vorgehen und Kontext
+
+Die Anfragen enthielten konkrete fachliche Ziele, bestehende Dateiinhalte, GitHub-Issue-Referenzen, Fehlermeldungen, Screenshots und erwartete Ergebnisse. Bei Fehlern wurden die tatsächlichen Ausgaben der lokalen Prüfungen als Grundlage für weitere Anpassungen verwendet.
+
+Typische Aufgabenstellungen waren:
+
+- Bestehende Implementierung mit den Akzeptanzkriterien eines Issues vergleichen.
+- Eine konkrete Funktion unter Berücksichtigung der vorhandenen Datenstrukturen und Berechtigungen erweitern.
+- Fehlgeschlagene Tests analysieren und gezielte Korrekturen vorschlagen.
+- Negative Testfälle und fachliche Grenzfälle ergänzen.
+- Dokumentation anhand des aktuellen Repository-Stands aktualisieren.
+
+Diese Beispiele beschreiben die verwendeten Prompt-Muster sinngemäss; sie sind keine wörtliche Sammlung historischer Prompts.
+
+#### 6.2.4 GitHub-gestützter Entwicklungsworkflow
+
+Die GitHub-Anbindung ermöglicht ChatGPT, den aktuellen Quellcode, Issues und ausgewählte Projektdateien einzusehen. Sie wurde auch für direkte Änderungen an der README und am System- und Abnahmetestprotokoll verwendet. Solche Änderungen werden als Git-Commits nachvollziehbar gespeichert.
+
+Die Entwicklung wird anhand von Issues strukturiert. Anforderungen, Codeänderungen, Tests und Abnahmeentscheidungen werden miteinander verknüpft. Die KI unterstützt die Analyse und Aufbereitung; die tatsächliche Freigabe einer Funktion basiert auf den fachlichen Entscheidungen und gemeldeten Prüfergebnissen der entwickelnden Person.
+
+Der Workflow ist nicht mit einem vollständig autonomen Entwicklungsagenten gleichzusetzen. Insbesondere die lokale Ausführung, Browserprüfungen und fachliche Abnahme erfolgen nicht allein durch ChatGPT.
+
+**Verweise:** [GitHub-Issues](https://github.com/JenSusann/ClubMatiq/issues) · [Commit-Historie](https://github.com/JenSusann/ClubMatiq/commits/main/) · [Kapitel 4.2.2](#422-strukturierter-ki-gestützter-entwicklungsworkflow)
 
 ### 6.3 Reflexion
 
-KI-Unterstützung beschleunigte insbesondere die Einarbeitung in SvelteKit, die Umsetzung von API-Routen und die Behebung von TypeScript-Fehlern. Sie half dabei, fachliche Anforderungen schrittweise in Code zu übersetzen. Gleichzeitig zeigte die iterative Entwicklung, dass vorgeschlagener Code nicht ohne Kontrolle übernommen werden sollte: Änderungen können neue Fehler erzeugen oder bestehende Abläufe beeinflussen. Die fachliche Beurteilung, Integration, Prüfung und Verantwortung für das Ergebnis bleiben deshalb bei der entwickelnden Person. Für eine belastbare Qualitätsaussage sind reproduzierbare Tests, nachvollziehbare Commits und eine dokumentierte Nutzerevaluation notwendig.
+Die KI-Unterstützung ermöglichte eine schnelle Einarbeitung in den technischen Stack und die Umsetzung eines umfangreichen, fachlich zusammenhängenden Prototyps. Besonders hilfreich waren die iterative Fehlersuche, die Übersetzung fachlicher Anforderungen in technische Lösungsansätze und die Ergänzung von Testfällen.
 
+Gleichzeitig zeigte sich, dass KI-generierte Vorschläge nicht automatisch korrekt, vollständig oder sicher sind. Änderungen können bestehende Abläufe beeinträchtigen, Randfälle übersehen oder nicht zum aktuellen Repository-Stand passen. Auch bei der Dokumentation besteht das Risiko, geplante Funktionen mit implementierten oder getesteten Funktionen zu verwechseln.
+
+Ein konkretes Beispiel ist die Korrektur der Grössenbezeichnungen im Inventur-PDF (Issue #21). Die Abweichung wurde bei der manuellen Prüfung festgestellt, anschliessend KI-gestützt analysiert und korrigiert sowie erneut geprüft. Der Vorgang verdeutlicht den Nutzen der Kombination aus KI-Unterstützung und menschlicher Kontrolle.
+
+Die KI reduziert den Aufwand für die Erstellung von Lösungsentwürfen, ersetzt jedoch weder fachliches Verständnis noch reproduzierbare Tests. Die hohe Entwicklungsgeschwindigkeit erhöht zugleich den Bedarf an Regressionstests und konsistenter Dokumentation.
+
+### 6.4 Abgrenzung der Eigenleistung
+
+| Bereich | Beitrag der entwickelnden Person | KI-Unterstützung |
+|---|---|---|
+| Problemdefinition | Auswahl des realen Vereinsproblems und Einbringen praktischer Erfahrung | Strukturierung und Formulierung |
+| Anforderungen | Fachliche Regeln, Prioritäten und gewünschte Abläufe festlegen | Konkretisierung, Ergänzungsvorschläge und Akzeptanzkriterien |
+| Gestaltung | Auswahl, Bewertung und Anpassung der Entwürfe | Ideen, Personas, Visualisierungen und Mockup-Entwürfe |
+| Architektur | Auswahl und Freigabe der technischen Lösung | Architekturvorschläge, Datenmodell und technische Erklärungen |
+| Programmierung | Lokale Integration, Konfiguration, Ausführung und fachliche Beurteilung | Umfangreiche Codegenerierung, Überarbeitung und Fehleranalyse |
+| Tests | Tatsächliche lokale Ausführung und manuelle Browser-Abnahme, Rückmeldung der Ergebnisse | Testentwürfe, automatisierter Testcode, interaktive Testlisten und Fehleranalyse |
+| Projektorganisation | Priorisierung und Entscheidung über weitere Entwicklungsschritte | Issue-Analyse, Strukturierung und Dokumentationspflege |
+| Dokumentation | Prüfung, Anpassung und Verantwortung für die Abgabe | Umfangreiche Textentwürfe, Tabellen, Artefakte und direkte README-Aktualisierungen |
+
+Eine prozentuale Aufteilung zwischen menschlicher und KI-Leistung wird nicht vorgenommen, da hierfür keine belastbare Messgrundlage besteht. Die Eigenleistung liegt insbesondere in der fachlichen Steuerung, der Integration, der tatsächlichen Überprüfung und der Verantwortung für die getroffenen Entscheidungen. Die umfangreiche KI-generierte technische und schriftliche Arbeit wird ausdrücklich deklariert.
+
+### 6.5 Qualitätssicherung und Überprüfung der KI-Ergebnisse
+
+KI-generierter Code wird anhand statischer Prüfungen, automatisierter Unit- und Integrationstests sowie manueller System- und Abnahmetests beurteilt. ChatGPT unterstützt sowohl die Erstellung des Codes als auch der Testfälle. Deshalb sind automatisierte Tests allein kein unabhängiger Nachweis für die vollständige fachliche Korrektheit.
+
+Manuelle Tests werden durch die entwickelnde Person ausgeführt. Die Ergebnisse werden erst nach entsprechender Rückmeldung als bestanden dokumentiert. Historisch rekonstruierte Testbeschreibungen werden gekennzeichnet. Die unabhängige Usability-Evaluation ergänzt diese funktionalen Prüfungen.
+
+Zum dokumentierten Zwischenstand vom 25.11.2026 liegen 58 abschliessend bestandene manuelle Testfälle aus fünf Issue-Abnahmen vor. Die finalen automatisierten Testergebnisse und Coverage-Werte werden nach Abschluss der laufenden Entwicklung erhoben.
+
+**Nachweise:** [System- und Abnahmetestprotokoll](docs/testing/System_Abnahmetestprotokoll.md) · [Testdateien](tests) · [Kapitel 9](#9-lokale-installation-und-tests)
+
+### 6.6 Datenschutz, Sicherheit und Urheberrecht
+
+Bei der KI-Nutzung sind insbesondere Vereins- und Mitgliederdaten, Zugangsdaten, API-Schlüssel, private Zertifikatsschlüssel und produktive Datenbankinhalte zu schützen. Für Entwicklungs- und Testzwecke sollen synthetische oder anonymisierte Daten verwendet werden. Vertrauliche Konfigurationswerte gehören weder in Prompts noch in öffentliche Dokumentation oder Git-Commits.
+
+KI-generierter Code und Texte sind auf fachliche Korrektheit, Sicherheitsrisiken, mögliche Fremdinhalte und Lizenzanforderungen zu prüfen. Die eingesetzten Softwarebibliotheken sind in der [package.json](package.json) aufgeführt. Eine vollständige Lizenz-, Datenschutz- und Sicherheitsprüfung ist mit dieser Deklaration nicht nachgewiesen.
+
+### 6.7 Nachvollziehbarkeit und Verantwortung
+
+Die KI-Nutzung wird durch die vorliegende Deklaration, die GitHub-Historie, die Issues und die Testdokumentation nachvollziehbar gemacht. Diese Artefakte belegen Entwicklungsschritte und Ergebnisse, bilden jedoch nicht sämtliche historischen KI-Interaktionen vollständig ab.
+
+Die entwickelnde Person trägt die Verantwortung für die fachliche Richtigkeit, die Auswahl und Übernahme der KI-Vorschläge, die Prüfung der Abgabeartefakte sowie die Einhaltung der geltenden Hochschulvorgaben. Vor der Abgabe sind die Deklaration, allfällige weitere eingesetzte KI-Werkzeuge und die formalen Anforderungen der ZHAW abschliessend abzugleichen.
 
 ## 7. Anhang [Optional]
 
