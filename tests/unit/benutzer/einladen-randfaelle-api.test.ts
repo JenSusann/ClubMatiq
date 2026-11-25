@@ -106,7 +106,7 @@ describe('Einladung erneut versenden', () => {
   it('versendet ohne früheres Versanddatum', async () => {
     const r = await againpost(); expect(r.status).toBe(200); expect(await r.json()).toMatchObject({ erfolg: true });
     expect(m.send).toHaveBeenCalledWith(expect.objectContaining({ email: 'ada@example.ch', vorname: 'Ada', verein: 'Turnverein', link: 'https://clubmatiq.test/einladung?token=new-token' }));
-    expect(againinvites.updateOne).toHaveBeenCalledWith({ _id: againinvitation._id, againvereinId, status: 'offen' }, { $set: expect.objectContaining({ tokenHash: 'new-hash', resendId: 'resend-new', versendetAm: expect.any(Date) }) });
+    expect(againinvites.updateOne).toHaveBeenCalledWith({ _id: againinvitation._id, vereinId: againvereinId, status: 'offen' }, { $set: expect.objectContaining({ tokenHash: 'new-hash', resendId: 'resend-new', versendetAm: expect.any(Date) }) });
   });
   it('erlaubt Versand nach mehr als einer Minute', async () => { againinvitation.versendetAm = new Date(Date.now() - 61_000); expect((await againpost()).status).toBe(200); });
   it('verwendet konfigurierte URL und Vereinsersatzname', async () => { process.env.PUBLIC_APP_URL = 'https://app.example/'; againclubs.findOne.mockResolvedValue(null); expect((await againpost()).status).toBe(200); expect(m.send).toHaveBeenCalledWith(expect.objectContaining({ verein: 'deinem Verein', link: 'https://app.example/einladung?token=new-token' })); });
