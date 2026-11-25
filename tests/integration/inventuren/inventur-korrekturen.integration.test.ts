@@ -15,6 +15,11 @@ vi.mock('../../../src/lib/server/mongodb', async () => {
 
 
 
+
+import * as suite0_route0 from '../../../src/routes/api/inventuren/[id]/korrigieren/+server';
+
+describe('inventur-korrekturen', () => {
+const route0 = suite0_route0;
 const id = new ObjectId().toHexString();
 const admin = { id: new ObjectId().toHexString(), vereinId: new ObjectId().toHexString(), rolle: 'admin', aktiv: true };
 function event(payload: unknown, ident = id, benutzer: unknown = admin) {
@@ -25,7 +30,7 @@ function event(payload: unknown, ident = id, benutzer: unknown = admin) {
     url: new URL('http://localhost/api/inventuren/testid/korrigieren')
   } as never;
 }
-import * as route0 from '../../../src/routes/api/inventuren/[id]/korrigieren/+server';
+
 
 // Ursprüngliche Datei: inventur-korrekturen.integration.test.ts
 describe('inventuren/[id]/korrigieren', () => {
@@ -65,3 +70,46 @@ describe('inventuren/[id]/korrigieren', () => {
   });
 });
 
+
+});
+
+import * as suite1_route0 from '../../../src/routes/api/inventuren/[id]/stornieren/+server';
+
+describe('inventur-stornierung', () => {
+const route0 = suite1_route0;
+const id = new ObjectId().toHexString();
+const admin = { id: new ObjectId().toHexString(), vereinId: new ObjectId().toHexString(), rolle: 'admin', aktiv: true };
+function event(payload: unknown, ident = id, benutzer: unknown = admin) {
+  return {
+    params: { id: ident },
+    locals: { benutzer },
+    request: new Request('http://localhost/api/inventuren/testid/stornieren', { method: 'POST', ...( 'POST' === 'POST' ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) } : {} ) }),
+    url: new URL('http://localhost/api/inventuren/testid/stornieren')
+  } as never;
+}
+
+
+// Ursprüngliche Datei: inventur-stornierung.integration.test.ts
+describe('inventuren/[id]/stornieren', () => {
+  it('verweigert nicht angemeldeten Benutzern den Zugriff', async () => {
+    const res = await route0.POST(event({}, id, null));
+    expect(res.status).toBe(401);
+  });
+  it('verweigert Mitgliedern ohne Verwaltungsberechtigung den Zugriff', async () => {
+    const res = await route0.POST(event({}, id, { ...admin, rolle: 'mitglied' }));
+    expect(res.status).toBe(403);
+  });
+  it('weist ungültige JSON-Eingaben zurück', async () => {
+    const ev = event({});
+    (ev as any).request = new Request('http://localhost/api/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{kaputt' });
+    const res = await route0.POST(ev);
+    expect(res.status).toBe(400);
+  });
+  it('ungueltige Inventur-ID', async () => {
+    const res = await route0.POST(event({}, 'ungueltig'));
+    expect(res.status).toBe(400);
+  });
+});
+
+
+});
