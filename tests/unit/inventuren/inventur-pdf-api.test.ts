@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFPage } from 'pdf-lib';
 
 const m = vi.hoisted(() => ({ permission: vi.fn(), findOne: vi.fn(), find: vi.fn(), sort: vi.fn(), project: vi.fn(), toArray: vi.fn() }));
 vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: vi.fn(() => ({ findOne: m.findOne, find: m.find })) } }));
@@ -24,8 +24,10 @@ beforeEach(() => {
   m.project.mockImplementation(() => ({ toArray: m.toArray }));
   m.toArray.mockImplementation(() => Promise.resolve(positions));
 });
-const setup = (p: unknown[] = positions, l: unknown[] = logs, people: unknown[] = persons) => {
-  m.toArray.mockReset().mockResolvedValueOnce(p).mockResolvedValueOnce(l).mockResolvedValueOnce(people);
+const setup = (p: unknown[] = positions, l: unknown[] = logs, people: unknown[] = persons, sizes: unknown[] = []) => {
+  m.toArray.mockReset().mockResolvedValueOnce(p).mockResolvedValueOnce(l);
+  if (p.some(x => ObjectId.isValid(String((x as { groesseId?: unknown }).groesseId ?? '')))) m.toArray.mockResolvedValueOnce(sizes);
+  m.toArray.mockResolvedValueOnce(people);
 };
 async function get(value = id) { return GET(event(value)); }
 async function pdfTextCount(response: Response) { const pdf = await PDFDocument.load(await response.arrayBuffer()); return pdf.getPageCount(); }
@@ -41,8 +43,26 @@ describe('Inventurbericht PDF', () => {
       { aktion: 'abgeschlossen', ausgefuehrtAm: new Date(), ausgefuehrtVon: user, anzahlKorrekturen: 1, positionen: [{ positionId: pid, istBestand: 9 }] },
       { aktion: 'nachtraeglich_korrigiert', ausgefuehrtAm: new Date(), ausgefuehrtVon: user, positionId: pid, alterIstBestand: 9, neuerIstBestand: 8, differenz: -1, begruendung: 'Kontrolle' },
       { aktion: 'storniert', ausgefuehrtAm: new Date(), ausgefuehrtVon: user, statusVorher: 'abgeschlossen', anzahlRueckbuchungen: 1 }
-    ]);
+    ], persons, [{ _id: new ObjectId(id), bezeichnung: 'XS' }]);
     expect(await pdfTextCount(await get())).toBeGreaterThan(0);
+  });
+  it.each([
+    ['XS', [{ _id: new ObjectId(id), bezeichnung: 'XS' }]],
+    ['Unbekannte Grösse', []]
+  ] as const)('zeigt %s statt der Grössen-ID an', async (label, sizes) => {
+    setup([position({ artikelName: 'T-Shirt', groesseId: id }), position()], [
+      { aktion: 'nachtraeglich_korrigiert', positionId: pid, alterIstBestand: 9, neuerIstBestand: 8, differenz: -1 }
+    ], persons, [...sizes]);
+    const draw = vi.spyOn(PDFPage.prototype, 'drawText');
+    try {
+      expect((await get()).status).toBe(200);
+      const lines = draw.mock.calls.map(([value]) => value);
+      expect(lines).toContain('T-Shirt | Grösse: ' + label);
+      expect(lines).toContain('Ball');
+      expect(lines.some(line => line.startsWith('T-Shirt | Grösse: ' + label + ':'))).toBe(true);
+      expect(lines.some(line => line.includes(id))).toBe(false);
+      expect(m.find).toHaveBeenCalledWith({ vereinId: 'verein-1', _id: { $in: [new ObjectId(id)] } });
+    } finally { draw.mockRestore(); }
   });
   it('verarbeitet ungültige Datumswerte und fehlende Namen', async () => { m.findOne.mockResolvedValue(inventur({ erstelltVon: null, erstelltAm: 'ungueltig', abgeschlossenAm: null })); setup([position({ istBestand: null, sollBestand: null, artikelName: null })], [], []); expect((await get()).status).toBe(200); });
   it('bricht sehr lange Wörter und erzeugt mehrere Seiten', async () => { setup(Array.from({ length: 75 }, (_, i) => position({ _id: new ObjectId(), artikelName: 'A'.repeat(200) + i, bemerkung: 'B'.repeat(300) })), [], []); expect(await pdfTextCount(await get())).toBeGreaterThan(1); });
