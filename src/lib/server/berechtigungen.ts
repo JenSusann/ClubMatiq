@@ -74,7 +74,7 @@ export function hatBerechtigung(
   const berechtigungen =
     rollenBerechtigungen[benutzer.rolle];
 
-  if (!berechtigungen) {
+  if (!Array.isArray(berechtigungen)) {
     return false;
   }
 
