@@ -41,7 +41,7 @@ describe('ClubDesk CSV Import', () => {
   it.each(['[Id];Vorname\n1;Anna', 'Vorname;Nachname\nAnna;Muster', '[Id];Nachname\n1;Muster'])('verlangt alle Pflichtspalten: %s', async (s) => { await thrown(upload(s), 400); });
   it('verweigert fehlende ClubDesk-ID', async () => { await thrown(upload('[Id];Vorname;Nachname\n;Anna;Muster'), 400); });
   it('verweigert Datensatz ohne Vor- und Nachnamen', async () => { await thrown(upload('[Id];Vorname;Nachname\n1;;'), 400); });
-  it('verweigert doppelte ClubDesk-ID', async () => { await thrown(upload('[Id];Vorname;Nachname\n1;Anna;Muster\n1;Berta;Meier'), 400); });
+  it('verweigert doppelte ClubDesk-ID mit unterschiedlichen Namen', async () => { await thrown(upload('[Id];Vorname;Nachname\n1;Anna;Muster\n1;Berta;Meier'), 400); });
   it('verweigert ungeschlossene Anführungszeichen', async () => { await thrown(upload('[Id];Vorname;Nachname\n1;"Anna;Muster'), 400); });
   it('importiert Mitglieder vereinsgebunden mit Upsert', async () => { const r = await post(upload(csv)); expect(r.status).toBe(200); expect((await r.json()).eingelesen).toBe(1); expect(m.collection.createIndex).toHaveBeenCalled(); expect(m.collection.bulkWrite).toHaveBeenCalledWith([expect.objectContaining({ updateOne: expect.objectContaining({ filter: { vereinId: 'verein-1', clubdeskId: '1' }, upsert: true }) })], { ordered: true }); });
   it('verarbeitet BOM, CRLF und gequotete Semikolons', async () => { const r = await post(upload('\uFEFF[Id];Vorname;Nachname;Adresse\r\n1;"Anna;Maria";Muster;"Weg; 2"\r\n')); expect(r.status).toBe(200); expect(m.collection.bulkWrite.mock.calls[0][0][0].updateOne.update.$set.vorname).toBe('Anna;Maria'); });
@@ -145,12 +145,22 @@ beforeEach(() => {
   it('POST verweigert fehlende Vor- und Nachnamen', async () => {
     await messageZusatz(postZusatz('[Id];Vorname;Nachname\n100;;'), 400, 'Ungültiger Mitgliedereintrag');
   });
-  it('POST verweigert doppelte ClubDesk-ID', async () => {
-    await messageZusatz(postZusatz('[Id];Vorname;Nachname\n100;Anna;Muster\n100;Max;Meier'), 400, 'Doppelte ClubDesk-ID');
+  it('POST verweigert widersprüchliche Namen zur gleichen ClubDesk-ID', async () => {
+    await messageZusatz(postZusatz('[Id];Vorname;Nachname\n100;Anna;Muster\n100;Max;Meier'), 400, 'Widersprüchliche Namen zur gleichen ClubDesk-ID');
   });
   it('POST berechnet aktualisierte und unveränderte Einträge', async () => {
     m.collection.bulkWrite.mockResolvedValue({ upsertedCount: 0, modifiedCount: 1, matchedCount: 2 });
     const r = await postZusatz('[Id];Vorname;Nachname\n100;Anna;Muster');
     expect(await r.json()).toMatchObject({ aktualisiert: 1, unveraendert: 1 });
   });
+});
+
+ it('führt identische ClubDesk-IDs mit gleichem Namen zusammen', async () => {
+  const r = await post(upload('[Id];Vorname;Nachname;Gruppen\n1;Anna;Muster;Gruppe A (TurnerIn)\n1;Anna;Muster;Gruppe B (TurnerIn)'));
+  expect(r.status).toBe(200);
+  expect(await r.json()).toMatchObject({ eingelesen: 1 });
+  const ops = m.collection.bulkWrite.mock.calls[0][0];
+  expect(ops).toHaveLength(1);
+  expect(ops[0].updateOne.update.$set.clubdeskGruppen).toEqual(['Gruppe A (TurnerIn)', 'Gruppe B (TurnerIn)']);
+  expect(ops[0].updateOne.update.$set).not.toHaveProperty('erstbezugsRabattIds');
 });
