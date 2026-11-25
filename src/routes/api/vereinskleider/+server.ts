@@ -88,6 +88,7 @@ function pruefeEingabe(daten: unknown) {
     }
     positionen.push({ artikelId: p.artikelId, groesseId: p.groesseId, menge: p.menge, einzelpreis: p.einzelpreis, preisOffen: p.preisOffen === true });
   }
+  if (d.mitgliedId != null && !gueltigeId(d.mitgliedId)) throw new Verkaufsfehler('Ungültige Mitglieder-ID.');
   const rabattIds = d.rabattIds ?? [];
   if (!Array.isArray(rabattIds) || rabattIds.length > 30 || !rabattIds.every(gueltigeId) ||
       new Set(rabattIds).size !== rabattIds.length) {
@@ -98,6 +99,7 @@ function pruefeEingabe(daten: unknown) {
   return {
     verkaufsart: d.verkaufsart as 'direkt' | 'bestellung' | 'automatisch',
     kaeufer: (d.kaeufer as string).trim(),
+    mitgliedId: (d.mitgliedId as string | null | undefined) ?? null,
     zahlungsart: d.zahlungsart as string,
     zahlungErhalten: d.zahlungErhalten === true,
     bemerkung: (d.bemerkung as string | undefined)?.trim() ?? '',
@@ -123,6 +125,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   const session = client.startSession();
   try {
     const ergebnis = await session.withTransaction(async () => {
+      const mitglied = eingabe.mitgliedId ? await db.collection('clubdesk_mitglieder').findOne({
+        _id: new ObjectId(eingabe.mitgliedId), vereinId, aktiv: { $ne: false }
+      }, { session }) : null;
+      if (eingabe.mitgliedId && !mitglied) throw new Verkaufsfehler('Mitglied nicht gefunden oder inaktiv.', 409);
       const artikelCollection = db.collection('artikel');
       const variantenCollection = db.collection('artikelvarianten');
       const preiseCollection = db.collection('vereinskleider_preise');
@@ -360,7 +366,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         offenePreispositionen: geprueft.filter((p) => p.preisOffen).length,
         direktMenge,
         bestellMenge,
-        kaeufer: eingabe.kaeufer,
+        kaeufer: mitglied ? `${mitglied.vorname} ${mitglied.nachname}`.trim() : eingabe.kaeufer,
+        ...(mitglied ? { mitgliedId: String(mitglied._id), clubdeskId: mitglied.clubdeskId } : {}),
         riegen: eingabe.riegen,
         zahlungsart: eingabe.zahlungsart,
         zahlungsstatus: hatOffenePreise ? (bezahlt && endbetrag > 0 ? 'teilweise_bezahlt' : 'preis_offen') : bezahlt || endbetrag === 0 ? 'bezahlt' : 'offen',
