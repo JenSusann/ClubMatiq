@@ -30,6 +30,7 @@ type Verkauf = Document & {
   rabatte?: { rabattId: string; name: string; betrag: number }[];
   zusaetzlicherRabatt?: number;
   zwischentotal: number;
+  erstbezugsIds?: string[];
   rabattTotal: number;
   endbetrag: number;
   erstelltAm: Date;
@@ -77,7 +78,7 @@ export const GET: RequestHandler = async ({ locals }) => {
       db.collection<Rechnung>('vereinskleider_rechnungen')
         .find({ vereinId }).sort({ erstelltAm: -1 }).limit(1000).toArray(),
       db.collection<Verkauf>('vereinskleider_verkaeufe')
-        .find({ vereinId, rechnungId: { $exists: false } })
+        .find({ vereinId, rechnungId: { $exists: false }, $nor: [{ endbetrag: 0, preisOffen: { $ne: true }, 'erstbezugsIds.0': { $exists: true } }] })
         .sort({ erstelltAm: -1 }).limit(1000)
         .project<Verkauf>({ kaeufer: 1, riegen: 1, endbetrag: 1, erstelltAm: 1, zahlungsart: 1, zahlungsstatus: 1, bezahltBetrag: 1, preisOffen: 1, offenePreispositionen: 1, trancheRechnungIds: 1 })
         .toArray()
@@ -147,6 +148,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           ? Math.round(verkauf.bezahltBetrag * 100)
           : -1;
       const gesamtRappen = Math.round(verkauf.endbetrag * 100);
+      if (gesamtRappen === 0 && verkauf.erstbezugsIds?.length) {
+        throw new Rechnungsfehler('Kostenlose Erstbezüge benötigen keine Rechnung.', 409);
+      }
       if (bezahltRappen < 0 || bezahltRappen !== summeZahlungenRappen || bezahltRappen > gesamtRappen ||
           (verkauf.zahlungsstatus === 'bezahlt' && bezahltRappen !== gesamtRappen)) {
         throw new Rechnungsfehler('Der Zahlungsstatus stimmt nicht mit den erfassten Zahlungseingängen überein.', 409);
