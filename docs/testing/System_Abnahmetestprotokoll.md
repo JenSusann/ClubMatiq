@@ -17,7 +17,8 @@ Test-ID: ST-[Issue]-[Nummer]. Status: Offen, Bestanden, Fehler, Blockiert, Erneu
 | #16 | Rollenbasierte Berechtigungen | 10/10 | Original-Screenshot |
 | #21 | Inventur | 9/9 | Sammelbestätigung laut bisherigem Protokoll |
 | #22 | Bestandskonsistenz | 10/10 | Screenshot |
-| Gesamt | Quantifizierte Abnahmen | 58/58 | Historische Abschlussstände |
+| #71 | ClubDesk-Gruppenzuordnung und Riegenverwaltung | 10/10 | Screenshot; Teilabnahme |
+| Gesamt | Quantifizierte manuelle Prüfungen | 68/68 | Dokumentierte Durchläufe inklusive Teilabnahme |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -132,9 +133,36 @@ Quelle: [Testabschluss im Issue #22](https://github.com/JenSusann/ClubMatiq/issu
 
 Abnahme: 10/10 bestanden. Zusätzlich 10 Unit- und 4 Integrationstests dokumentiert. Keine produktive Codeänderung erforderlich. Zwei-Tab-Szenarien sind keine echten Lasttests; Rollback wurde automatisiert geprüft.
 
+### Issue #71 – ClubDesk-Gruppenzuordnung und Riegenverwaltung
+
+- Nachweis: Screenshot der manuellen Abnahme, eingereicht am 25.11.2026.
+- Testbereich: Stammdaten → Mitglieder.
+- Voraussetzungen: Importierte ClubDesk-Gruppen und konfigurierte Riegenzuordnungen.
+- Testumgebung, genauer Durchführungszeitpunkt und getesteter Commit: nicht separat angegeben.
+- Testfallnamen und Ergebnisse gemäss Screenshot; Aufgaben und Erwartungen redaktionell konkretisiert.
+
+| ID | Testfall | Aufgabe | Erwartung | Ergebnis |
+|---|---|---|---|---|
+| ST-71-01 | Mitgliederübersicht | Stammdaten → Mitglieder öffnen | Mitgliederübersicht öffnet sich fehlerfrei | Bestanden |
+| ST-71-02 | ClubDesk-Gruppen | Importierte Mitglieder mit Gruppenzugehörigkeiten ansehen | Importierte ClubDesk-Gruppen werden angezeigt | Bestanden |
+| ST-71-03 | Gruppenfunktionen | Funktionen innerhalb der importierten Gruppen kontrollieren | Funktionen innerhalb der Gruppen sind sichtbar | Bestanden |
+| ST-71-04 | Riegenzuordnung | Mitglieder mit zugeordneten Riegen kontrollieren | Zugeordnete Riegen werden angezeigt | Bestanden |
+| ST-71-05 | Mehrfachmitgliedschaften | Mitglied mit mehreren Zugehörigkeiten ansehen | Mehrfachmitgliedschaften werden korrekt angezeigt | Bestanden |
+| ST-71-06 | Riegenfilter | Nach einer Riege filtern | Filter nach Riege funktioniert | Bestanden |
+| ST-71-07 | JUKO-Filter | Filter JUKO auswählen | Filter nach JUKO funktioniert | Bestanden |
+| ST-71-08 | Aktivriegenfilter | Filter Aktivriege auswählen | Filter nach Aktivriege funktioniert | Bestanden |
+| ST-71-09 | Nicht zugeordnet | Filter «Nicht zugeordnet» auswählen | Filter «Nicht zugeordnet» funktioniert | Bestanden |
+| ST-71-10 | Aktualisierte Gruppenzuordnung | Gruppenzuordnung ändern und Mitgliederübersicht aktualisieren | Geänderte Gruppenzuordnung wird nach Aktualisierung angezeigt | Bestanden |
+
+**Auswertung:** 10/10 bestanden, 0 fehlgeschlagen, 0 blockiert innerhalb dieses Testdurchlaufs. Keine Fehlerkorrektur aufgrund dieser zehn Prüfungen gemeldet.
+
+**Offene Punkte:** Die Riegen werden für die Mitgliederübersicht dynamisch berechnet. Die serverseitige Erstbezugsprüfung aus [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34) muss noch an diese Logik angebunden werden. Weitere Akzeptanzkriterien gemäss [Issue #71](https://github.com/JenSusann/ClubMatiq/issues/71), insbesondere automatisierte Tests und nicht durch diese zehn Prüfungen belegte Randfälle, sind separat nachzuweisen. Automatisierte Testergebnisse wurden mit diesem Screenshot nicht bestätigt.
+
+**Abnahmeentscheidung:** Manueller Teiltest erfolgreich; vollständige Issue-Abnahme noch offen. Issue #71 bleibt offen.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 58 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 68 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
