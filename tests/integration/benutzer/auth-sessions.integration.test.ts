@@ -12,6 +12,14 @@ vi.mock('../../../src/lib/server/mongodb', async () => {
 import { db, client } from '../../../src/lib/server/mongodb';
 import { POST as login } from '../../../src/routes/api/anmelden/+server';
 import { POST as logout } from '../../../src/routes/api/abmelden/+server';
+import { handle } from '../../../src/hooks.server';
+async function geschuetzterZugriff(sessionToken: string) {
+  const cookies = { get: () => sessionToken, delete: vi.fn() };
+  const event = { url: new URL('http://localhost/api/artikel'), cookies, locals: { benutzer: null, sessionId: null } };
+  const resolve = vi.fn(async () => new Response('OK'));
+  const response = await handle({ event, resolve } as never);
+  return { response, cookies, resolve };
+}
 const vereinId = new ObjectId().toString();
 const id = new ObjectId();
 const email = `test-${id.toString()}@example.invalid`;
@@ -26,5 +34,25 @@ describe('Anmeldung und Session', () => {
   it('verweigert falsches Passwort', async () => { expect((await login(loginEvent('falsch') as never)).status).toBe(401); });
   it('erstellt Session mit gehashtem Token', async () => { const r = await login(loginEvent('Testpasswort!123') as never); expect(r.status).toBe(200); expect(token).toBeTruthy(); const s = await db.collection('sessions').findOne({ tokenHash: createHash('sha256').update(token!).digest('hex') }); expect(s?.vereinId).toBe(vereinId); expect(s?.tokenHash).not.toBe(token); });
   it('löscht Session beim Abmelden', async () => { const old = token!; const r = await logout({ cookies: cookie }); expect(r.status).toBe(200); expect(token).toBeUndefined(); expect(await db.collection('sessions').countDocuments({ tokenHash: createHash('sha256').update(old).digest('hex') })).toBe(0); });
+  it('verweigert wiederverwendete Tokens nach Abmeldung', async () => {
+    expect((await login(loginEvent('Testpasswort!123') as never)).status).toBe(200);
+    const old = token!;
+    expect((await geschuetzterZugriff(old)).response.status).toBe(200);
+    expect((await logout({ cookies: cookie })).status).toBe(200);
+    const result = await geschuetzterZugriff(old);
+    expect(result.response.status).toBe(401);
+    expect(result.resolve).not.toHaveBeenCalled();
+    expect(result.cookies.delete).toHaveBeenCalled();
+  });
+  it('verweigert abgelaufene Sessions trotz vorhandenem Datenbankeintrag', async () => {
+    expect((await login(loginEvent('Testpasswort!123') as never)).status).toBe(200);
+    const old = token!;
+    await db.collection('sessions').updateOne({ tokenHash: createHash('sha256').update(old).digest('hex') }, { $set: { ablaufdatum: new Date(Date.now() - 60000) } });
+    const result = await geschuetzterZugriff(old);
+    expect(result.response.status).toBe(401);
+    expect(result.resolve).not.toHaveBeenCalled();
+    expect(result.cookies.delete).toHaveBeenCalled();
+    await logout({ cookies: cookie });
+  });
   it('erlaubt Abmeldung ohne bestehende Session', async () => { expect((await logout({ cookies: cookie })).status).toBe(200); });
 });
