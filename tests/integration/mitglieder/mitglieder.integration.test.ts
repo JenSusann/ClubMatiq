@@ -106,11 +106,17 @@ describe('Mitglieder – zusätzliche CSV- und Suchzweige', () => {
     ['kein Datensatz', header, 'keine Mitglieder'],
     ['leere ID', csv([';Anna;Muster;;;;;']), 'Ungültiger Mitgliedereintrag'],
     ['kein Name', csv(['42;;;;;;;']), 'Ungültiger Mitgliedereintrag'],
-    ['doppelte ID', csv([row, row]), 'Doppelte ClubDesk-ID'],
+    ['widersprüchliche Namen zur gleichen ID', csv([row, row.replace('Anna', 'Berta')]), 'Widersprüchliche Namen zur gleichen ClubDesk-ID'],
     ['offenes Zitat', csv(['42;"Anna;Muster;;;;;']), 'nicht geschlossenes Anführungszeichen']
   ])('POST weist %s zurück', async (_, input, message) => {
     await expect(post(input)).rejects.toMatchObject({ status: 400, body: { message: expect.stringContaining(message) } });
     expect(m.bulkWrite).not.toHaveBeenCalled();
+  });
+  it('POST führt identische Mitgliedereinträge zusammen', async () => {
+    const response = await post(csv([row, row]));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ eingelesen: 1 });
+    expect(m.bulkWrite.mock.calls[0][0]).toHaveLength(1);
   });
   it('POST weist Requests ohne Multipart zurück', async () => {
     await expect(POST({
