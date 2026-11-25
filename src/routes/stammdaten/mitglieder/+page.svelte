@@ -13,6 +13,11 @@
     ort: string;
     status: string;
     aktiv: boolean;
+    riegen?: string[];
+    bereiche?: string[];
+    clubdeskHauptgruppe?: string;
+    clubdeskGruppen?: string[];
+    clubdeskGruppendetails?: { gruppe: string; funktion: string | null }[];
   };
 
   type ImportErgebnis = {
@@ -26,6 +31,18 @@
 
   let mitglieder = $state<Mitglied[]>([]);
   let suche = $state('');
+  let riege = $state('');
+  let bereich = $state('');
+  let riegen = $state<{ name: string; aktiv: boolean }[]>([]);
+  async function riegenLaden() {
+    try {
+      const antwort = await fetch('/api/riegen');
+      if (!antwort.ok) throw new Error('Riegen konnten nicht geladen werden.');
+      riegen = await antwort.json();
+    } catch (e) {
+      fehlermeldung = e instanceof Error ? e.message : 'Riegen konnten nicht geladen werden.';
+    }
+  }
   let datei = $state<File | null>(null);
   let laden = $state(false);
   let importieren = $state(false);
@@ -49,7 +66,7 @@
     laden = true;
     fehlermeldung = '';
     try {
-      const antwort = await fetch(`/api/mitglieder?suche=${encodeURIComponent(suche.trim())}`);
+      const antwort = await fetch(`/api/mitglieder?details=1&suche=${encodeURIComponent(suche.trim())}&riege=${encodeURIComponent(riege)}&bereich=${encodeURIComponent(bereich)}`);
       const daten: unknown = await antwort.json();
       if (!antwort.ok) throw new Error(fehlerText(daten, 'Mitglieder konnten nicht geladen werden.'));
       if (!Array.isArray(daten)) throw new Error('Unerwartete Antwort vom Server.');
@@ -95,6 +112,7 @@
 
   onMount(() => {
     void mitgliederLaden();
+    void riegenLaden();
   });
 </script>
 
@@ -140,6 +158,22 @@
     </div>
     <form class="suche" onsubmit={(ereignis) => { ereignis.preventDefault(); void mitgliederLaden(); }}>
       <label for="mitglied-suche">Mitglied suchen</label>
+      <div class="filter">
+        <label>Riege
+          <select bind:value={riege} onchange={() => void mitgliederLaden()}>
+            <option value="">Alle Riegen</option>
+            <option value="__ohne">Nicht zugeordnet</option>
+            {#each riegen.filter(r => r.aktiv) as r}<option value={r.name}>{r.name}</option>{/each}
+          </select>
+        </label>
+        <label>Bereich
+          <select bind:value={bereich} onchange={() => void mitgliederLaden()}>
+            <option value="">Alle Bereiche</option>
+            <option value="juko">JUKO</option>
+            <option value="aktive">Aktivriege</option>
+          </select>
+        </label>
+      </div>
       <div class="suchzeile">
         <input id="mitglied-suche" type="search" placeholder="Name oder ClubDesk-ID" bind:value={suche} />
         <button type="submit" disabled={laden}>{laden ? 'Suche …' : 'Suchen'}</button>
@@ -156,7 +190,7 @@
       <div class="tabellenbereich">
         <table>
           <thead>
-            <tr><th>Anrede</th><th>Nachname</th><th>Vorname</th><th>Adresse</th><th>PLZ</th><th>Ort</th><th>ClubDesk-ID</th><th>Status</th><th>Aktiv</th></tr>
+            <tr><th>Anrede</th><th>Nachname</th><th>Vorname</th><th>Adresse</th><th>PLZ</th><th>Ort</th><th>ClubDesk-ID</th><th>Status</th><th>Aktiv</th><th>Riegen</th><th>Bereich</th><th>ClubDesk-Gruppen</th></tr>
           </thead>
           <tbody>
             {#each mitglieder as mitglied (mitglied._id)}
@@ -170,6 +204,16 @@
                 <td>{mitglied.clubdeskId}</td>
                 <td>{mitglied.status || '–'}</td>
                 <td>{mitglied.aktiv ? 'Ja' : 'Nein'}</td>
+                <td>{mitglied.riegen?.join(', ') || 'Nicht zugeordnet'}</td>
+                <td>{mitglied.bereiche?.map(b => b === 'juko' ? 'JUKO' : 'Aktivriege').join(', ') || '–'}</td>
+                <td><details><summary>Gruppen anzeigen</summary>
+                  {#if mitglied.clubdeskHauptgruppe}<p>Hauptgruppe: {mitglied.clubdeskHauptgruppe}</p>{/if}
+                  {#if mitglied.clubdeskGruppendetails?.length}
+                    {#each mitglied.clubdeskGruppendetails as g}<div>{g.gruppe}{g.funktion ? ' (' + g.funktion + ')' : ''}</div>{/each}
+                  {:else}
+                    {#each mitglied.clubdeskGruppen ?? [] as g}<div>{g}</div>{/each}
+                  {/if}
+                </details></td>
               </tr>
             {/each}
           </tbody>
@@ -199,6 +243,9 @@
   .sekundaer { background: #eff6ff; color: #1d4ed8; }
   .listen-kopf { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
   .suche { margin-bottom: 1.2rem; }
+  .filter { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: .75rem; }
+  .filter select { display: block; padding: .5rem; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
+  details summary { cursor: pointer; color: #2563eb; }
   .suchzeile { display: flex; gap: .6rem; }
   .tabellenbereich { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: .9rem; }
