@@ -212,16 +212,50 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           gutschriftBetrag: differenz / 100, rueckerstattungOffen, status: neuerStatus
         };
       }
-      // Vollständiger unbezahlter Erstbezug mit genau einer Bestellposition:
+      // Vollständiger Erstbezug mit genau einer nicht übergebenen Bestellposition:
       // Rabatt und Anspruch werden gemeinsam mit der Bestellung aufgehoben.
-      if (verkauf.erstbezugsIds?.length && !verkauf.rechnungId &&
-          (verkauf.bezahltBetrag ?? 0) === 0 && !(verkauf.zahlungen ?? []).some(z => z.betrag > 0) &&
+      if (verkauf.erstbezugsIds?.length &&
+          (verkauf.rechnungId || ((verkauf.bezahltBetrag ?? 0) === 0 && !(verkauf.zahlungen ?? []).some(z => z.betrag > 0))) &&
           verkauf.positionen?.length === 1 && index === 0) {
         const p = verkauf.positionen[0];
         if (p.verkaufsart === 'bestellung' && (p.uebergebenMenge ?? 0) === 0 &&
             p.menge === menge && idGueltig(verkauf.mitgliedId) &&
             verkauf.erstbezugsIds.every(id => idGueltig(id) || /^gruppe:[a-z0-9][a-z0-9_-]{0,79}$/.test(id))) {
           const jetzt = new Date();
+          let gutschriftId: string | null = null;
+          let gutschriftBetrag = 0;
+          let rueckerstattungOffen = 0;
+          if (verkauf.rechnungId) {
+            if (!idGueltig(verkauf.rechnungId) || !gueltigeRappen(verkauf.endbetrag) || verkauf.endbetrag <= 0 || p.preisOffen) {
+              throw new Stornierungsfehler('Erstbezugsrechnung kann nicht sicher korrigiert werden.', 409);
+            }
+            const rechnungen = db.collection<Rechnung>('vereinskleider_rechnungen');
+            const rechnung = await rechnungen.findOne({ _id: new ObjectId(verkauf.rechnungId), vereinId, verkaufId: verkaufId.toString() }, { session });
+            const bp = rechnung?.positionen?.[0];
+            if (!rechnung || rechnung.status === 'storniert' || rechnung.positionen?.length !== 1 ||
+                !bp || bp.artikelId !== p.artikelId || bp.groesseId !== p.groesseId || bp.menge !== p.menge ||
+                !gueltigeRappen(rechnung.gesamtbetrag) || !gueltigeRappen(rechnung.bezahltBetrag) ||
+                rappen(rechnung.gesamtbetrag) !== rappen(verkauf.endbetrag) ||
+                rechnung.bezahltBetrag > rechnung.gesamtbetrag || (rechnung.gutgeschriebenBetrag ?? 0) !== 0) {
+              throw new Stornierungsfehler('Erstbezugsrechnung stimmt nicht eindeutig mit dem Verkauf überein.', 409);
+            }
+            gutschriftBetrag = rechnung.gesamtbetrag;
+            rueckerstattungOffen = rechnung.bezahltBetrag;
+            const korrigiert = await rechnungen.updateOne({
+              _id: rechnung._id, vereinId, status: rechnung.status, bezahltBetrag: rechnung.bezahltBetrag,
+              gutgeschriebenBetrag: rechnung.gutgeschriebenBetrag === undefined ? { $exists: false } : 0
+            }, { $set: { gutgeschriebenBetrag: gutschriftBetrag, rueckerstattungOffen, status: 'storniert', aktualisiertAm: jetzt } }, { session });
+            if (korrigiert.modifiedCount !== 1) throw new Stornierungsfehler('Rechnung wurde zwischenzeitlich geändert.', 409);
+            const gs = new ObjectId();
+            gutschriftId = gs.toString();
+            await db.collection('vereinskleider_gutschriften').insertOne({
+              _id: gs, vereinId, verkaufId: verkaufId.toString(), rechnungId: rechnung._id.toString(),
+              rechnungsnummer: rechnung.rechnungsnummer, gutschriftnummer: `GS-${gs.toString().slice(-12).toUpperCase()}`,
+              positionsIndex: index, artikelId: p.artikelId, groesseId: p.groesseId, artikelname: p.artikelname ?? '',
+              menge, einzelpreis: gutschriftBetrag / menge, betrag: gutschriftBetrag, grund, erstelltAm: jetzt,
+              status: 'erstellt', pdfStatus: 'ausstehend', clubdeskExportStatus: 'nicht_exportiert'
+            }, { session });
+          }
           const update = await sammlung.updateOne(
             { _id: verkaufId, vereinId, aktualisiertAm: verkauf.aktualisiertAm },
             { $set: {
@@ -242,8 +276,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             { $pullAll: { erstbezugsRabattIds: verkauf.erstbezugsIds } }, { session });
           if (freigabe.modifiedCount !== 1) throw new Stornierungsfehler('Erstbezugsanspruch konnte nicht freigegeben werden.', 409);
           return { verkaufId: eingabe.verkaufId, positionsIndex: index, storniert: menge,
-            freigegebeneReserve: p.reserviertMenge ?? 0, gutschriftId: null, gutschriftBetrag: 0,
-            rueckerstattungOffen: 0, status: 'storniert' };
+            freigegebeneReserve: p.reserviertMenge ?? 0, gutschriftId, gutschriftBetrag,
+            rueckerstattungOffen, status: 'storniert' };
         }
       }
       // Ohne Beleg bleibt der bisherige Schutz für bereits bezahlte Verkäufe bestehen.
