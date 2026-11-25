@@ -1,5 +1,9 @@
 # Projektdokumentation - ClubMatiq
 
+[![ClubMatiq CI](https://github.com/JenSusann/ClubMatiq/actions/workflows/check.yml/badge.svg?branch=main)](https://github.com/JenSusann/ClubMatiq/actions/workflows/check.yml)
+
+> **CI-Nachweis (Version 0.9.0, Commit [2a38b2b](https://github.com/JenSusann/ClubMatiq/commit/2a38b2b)):** 1'861 Unit-Tests und 2'590 Integrationstests erfolgreich (159 Testdateien). GitHub Actions führt Svelte-/TypeScript-Prüfung, Unit-Tests mit Coverage, Produktions-Build und Integrationstests mit isoliertem MongoDB-Replica-Set aus. Beide Coverage-Berichte sind als separate Workflow-Artefakte verfügbar. Die Testerfolgsquote ist nicht mit der Code Coverage gleichzusetzen.
+
 ## Projektübersicht & Zugänge
 
 | Angabe | Inhalt |
