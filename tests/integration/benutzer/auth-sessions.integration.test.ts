@@ -54,5 +54,24 @@ describe('Anmeldung und Session', () => {
     expect(result.cookies.delete).toHaveBeenCalled();
     await logout({ cookies: cookie });
   });
+  it('begrenzt neue Sessions auf zwei Stunden', async () => {
+    expect((await login(loginEvent('Testpasswort!123') as never)).status).toBe(200);
+    const s = await db.collection('sessions').findOne({ tokenHash: createHash('sha256').update(token!).digest('hex') });
+    expect(s!.ablaufdatum.getTime() - s!.erstelltAm.getTime()).toBeGreaterThan(7199000);
+    expect(s!.ablaufdatum.getTime() - s!.erstelltAm.getTime()).toBeLessThanOrEqual(7200000);
+    await logout({ cookies: cookie });
+  });
+  it('verweigert Zugriff nach 30 Minuten Inaktivität', async () => {
+    expect((await login(loginEvent('Testpasswort!123') as never)).status).toBe(200);
+    await db.collection('sessions').updateOne({ tokenHash: createHash('sha256').update(token!).digest('hex') }, { $set: { letzteAktivitaet: new Date(Date.now() - 31 * 60000) } });
+    expect((await geschuetzterZugriff(token!)).response.status).toBe(401);
+    await logout({ cookies: cookie });
+  });
+  it('verweigert alte Sessions trotz neuer Aktivität und späterem Ablaufdatum', async () => {
+    expect((await login(loginEvent('Testpasswort!123') as never)).status).toBe(200);
+    await db.collection('sessions').updateOne({ tokenHash: createHash('sha256').update(token!).digest('hex') }, { $set: { erstelltAm: new Date(Date.now() - 121 * 60000) } });
+    expect((await geschuetzterZugriff(token!)).response.status).toBe(401);
+    await logout({ cookies: cookie });
+  });
   it('erlaubt Abmeldung ohne bestehende Session', async () => { expect((await logout({ cookies: cookie })).status).toBe(200); });
 });
