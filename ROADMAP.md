@@ -4,10 +4,23 @@ Stand: 25.11.2026. Zielversionen sind Planungswerte, keine Lieferzusagen. GitHub
 
 ## Evaluation und Abgabe
 
-- v0.9.0: eingefrorener Evaluationsstand, separater Deployment-Link und Commit/Tag erst nach tatsächlicher Freigabe.
+- v0.9.0: aktuelle interne Entwicklungsversion; eingefrorener Evaluationsstand, separater Deployment-Link und Commit/Tag erst nach tatsächlicher Freigabe.
 - v1.0.0: ZHAW-Abgabe; Issues #1–71 als vorläufiger Abgabekandidatenpool, nicht als pauschale Freigabezusage. Offene Kriterien und Umfang vor Freeze prüfen.
 
-## v1.1.0 – Usability, Security & Customization
+## Versionsmeilensteine
+
+| Zielversion | GitHub-Meilenstein | Optionale Issues |
+| --- | --- | ---: |
+| v1.0.0 | [Initial Release](https://github.com/JenSusann/ClubMatiq/milestone/6) | 0 |
+| v1.1.0 | [Usability & Customization](https://github.com/JenSusann/ClubMatiq/milestone/7) | 16 |
+| v1.2.0 | [Advanced Inventory](https://github.com/JenSusann/ClubMatiq/milestone/8) | 12 |
+| v2.0.0 | [Member Experience](https://github.com/JenSusann/ClubMatiq/milestone/9) | 9 |
+| v2.1.0 | [Finance & Automation](https://github.com/JenSusann/ClubMatiq/milestone/10) | 4 |
+| v3.0.0 | [ClubMatiq Business](https://github.com/JenSusann/ClubMatiq/milestone/11) | 2 |
+
+Alle 43 optionalen Issues sind zugeordnet. v1.0.0 bleibt ohne eigene Issues, da der Abgabeumfang über M1–M5 verfolgt wird. Veröffentlichungstermine sind nicht festgelegt.
+
+## v1.1.0 – Usability & Customization
 
 | Issue | Funktion | Status am Planungsstichtag |
 | --- | --- | --- |
@@ -82,5 +95,5 @@ Stand: 25.11.2026. Zielversionen sind Planungswerte, keine Lieferzusagen. GitHub
 - #72 und #87 vor #92/#112; #85/#106/#107 mit Shop abstimmen.
 - #108/#90 vor #96; #79/#95 vor Finanzautomatisierung; #104 vor #114.
 - Major-Nummern sind Produktplanungsziele; bei strikt kompatiblen Änderungen wird die tatsächliche SemVer-Nummer vor Freigabe angepasst.
-- Bestehende Projektmilestones bleiben erhalten; Release-Labels bilden die zweite Planungsdimension. Neue Release-Milestones können nach Einrichtung die optionalen Issues übernehmen.
+- Bestehende Projektmilestones bleiben erhalten; Release-Labels bilden die zweite Planungsdimension. Die eingerichteten Release-Meilensteine übernehmen die 43 optionalen Issues; GitHub erlaubt nur einen Meilenstein pro Issue.
 - Keine geplante Funktion gilt ohne Umsetzung und Testnachweis als abgeschlossen.
