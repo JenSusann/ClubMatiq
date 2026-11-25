@@ -7,7 +7,10 @@ import { db } from '../../../lib/server/mongodb';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
   try {
-    const daten = await request.json();
+    const daten = await request.json().catch(() => null);
+    if (!daten || typeof daten !== 'object' || Array.isArray(daten)) {
+      return json({ fehler: 'Ungültige Anmeldedaten.' }, { status: 400 });
+    }
 
     const email =
       typeof daten.email === 'string'
