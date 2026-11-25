@@ -21,21 +21,58 @@
 
 [Projektübersicht & Zugänge](#projektübersicht--zugänge)
 
-1. [Ausgangslage](#1-ausgangslage)
-2. [Lösungsidee](#2-lösungsidee)
-3. [Vorgehen & Artefakte](#3-vorgehen--artefakte)
-    1. [Understand & Define](#31-understand--define)
-    2. [Sketch](#32-sketch)
-        - [Personas](#321-personas)
-        - [Crazy 8s](#322-crazy-8s)
-        - [User Journey Map](#323-user-journey-map)
-    3. [Decide](#33-decide)
-    4. [Prototype](#34-prototype)
-    5. [Validate](#35-validate)
-4. [Erweiterungen [Optional]](#4-erweiterungen-optional)
-5. [Projektorganisation [Optional]](#5-projektorganisation-optional)
-6. [KI-Deklaration](#6-ki-deklaration)
-7. [Anhang [Optional]](#7-anhang-optional)
+- [1. Ausgangslage](#1-ausgangslage)
+- [2. Lösungsidee](#2-lösungsidee)
+- [3. Vorgehen & Artefakte](#3-vorgehen--artefakte)
+    - [3.1 Understand & Define – Problemraumanalyse](#31-understand--define--problemraumanalyse)
+    - [3.2 Sketch](#32-sketch)
+    - [3.3 Decide](#33-decide)
+    - [3.4 Prototype](#34-prototype)
+        - [3.4.1. Entwurf (Design)](#341-entwurf-design)
+        - [3.4.2. Umsetzung (Technik)](#342-umsetzung-technik)
+    - [3.5 Validate](#35-validate)
+- [4. Erweiterungen \[Optional\]](#4-erweiterungen-optional)
+    - [4.1 Software-Erweiterungen](#41-software-erweiterungen)
+        - [4.1.1 Digitale Inventur mit Korrekturhistorie und PDF](#411-digitale-inventur-mit-korrekturhistorie-und-pdf)
+        - [4.1.2 Vereinskleiderverkauf und Bestellabwicklung](#412-vereinskleiderverkauf-und-bestellabwicklung)
+        - [4.1.3 Sammelbestellungen und PDF-Export](#413-sammelbestellungen-und-pdf-export)
+        - [4.1.4 Verrechnung, Stornierung und Verkaufshistorie](#414-verrechnung-stornierung-und-verkaufshistorie)
+        - [4.1.5 Anmeldung, Benutzerverwaltung und Berechtigungen](#415-anmeldung-benutzerverwaltung-und-berechtigungen)
+        - [4.1.6 QR-Code, Materialsuche und Inventarbewertung](#416-qr-code-materialsuche-und-inventarbewertung)
+    - [4.2 Weitere Erweiterungen](#42-weitere-erweiterungen)
+        - [4.2.1 GitHub-basiertes Issue- und Änderungsmanagement](#421-github-basiertes-issue--und-änderungsmanagement)
+        - [4.2.2 Strukturierter KI-gestützter Entwicklungsworkflow](#422-strukturierter-ki-gestützter-entwicklungsworkflow)
+        - [4.2.3 Datenmodell](#423-datenmodell)
+        - [4.2.4 Systematische Testmatrix und Testprotokolle](#424-systematische-testmatrix-und-testprotokolle)
+        - [4.2.5 Anforderungs- und Rückverfolgungsmatrix](#425-anforderungs--und-rückverfolgungsmatrix)
+        - [4.2.6 Rollenbasiertes Berechtigungskonzept](#426-rollenbasiertes-berechtigungskonzept)
+- [5. Projektorganisation \[Optional\]](#5-projektorganisation-optional)
+- [6. KI-Deklaration](#6-ki-deklaration)
+    - [6.1 KI-Tools](#61-ki-tools)
+    - [6.2 Vorgehen mit KI](#62-vorgehen-mit-ki)
+    - [6.3 Reflexion](#63-reflexion)
+- [7. Anhang \[Optional\]](#7-anhang-optional)
+    - [Projektartefakte](#projektartefakte)
+    - [Quellen und Urheberrecht](#quellen-und-urheberrecht)
+- [8. Inventurverwaltung – technischer Funktionsstand](#8-inventurverwaltung--technischer-funktionsstand)
+    - [8.1 Inventur anlegen, zählen und verwalten](#81-inventur-anlegen-zählen-und-verwalten)
+    - [8.2 Abschluss, Korrekturen und Stornierung](#82-abschluss-korrekturen-und-stornierung)
+    - [8.3 Inventurverlauf und Korrekturhistorie](#83-inventurverlauf-und-korrekturhistorie)
+    - [8.4 Inventurbericht als PDF](#84-inventurbericht-als-pdf)
+    - [8.5 Wichtige Dateien und API-Routen](#85-wichtige-dateien-und-api-routen)
+    - [8.6 Relevante Datenbank-Collections](#86-relevante-datenbank-collections)
+- [9. Lokale Installation und Tests](#9-lokale-installation-und-tests)
+    - [9.1 Voraussetzungen](#91-voraussetzungen)
+    - [9.2 Qualitätskontrolle](#92-qualitätskontrolle)
+    - [9.3 Automatisierte Tests](#93-automatisierte-tests)
+    - [9.4 Code Coverage und Qualitätsziel](#94-code-coverage-und-qualitätsziel)
+    - [9.5 Manuelle System- und Abnahmetests](#95-manuelle-system--und-abnahmetests)
+    - [9.6 Usability-Tests und Evaluation](#96-usability-tests-und-evaluation)
+    - [9.7 Test- und Abnahmeprozess](#97-test--und-abnahmeprozess)
+- [10. Technische Entscheidungen und offene Punkte](#10-technische-entscheidungen-und-offene-punkte)
+    - [10.1 Entscheidungen](#101-entscheidungen)
+    - [10.2 Offene Aufgaben vor der Abgabe / Produktivsetzung](#102-offene-aufgaben-vor-der-abgabe--produktivsetzung)
+    - [10.3 Entwicklungsstand / Änderungsprotokoll](#103-entwicklungsstand--änderungsprotokoll)
 
 
 ## 1. Ausgangslage
@@ -399,61 +436,78 @@ Die lokale Anwendung ist üblicherweise unter `http://localhost:5173` erreichbar
 
 ### 9.2 Qualitätskontrolle
 
+Die Qualitätssicherung erfolgt entwicklungsbegleitend. Änderungen werden anhand der Anforderungen und Akzeptanzkriterien der GitHub-Issues geprüft. Automatisierte Tests, manuelle System- und Abnahmetests sowie die unabhängige Usability-Evaluation ergänzen sich.
+
 ```bash
 npm run check
 ```
 
-`npm run check` führt SvelteKit-Synchronisierung und TypeScript-/Svelte-Prüfungen aus. Ein fehlerfreier Check ersetzt **keine** funktionalen, Berechtigungs- oder Integrationstests.
+Der Befehl führt die SvelteKit-Synchronisierung sowie TypeScript- und Svelte-Prüfungen aus. Ein fehlerfreier Check ersetzt keine funktionalen Tests.
 
-### Automatisierte Tests und Code Coverage
+### 9.3 Automatisierte Tests
 
-Zur Sicherstellung der Softwarequalität werden in ClubMatiq automatisierte Tests mit **Vitest** eingesetzt. Die Tests überprüfen zentrale Funktionen der Anwendung, insbesondere die Geschäftslogik, API-Endpunkte, Datenvalidierung sowie die Benutzer- und Berechtigungsprüfungen.
+ClubMatiq verwendet Vitest mit V8-Coverage. Unit-Tests prüfen isolierte Geschäftslogik, Validierungen, API-Verhalten und Berechtigungen. Integrationstests prüfen das Zusammenspiel von Komponenten und API-Endpunkten mit der Datenbank, insbesondere Datenpersistenz, Vereinsisolation, Bestandsänderungen und fachliche Abläufe.
 
-Die Testabdeckung wird mit dem Coverage-Werkzeug von Vitest ermittelt. Dabei werden vier Kennzahlen berücksichtigt:
+| Testart | Ablage | Ausführung |
+|---|---|---|
+| Unit-Tests | `tests/unit/` | `npm run test` |
+| Unit-Tests mit Coverage | `tests/unit/` | `npm run test:coverage` |
+| Integrationstests mit Coverage | `tests/integration/` | `npm run test:integration` |
 
-| Kennzahl | Testabdeckung |
-|---|---:|
-| Statements | 98,88 % |
-| Branches | 95,13 % |
-| Functions | 95,89 % |
-| Lines | 99,69 % |
+Integrationstests sind mit der vorgesehenen Testdatenbank und Testkonfiguration auszuführen, nicht mit produktiven Vereinsdaten. Die separate Konfiguration befindet sich in `vitest.integration.config.ts`.
 
-Insgesamt wurden **1'652 Tests erfolgreich ausgeführt**. Damit wird das festgelegte Qualitätsziel von mindestens **95 % Testabdeckung in allen vier Kennzahlen** erreicht.
+### 9.4 Code Coverage und Qualitätsziel
 
-Die Tests sind im Verzeichnis `tests/unit/` abgelegt. Im Rahmen der Qualitätssicherung wurde die Teststruktur bereinigt, die Benennung vereinheitlicht und zusammengehörige Tests wurden konsolidiert, um die Wartbarkeit zu verbessern.
+Die Testabdeckung wird anhand der vier Vitest-Kennzahlen Statements, Branches, Functions und Lines bewertet. Das bisher definierte Qualitätsziel beträgt mindestens 95 % je Kennzahl. Die Erreichung wird erst anhand eines aktuellen, nachvollziehbaren Testlaufs bewertet.
 
-**Tests ausführen:**
+| Kennzahl | Qualitätsziel | Aktueller Stand |
+|---|---:|---|
+| Statements | ≥ 95 % | Nach Abschluss der laufenden Entwicklung ermitteln |
+| Branches | ≥ 95 % | Nach Abschluss der laufenden Entwicklung ermitteln |
+| Functions | ≥ 95 % | Nach Abschluss der laufenden Entwicklung ermitteln |
+| Lines | ≥ 95 % | Nach Abschluss der laufenden Entwicklung ermitteln |
 
-```bash
-npm run test
-```
-
-**Tests mit Coverage-Bericht ausführen:**
-
-```bash
-npm run test:coverage
-```
-
-Die automatisierten Tests unterstützen die frühzeitige Erkennung von Fehlern und reduzieren das Risiko von Regressionen bei zukünftigen Erweiterungen.
+Da ClubMatiq laufend korrigiert und erweitert wird, sind frühere Coverage-Werte und Testanzahlen keine belastbaren Kennzahlen für den aktuellen Entwicklungsstand. Die finalen Ergebnisse werden mit Testdatum, Commit, Testanzahl und Teststatus dokumentiert. Unit- und Integrationstest-Coverage werden getrennt ausgewiesen; eine kombinierte Coverage darf nicht durch Mittelwertbildung abgeleitet werden.
 
 **GitHub-Issue:** [#38 – Automatisierte Tests für zentrale Funktionen implementieren](https://github.com/JenSusann/ClubMatiq/issues/38)
 
+### 9.5 Manuelle System- und Abnahmetests
 
+Vor dem Abschluss eines Issues werden relevante Funktionen anhand konkreter manueller Testfälle aus Benutzersicht geprüft. Dabei werden reguläre Geschäftsprozesse, Fehlerfälle, Berechtigungen und unzulässige Aktionen berücksichtigt.
 
-### 9.3 Manuelle Inventur-Testfälle
+Die laufende Dokumentation enthält pro Issue Test-IDs, Aufgaben, erwartete Ergebnisse, bestätigte Resultate, Fehlerkorrekturen und Nachtests sowie verfügbare technische Nachweise.
 
-1. Gesamtinventur und Lagerortinventur anlegen; Soll-Bestände prüfen.
-2. Zählpositionen speichern, Filter und Fortschrittsanzeige prüfen.
-3. Abschluss bei offenen oder ungespeicherten Positionen blockieren; vollständig gezählte Inventur abschliessen.
-4. Ursprüngliche Soll-/Ist-Werte und Bestandsbuchungen nach Abschluss kontrollieren.
-5. Nachträgliche Korrektur mit Begründung buchen; zusätzliche Differenz und Historie prüfen.
-6. Inventurverlauf öffnen, Benutzername und Abschlussdetails kontrollieren.
-7. Offene und abgeschlossene Inventur stornieren; Rückbuchung und Protokoll prüfen.
-8. PDF über den Button herunterladen; Inhalte mit Inventurpositionen und Verlauf vergleichen.
-9. Negative Bestände, veraltete Versionen, ungültige Mengen und fehlende Berechtigungen gezielt testen.
-10. Zugriffe zwischen zwei Vereinen sowie manipulierte Inventur-IDs auf Datenisolation prüfen.
+**Artefakt:** [System- und Abnahmetestprotokoll](docs/testing/System_Abnahmetestprotokoll.md)
 
-**Bisher bestätigte lokale Prüfungen:** `npm run check` nach dem PDF-Endpunkt ohne Fehler; PDF-Download über die direkte API-URL und über den Button erfolgreich ausprobiert. Weitere Testfälle sind als Testplan zu verstehen und nicht automatisch als bereits bestanden.
+Dokumentierter Zwischenstand vom 25.11.2026:
+
+| Issue | Prüfbereich | Abschliessend bestanden |
+|---|---|---:|
+| [#14](https://github.com/JenSusann/ClubMatiq/issues/14) | Session-Verwaltung | 8/8 |
+| [#15](https://github.com/JenSusann/ClubMatiq/issues/15) | Benutzerverwaltung (erneute Abnahme) | 21/21 |
+| [#16](https://github.com/JenSusann/ClubMatiq/issues/16) | Rollenbasierte Berechtigungen | 10/10 |
+| [#21](https://github.com/JenSusann/ClubMatiq/issues/21) | PDF-Inventurbericht | 9/9 |
+| [#22](https://github.com/JenSusann/ClubMatiq/issues/22) | Bestandskonsistenz | 10/10 |
+| **Gesamt** | | **58/58** |
+
+Die Ergebnisse beziehen sich auf die jeweiligen dokumentierten Abnahmen, nicht auf eine vollständige Prüfung des aktuellen Gesamtstands. Der zunächst festgestellte Grössenfehler bei #21 wurde korrigiert und erfolgreich nachgeprüft. Historisch rekonstruierte Aufgaben sind im Protokoll gekennzeichnet. Weitere 56 Regressionstestfälle sind dort als geplant erfasst und nicht in der Erfolgsquote enthalten. Massgeblich für den laufenden Stand ist das verlinkte Protokoll.
+
+### 9.6 Usability-Tests und Evaluation
+
+Die Usability-Evaluation gemäss [Kapitel 3.5 Validate](#35-validate) ergänzt die funktionale Qualitätssicherung durch unabhängige Testpersonen. Im Vordergrund stehen Verständlichkeit, Erlernbarkeit, Effizienz und Benutzerfreundlichkeit. Erfolgreiche funktionale Abnahmen ersetzen diese Evaluation nicht. Die Ergebnisse werden separat nach Durchführung dokumentiert.
+
+### 9.7 Test- und Abnahmeprozess
+
+1. Anforderungen und Akzeptanzkriterien des Issues prüfen.
+2. Änderungen implementieren und statische Prüfungen durchführen.
+3. Unit- und Integrationstests ergänzen und ausführen.
+4. Manuelle Abnahmetests definieren und durchführen.
+5. Abweichungen korrigieren und betroffene Tests wiederholen.
+6. Tatsächliche Ergebnisse im System- und Abnahmetestprotokoll und im Issue dokumentieren.
+7. Issue nach erfolgreicher Abnahme abschliessen; verbleibende Einschränkungen transparent festhalten.
+
+Vor der Abgabe werden die finalen automatisierten Testergebnisse und Coverage-Werte für den festgelegten Abgabestand erhoben. Das laufende Abnahmetestprotokoll wird als Word-Dokument aufbereitet und als PDF exportiert.
+
 
 ## 10. Technische Entscheidungen und offene Punkte
 
