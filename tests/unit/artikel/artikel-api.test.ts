@@ -478,7 +478,6 @@ describe('ClubMatiq Inventarverwaltung', () => {
   it('verhindert ungültige Einzelwerte und Mindestbestände', async () => {
     for (const aenderung of [
       { einzelwert: '25' },
-      { einzelwert: null },
       { einzelwert: -1 },
       { mindestbestand: 1.5 },
       { mindestbestand: null }
@@ -492,6 +491,18 @@ describe('ClubMatiq Inventarverwaltung', () => {
     }
 
     expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+
+  it('erlaubt Artikel ohne bekannten Einzelwert', async () => {
+    const response = await POST(kontext(admin, {
+      ...gueltigerArtikel(),
+      einzelwert: null
+    }));
+
+    expect(response.status).toBe(201);
+    expect(mocks.insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({ einzelwert: null })
+    );
   });
 
   it('lädt Artikel mit hinterlegter Lieferanten-ID', async () => {
