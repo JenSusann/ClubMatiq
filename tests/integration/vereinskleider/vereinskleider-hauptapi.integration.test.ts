@@ -460,3 +460,49 @@ describe('Issue #71 – serverseitige Erstbezugsberechtigung', () => {
     expect((await sell(['Aktive'])).status).toBe(400);
   });
 });
+
+
+describe('Issue #34 – vollständige Erstbezugsstornierung mit Rechnung', () => {
+  const MIT = 'eeeeeeeeeeeeeeeeeeeeeeee';
+  const VID = new ObjectId();
+  const RID = new ObjectId();
+  let verkauf: any;
+  let rechnung: any;
+  let position: any;
+  const stornieren = () => stornierungPOST({
+    request: req({ verkaufId: String(VID), positionsIndex: 0, menge: 1, grund: 'Teststornierung' }),
+    locals: { benutzer: { vereinId: 'verein-1', id: MIT } }
+  } as never);
+  beforeEach(() => {
+    position = { artikelId: ART, groesseId: null, verkaufsart: 'bestellung', menge: 1, einzelpreis: 80, positionsbetrag: 80, uebergebenMenge: 0, reserviertMenge: 0 };
+    verkauf = { _id: VID, vereinId: 'verein-1', status: 'offen', positionen: [position], endbetrag: 50, zwischentotal: 80, rabattTotal: 30, mitgliedId: MIT, erstbezugsIds: ['gruppe:juko-gwaendli'], rechnungId: String(RID), aktualisiertAm: new Date() };
+    rechnung = { _id: RID, vereinId: 'verein-1', verkaufId: String(VID), rechnungsnummer: 'RE-TEST', status: 'offen', gesamtbetrag: 50, bezahltBetrag: 0, positionen: [position] };
+    collection('vereinskleider_verkaeufe').findOne = vi.fn(async () => verkauf);
+    collection('vereinskleider_verkaeufe').updateOne = vi.fn(async () => ({ modifiedCount: 1 }));
+    collection('vereinskleider_rechnungen').findOne = vi.fn(async () => rechnung);
+    collection('vereinskleider_rechnungen').updateOne = vi.fn(async () => ({ modifiedCount: 1 }));
+    mock.collections.vereinskleider_gutschriften = { insertOne: vi.fn(async () => ({ insertedId: id() })) };
+    mock.collections.clubdesk_mitglieder = { updateOne: vi.fn(async () => ({ modifiedCount: 1 })) };
+  });
+  it.each([0, 20, 50])('erstellt CHF 50 Gutschrift bei CHF %s Zahlung', async bezahlt => {
+    rechnung.bezahltBetrag = bezahlt;
+    rechnung.status = bezahlt === 50 ? 'bezahlt' : bezahlt ? 'teilweise_bezahlt' : 'offen';
+    const response = await stornieren();
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.stornierung).toMatchObject({ gutschriftBetrag: 50, rueckerstattungOffen: bezahlt, status: 'storniert' });
+    expect(collection('vereinskleider_gutschriften').insertOne).toHaveBeenCalledWith(expect.objectContaining({ vereinId: 'verein-1', betrag: 50, einzelpreis: 50 }), expect.anything());
+    expect(collection('vereinskleider_rechnungen').updateOne).toHaveBeenCalledWith(expect.objectContaining({ vereinId: 'verein-1' }), { $set: expect.objectContaining({ gutgeschriebenBetrag: 50, rueckerstattungOffen: bezahlt, status: 'storniert' }) }, expect.anything());
+    expect(collection('clubdesk_mitglieder').updateOne).toHaveBeenCalledWith(expect.objectContaining({ vereinId: 'verein-1' }), { $pullAll: { erstbezugsRabattIds: ['gruppe:juko-gwaendli'] } }, expect.anything());
+  });
+  it.each(['betrag', 'gutschrift', 'position', 'uebergabe', 'konflikt'])('verweigert unsichere Korrektur: %s', async fall => {
+    if (fall === 'betrag') rechnung.gesamtbetrag = 80;
+    if (fall === 'gutschrift') rechnung.gutgeschriebenBetrag = 10;
+    if (fall === 'position') rechnung.positionen = [{ ...position, artikelId: GRO }];
+    if (fall === 'uebergabe') position.uebergebenMenge = 1;
+    if (fall === 'konflikt') collection('vereinskleider_rechnungen').updateOne.mockResolvedValue({ modifiedCount: 0 });
+    expect((await stornieren()).status).toBe(409);
+    expect(collection('vereinskleider_gutschriften').insertOne).not.toHaveBeenCalled();
+    expect(collection('clubdesk_mitglieder').updateOne).not.toHaveBeenCalled();
+  });
+});
