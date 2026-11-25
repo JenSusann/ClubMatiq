@@ -657,3 +657,71 @@ describe('ClubMatiq Vereinskleider – Bestellübergabe', () => {
 });
 
 });
+
+
+describe('Issue #34 – einmalige Erstbezüge', () => {
+  const mitgliedId = new ObjectId().toString();
+  const erstbezug = (aenderungen: Record<string, unknown> = {}) => eingabe({
+    mitgliedId, rabattIds: [rabattId], zahlungsart: 'rechnung', zahlungErhalten: false,
+    positionen: [{ artikelId, groesseId: null, menge: 1 }], ...aenderungen
+  });
+  beforeEach(() => {
+    regeln = [{ _id: new ObjectId(rabattId), name: 'Erstbezug', rabattart: 'fixpreis',
+      wert: 0, geltungsbereich: 'artikel', artikelIds: [artikelId], maximaleMenge: 1,
+      einmaligProMitglied: true, aktiv: true }];
+    mocks.findOne.mockImplementation(async (name: string) => {
+      if (name === 'clubdesk_mitglieder') return { _id: new ObjectId(mitgliedId), vereinId,
+        vorname: 'Nathalie', nachname: 'Muster', clubdeskId: '123', aktiv: true };
+      if (name === 'artikel') return artikel;
+      if (name === 'artikelvarianten') return variante;
+      if (name === 'vereinskleider_preise') return preis;
+      return null;
+    });
+  });
+
+  it('speichert kostenlosen Erstbezug und reduziert den Lagerbestand', async () => {
+    const response = await verkaufen(erstbezug());
+    expect(response.status).toBe(201);
+    expect((await response.json()).verkauf).toMatchObject({
+      mitgliedId, endbetrag: 0, rabattTotal: 25, zahlungsstatus: 'bezahlt',
+      erstbezugsIds: [artikelId]
+    });
+    expect(mocks.updateOne).toHaveBeenCalledWith('clubdesk_mitglieder',
+      expect.objectContaining({ vereinId, erstbezugsRabattIds: { $nin: [artikelId, rabattId] } }),
+      { $addToSet: { erstbezugsRabattIds: artikelId } }, expect.anything());
+    expect(mocks.updateOne).toHaveBeenCalledWith('artikel', expect.anything(),
+      expect.objectContaining({ $inc: { menge: -1 } }), expect.anything());
+  });
+
+  it('berechnet einen Erstbezug zum Fixpreis CHF 50', async () => {
+    preis.verkaufspreis = 80;
+    regeln[0].wert = 50;
+    const response = await verkaufen(erstbezug());
+    expect(response.status).toBe(201);
+    expect((await response.json()).verkauf).toMatchObject({ endbetrag: 50, rabattTotal: 30 });
+  });
+
+  it('rabattiert bei zwei Stücken nur eines', async () => {
+    const response = await verkaufen(erstbezug({ positionen: [{ artikelId, groesseId: null, menge: 2 }] }));
+    expect(response.status).toBe(201);
+    expect((await response.json()).verkauf).toMatchObject({ endbetrag: 25, rabattTotal: 25 });
+  });
+
+  it('reserviert einen kostenlosen bestellten Erstbezug ohne Lagerabbuchung', async () => {
+    const response = await verkaufen(erstbezug({ verkaufsart: 'bestellung' }));
+    expect(response.status).toBe(201);
+    expect((await response.json()).verkauf).toMatchObject({ endbetrag: 0, bestellMenge: 1, zahlungsstatus: 'bezahlt' });
+    expect(mocks.updateOne.mock.calls.some(([name]) => name === 'artikel')).toBe(false);
+  });
+
+  it('verweigert einen Erstbezug ohne Mitglied', async () => {
+    await verkaufsfehler(erstbezug({ mitgliedId: null }), 409, 'Mitglied');
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+
+  it('verweigert einen bereits beanspruchten oder konkurrierenden Erstbezug', async () => {
+    mocks.updateOne.mockImplementation(async (name: string) => ({ modifiedCount: name === 'clubdesk_mitglieder' ? 0 : 1 }));
+    await verkaufsfehler(erstbezug(), 409, 'bereits beansprucht');
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+});
