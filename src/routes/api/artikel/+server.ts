@@ -7,7 +7,7 @@ import type { RequestHandler } from './$types';
 type Variante = {
   groesseId: string;
   menge: number;
-  einzelwert: number;
+  einzelwert: number | null;
   mindestbestand: number;
 };
 
@@ -68,7 +68,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     return json({ fehler: 'Bitte eine gültige Kategorie und einen Lagerort wählen.' }, { status: 400 });
   }
 
-  if (typeof einzelwert !== 'number' || !Number.isFinite(einzelwert) || einzelwert < 0) {
+  if ((einzelwert !== null && (typeof einzelwert !== 'number' || !Number.isFinite(einzelwert) || einzelwert < 0))) {
     return json({ fehler: 'Bitte einen gültigen Einzelwert eingeben.' }, { status: 400 });
   }
 
@@ -111,8 +111,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       if (!variante || typeof variante !== 'object' || Array.isArray(variante) ||
           typeof variante.groesseId !== 'string' || !ObjectId.isValid(variante.groesseId) ||
           typeof variante.menge !== 'number' || !Number.isInteger(variante.menge) || variante.menge < 0 ||
-          typeof variante.einzelwert !== 'number' || !Number.isFinite(variante.einzelwert) ||
-          variante.einzelwert < 0 ||
+          (variante.einzelwert !== null && (typeof variante.einzelwert !== 'number' || !Number.isFinite(variante.einzelwert) || variante.einzelwert < 0)) ||
           typeof variante.mindestbestand !== 'number' || !Number.isSafeInteger(variante.mindestbestand) || variante.mindestbestand < 0) {
         return json({ fehler: 'Ungültige Grössenbestände oder Einzelwerte.' }, { status: 400 });
       }
