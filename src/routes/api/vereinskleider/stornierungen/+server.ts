@@ -215,6 +215,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       // Vollständiger Erstbezug mit genau einer nicht übergebenen Bestellposition:
       // Rabatt und Anspruch werden gemeinsam mit der Bestellung aufgehoben.
       if (verkauf.erstbezugsIds?.length &&
+          (verkauf.rechnungId || !Array.isArray(verkauf.erstbezugsPositionen)) &&
           (verkauf.rechnungId || ((verkauf.bezahltBetrag ?? 0) === 0 && !(verkauf.zahlungen ?? []).some(z => z.betrag > 0))) &&
           verkauf.positionen?.length === 1 && index === 0) {
         const p = verkauf.positionen[0];
@@ -279,6 +280,66 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             freigegebeneReserve: p.reserviertMenge ?? 0, gutschriftId, gutschriftBetrag,
             rueckerstattungOffen, status: 'storniert' };
         }
+      }
+      // Positionsbezogene Erstbezüge ohne Rechnung: reguläre Stücke zuerst stornieren.
+      const zuordnungen = verkauf.erstbezugsPositionen as { anspruch: string; rabattId: string; positionsIndex: number; rabattBetrag: number }[] | undefined;
+      if (verkauf.erstbezugsIds?.length && Array.isArray(zuordnungen) && !verkauf.rechnungId &&
+          (verkauf.bezahltBetrag ?? 0) === 0 && !(verkauf.zahlungen ?? []).some(z => z.betrag > 0)) {
+        const p = verkauf.positionen[index];
+        const rabatte = verkauf.rabatte as { rabattId: string; betrag: number; einmaligProMitglied?: boolean }[] | undefined;
+        if (!p || p.verkaufsart !== 'bestellung' || p.preisOffen || !idGueltig(verkauf.mitgliedId) ||
+            !Number.isSafeInteger(p.menge) || !Number.isSafeInteger(p.uebergebenMenge ?? 0) ||
+            (p.uebergebenMenge ?? 0) < 0 || menge > p.menge - (p.uebergebenMenge ?? 0) ||
+            !Number.isSafeInteger(p.reserviertMenge ?? 0) || (p.reserviertMenge ?? 0) < 0 ||
+            (p.reserviertMenge ?? 0) > p.menge - (p.uebergebenMenge ?? 0) ||
+            !gueltigeRappen(p.einzelpreis) || rappen(p.positionsbetrag) !== rappen(p.einzelpreis) * p.menge ||
+            (verkauf.zusaetzlicherRabatt ?? 0) !== 0 || !rabatte ||
+            rabatte.length !== zuordnungen.length || rabatte.some(r => !r.einmaligProMitglied) ||
+            zuordnungen.length !== verkauf.erstbezugsIds.length ||
+            new Set(zuordnungen.map(z => z.anspruch)).size !== zuordnungen.length ||
+            zuordnungen.some(z => !verkauf.erstbezugsIds!.includes(z.anspruch) ||
+              !Number.isSafeInteger(z.positionsIndex) || !verkauf.positionen[z.positionsIndex]?.menge ||
+              !gueltigeRappen(z.rabattBetrag) ||
+              !rabatte.some(r => r.rabattId === z.rabattId && r.betrag === z.rabattBetrag)) ||
+            zuordnungen.reduce((s,z) => s + rappen(z.rabattBetrag),0) !== rappen(verkauf.rabattTotal)) {
+          throw new Stornierungsfehler('Erstbezugszuordnung oder Bestellmenge ist nicht eindeutig.', 409);
+        }
+        const freigaben = menge === p.menge ? zuordnungen.filter(z => z.positionsIndex === index) : [];
+        const rabattKorrektur = freigaben.reduce((s,z) => s + rappen(z.rabattBetrag),0);
+        const brutto = rappen(p.einzelpreis) * menge;
+        const netto = brutto - rabattKorrektur;
+        if (netto < 0 || netto > rappen(verkauf.endbetrag) || brutto > rappen(verkauf.zwischentotal)) {
+          throw new Stornierungsfehler('Stornierungsbetrag ist inkonsistent.', 409);
+        }
+        const jetzt = new Date();
+        const reserve = Math.min(menge,p.reserviertMenge ?? 0);
+        const positionen = verkauf.positionen.map((alt,i) => i === index ? { ...alt, menge: alt.menge-menge,
+          positionsbetrag: (rappen(alt.positionsbetrag)-brutto)/100, reserviertMenge: (alt.reserviertMenge ?? 0)-reserve,
+          storniertMenge: (alt.storniertMenge ?? 0)+menge } : alt);
+        const ids = freigaben.map(z => z.anspruch);
+        const endbetrag = (rappen(verkauf.endbetrag)-netto)/100;
+        const status = positionen.every(p => p.menge === 0) ? 'storniert' :
+          positionen.some(p => p.verkaufsart === 'bestellung' && p.menge > (p.uebergebenMenge ?? 0)) ? 'offen' : 'abgeschlossen';
+        const update = await sammlung.updateOne({ _id: verkaufId, vereinId, aktualisiertAm: verkauf.aktualisiertAm }, { $set: {
+          positionen, status, endbetrag, restbetragBekannt: endbetrag, zahlungsstatus: endbetrag === 0 ? 'bezahlt' : 'offen',
+          zwischentotal: (rappen(verkauf.zwischentotal)-brutto)/100, rabattTotal: (rappen(verkauf.rabattTotal)-rabattKorrektur)/100,
+          erstbezugsIds: verkauf.erstbezugsIds.filter(id => !ids.includes(id)),
+          erstbezugsPositionen: zuordnungen.filter(z => !ids.includes(z.anspruch)),
+          rabatte: rabatte.filter(r => !freigaben.some(z => z.rabattId === r.rabattId)),
+          bestellMenge: positionen.filter(p => p.verkaufsart === 'bestellung').reduce((s,p) => s+p.menge,0),
+          aktualisiertAm: jetzt, stornierungen: [...(verkauf.stornierungen ?? []), { positionsIndex: index, menge, grund,
+            storniertAm: jetzt, storniertVon: locals.benutzer!.id, storniertVonName: [locals.benutzer!.vorname, locals.benutzer!.nachname].filter(Boolean).join(' ').trim() || undefined,
+            erstbezugsFreigaben: freigaben, rabattKorrektur: rabattKorrektur/100 }]
+        } }, { session });
+        if (update.modifiedCount !== 1) throw new Stornierungsfehler('Verkauf wurde zwischenzeitlich geändert.',409);
+        if (ids.length) {
+          const freigabe = await db.collection<{ vereinId: string; erstbezugsRabattIds?: string[] }>('clubdesk_mitglieder').updateOne(
+            { _id: new ObjectId(verkauf.mitgliedId), vereinId, erstbezugsRabattIds: { $all: ids } },
+            { $pullAll: { erstbezugsRabattIds: ids } }, { session });
+          if (freigabe.modifiedCount !== 1) throw new Stornierungsfehler('Erstbezugsanspruch konnte nicht freigegeben werden.',409);
+        }
+        return { verkaufId: eingabe.verkaufId, positionsIndex: index, storniert: menge, freigegebeneReserve: reserve,
+          gutschriftId: null, gutschriftBetrag: 0, rueckerstattungOffen: 0, status };
       }
       // Ohne Beleg bleibt der bisherige Schutz für bereits bezahlte Verkäufe bestehen.
       if (!verkauf.rechnungId && ((verkauf.bezahltBetrag ?? 0) > 0 ||
