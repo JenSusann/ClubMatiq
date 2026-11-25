@@ -581,7 +581,8 @@ Dokumentierter Zwischenstand vom 25.11.2026:
 | [#16](https://github.com/JenSusann/ClubMatiq/issues/16) | Rollenbasierte Berechtigungen | 10/10 |
 | [#21](https://github.com/JenSusann/ClubMatiq/issues/21) | PDF-Inventurbericht | 9/9 |
 | [#22](https://github.com/JenSusann/ClubMatiq/issues/22) | Bestandskonsistenz | 10/10 |
-| **Gesamt** | | **58/58** |
+| [#71](https://github.com/JenSusann/ClubMatiq/issues/71) | ClubDesk-Gruppenzuordnung und Riegenverwaltung | 20/20 |
+| **Gesamt** | | **78/78** |
 
 Die Ergebnisse beziehen sich auf die jeweiligen dokumentierten Abnahmen, nicht auf eine vollständige Prüfung des aktuellen Gesamtstands. Der zunächst festgestellte Grössenfehler bei #21 wurde korrigiert und erfolgreich nachgeprüft. Historisch rekonstruierte Aufgaben sind im Protokoll gekennzeichnet. Weitere 56 Regressionstestfälle sind dort als geplant erfasst und nicht in der Erfolgsquote enthalten. Massgeblich für den laufenden Stand ist das verlinkte Protokoll.
 
@@ -669,6 +670,8 @@ Die folgende Übersicht beschreibt den im Repository vorhandenen Funktionsumfang
 | TWINT | Abbildung der Zahlungsart im Verkaufs- und Verrechnungsprozess | Keine hier nachgewiesene direkte Zahlungsanbieter-API oder automatische Zahlungsbestätigung |
 
 **ClubDesk:** [Testmitglieder-CSV](docs/testdaten/ClubMatiq_ClubDesk_Testmitglieder.csv) · [Mitgliederverwaltung](src/routes/stammdaten/mitglieder) · [Buchungsabgleich](src/routes/api/vereinskleider/clubdesk-abgleich). Der Buchungsabgleich speichert Datum, Referenz und erfassende Person; er löst keine Zahlung und keine externe Buchung aus.
+
+**Riegen und Erstbezug (#71):** Beim CSV-Import werden ClubDesk-Gruppen und Gruppenfunktionen übernommen. Vereinsbezogene [Riegenstammdaten](src/routes/stammdaten/riegen) erlauben die Zuordnung zu Jugend- und Aktivbereichen sowie Mehrfachmitgliedschaften. Die [Zuordnungslogik](src/lib/server/riegenzuordnung.ts) berücksichtigt Gruppenfunktionen und aktive Riegen. Im Verkauf werden die aktuellen Riegen über eine [berechtigungsbeschränkte Mitgliedersuche](src/routes/api/vereinskleider/mitglieder) übernommen; die Erstbezugsberechtigung wird serverseitig erneut geprüft. Gemeinsame Erstbezugsansprüche können artikelübergreifend konfiguriert werden. Es erfolgt keine direkte ClubDesk-Synchronisation.
 
 **Dateiaustausch:** PDF-Berichte für Inventuren, Sammelbestellungen und Rechnungen sowie Excel-/Datenexporte für Inventar, Lagerjournal und finanzielle Vorgänge unterstützen die Weiterverarbeitung ausserhalb der Anwendung.
 
