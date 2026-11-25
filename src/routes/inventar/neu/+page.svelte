@@ -31,14 +31,14 @@
   let menge = $state(0);
   let mindestbestand = $state(0);
   let groessenMindestbestaende = $state<Record<string, number>>({});
-  let einzelwert = $state(0);
+  let einzelwert = $state<number | undefined>(undefined);
   let beschreibung = $state('');
   let hatGroessen = $state(false);
   let istVereinskleidung = $state(false);
 
   // Bestände und Einzelwerte pro Grösse
   let groessenBestaende = $state<Record<string, number>>({});
-  let groessenEinzelwerte = $state<Record<string, number>>({});
+  let groessenEinzelwerte = $state<Record<string, number | undefined>>({});
 
   // Wert, der auf alle Grössen übertragen werden kann
   let standardEinzelwert = $state(0);
@@ -99,7 +99,7 @@
         groesse._id,
         ausgewaehlteGroessen.includes(groesse._id)
           ? Number(standardEinzelwert)
-          : Number(groessenEinzelwerte[groesse._id] ?? 0)
+          : groessenEinzelwerte[groesse._id]
       ])
     );
   }
@@ -130,7 +130,7 @@
       );
 
       groessenEinzelwerte = Object.fromEntries(
-        groessen.map((groesse) => [groesse._id, 0])
+        groessen.map((groesse) => [groesse._id, undefined])
       );
     } catch (error) {
       fehlermeldung =
@@ -151,8 +151,7 @@
     }
 
     if (
-      !Number.isFinite(einzelwert) ||
-      einzelwert < 0 ||
+      (einzelwert != null && (!Number.isFinite(einzelwert) || einzelwert < 0)) ||
       !Number.isInteger(gesamtmenge) ||
       gesamtmenge < 0
     ) {
@@ -176,15 +175,12 @@
           groessenBestaende[groesse._id] ?? 0
         );
 
-        const wert = Number(
-          groessenEinzelwerte[groesse._id] ?? 0
-        );
+        const wert = groessenEinzelwerte[groesse._id];
 
         if (
           !Number.isInteger(bestand) ||
           bestand < 0 ||
-          !Number.isFinite(wert) ||
-          wert < 0
+          (wert != null && (!Number.isFinite(wert) || wert < 0))
         ) {
           fehlermeldung =
             'Bitte alle Grössenbestände und Einzelwerte überprüfen.';
@@ -209,9 +205,7 @@
             menge: Number(
               groessenBestaende[groesse._id] ?? 0
             ),
-            einzelwert: Number(
-              groessenEinzelwerte[groesse._id] ?? 0
-            )
+            einzelwert: groessenEinzelwerte[groesse._id] ?? null
           }))
         : [];
 
@@ -227,7 +221,7 @@
           lieferantId: lieferantId || null,
           menge: gesamtmenge,
           mindestbestand: hatGroessen ? 0 : Number(mindestbestand),
-          einzelwert: hatGroessen ? 0 : Number(einzelwert),
+          einzelwert: hatGroessen ? 0 : (einzelwert ?? null),
           beschreibung,
           hatGroessen,
           istVereinskleidung,
@@ -254,7 +248,7 @@
       menge = 0;
       mindestbestand = 0;
       groessenMindestbestaende = {};
-      einzelwert = 0;
+      einzelwert = undefined;
       standardEinzelwert = 0;
       beschreibung = '';
       hatGroessen = false;
@@ -266,7 +260,7 @@
       );
 
       groessenEinzelwerte = Object.fromEntries(
-        groessen.map((groesse) => [groesse._id, 0])
+        groessen.map((groesse) => [groesse._id, undefined])
       );
     } catch (error) {
       fehlermeldung =
@@ -412,7 +406,7 @@
 
           <div class="wert-uebernehmen">
             <div class="feld">
-              <label for="standardwert">Einzelwert (CHF)</label>
+              <label for="standardwert">Einzelwert (CHF, optional)</label>
               <input
                 id="standardwert"
                 type="number"
@@ -478,7 +472,7 @@
                         min="0"
                         step="0.01"
                         aria-label="Einzelwert {groesse.bezeichnung}"
-                        bind:value={groessenEinzelwerte[groesse._id]}
+                        placeholder="Preis fehlt" bind:value={groessenEinzelwerte[groesse._id]}
                       />
                     </td>
 
@@ -508,13 +502,13 @@
             </div>
 
             <div class="feld">
-              <label for="einzelwert">Einzelwert (CHF)</label>
+              <label for="einzelwert">Einzelwert (CHF, optional)</label>
               <input
                 id="einzelwert"
                 type="number"
                 min="0"
                 step="0.01"
-                bind:value={einzelwert}
+                placeholder="Preis fehlt" bind:value={einzelwert}
               />
             </div>
           </div>
