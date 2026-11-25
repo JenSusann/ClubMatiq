@@ -18,7 +18,8 @@ Test-ID: ST-[Issue]-[Nummer]. Status: Offen, Bestanden, Fehler, Blockiert, Erneu
 | #21 | Inventur | 9/9 | Sammelbestätigung laut bisherigem Protokoll |
 | #22 | Bestandskonsistenz | 10/10 | Screenshot |
 | #71 | ClubDesk-Gruppenzuordnung und Riegenverwaltung | 20/20 | Screenshot und Einzelbestätigung 25.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 78/78 | Dokumentierte Durchläufe |
+| #34 | Vereinskleider und Erstbezüge | 10/10 | Einzelbestätigung; Teilabnahme 25.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 88/88 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -181,9 +182,28 @@ Abnahme: 10/10 bestanden. Zusätzlich 10 Unit- und 4 Integrationstests dokumenti
 
 **Auswertung und Abnahmeentscheidung:** Beide manuellen Durchläufe zusammen 20/20 bestanden, 0 fehlgeschlagen, 0 blockiert. Die dokumentierte funktionale Abnahme ist erfolgreich. Nicht separat belegte Randfälle, reale Parallelzugriffe und unabhängige Usability-Tests sind dadurch nicht nachgewiesen.
 
+### Issue #34 – Vereinskleiderverwaltung und Erstbezüge (Teilabnahme)
+
+Testdatum: 25.11.2026. Einzelbestätigung durch die Entwicklerin; genauer Commit nicht separat angegeben.
+
+| ID | Testfall | Aufgabe | Erwartung | Ergebnis |
+|---|---|---|---|---|
+| ST-34-01 | Kostenloses T-Shirt | JUKO-Mitglied und Erstbezug auswählen | CHF 0.00 | Bestanden |
+| ST-34-02 | Lagerbestand | Kostenloses T-Shirt direkt übergeben | Bestand minus ein Stück | Bestanden |
+| ST-34-03 | Kostenlose Verrechnung | Verrechnung öffnen | Keine offene CHF-0-Rechnung | Bestanden |
+| ST-34-04 | Gwändli-Erstbezug | Gwändli für dasselbe Mitglied bestellen | CHF 50.00 | Bestanden |
+| ST-34-05 | Rechnungsstellung | Gwändli-Rechnung erstellen | CHF 50.00 | Bestanden |
+| ST-34-06 | Erneuter T-Shirt-Bezug | Erneut T-Shirt verkaufen | Normalpreis, kein Erstbezugsrabatt | Bestanden |
+| ST-34-07 | Artikelvarianten | Alternative mit gemeinsamem Anspruch wählen | Kein erneuter Erstbezug | Bestanden |
+| ST-34-08 | Verkaufshistorie | Erstbezüge kontrollieren | Mitglied, Preis und Vergünstigung nachvollziehbar | Bestanden |
+| ST-34-09 | Mehrere Stück | Zwei T-Shirts für neues berechtigtes Mitglied verkaufen | Ein Stück kostenlos, eines zum Normalpreis | Bestanden |
+| ST-34-10 | Stornierung | Nicht übergebenen und unverrechneten Erstbezug vollständig stornieren | Anspruch wieder verfügbar | Bestanden |
+
+**Auswertung:** 10/10 bestanden. Gemischte und bezahlte Stornierungen sowie weitere Akzeptanzkriterien bleiben separat zu prüfen.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 78 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 88 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
