@@ -23,7 +23,8 @@
   };
   type Formular = Omit<Rabattregel, '_id'>;
 
-  const riegenOptionen = ['Allround', 'GETU Meitli', 'GETU Buebe', 'Jugend Aerobic', 'KITU', 'Aktive'];
+  let aktiveRiegen = $state<string[]>([]);
+  const riegenOptionen = $derived([...new Set([...aktiveRiegen, ...formular.riegen])]);
   const leer: Formular = {
     name: '', rabattart: 'prozent', wert: 0, geltungsbereich: 'warenkorb',
     artikelIds: [], kategorieIds: [], riegen: [], maximaleMenge: null,
@@ -100,15 +101,16 @@
     laden = true;
     fehler = '';
     try {
-      const [rabattAntwort, artikelAntwort, kategorienAntwort] = await Promise.all([
-        fetch('/api/rabatte'), fetch('/api/artikel'), fetch('/api/kategorien')
+      const [rabattAntwort, artikelAntwort, kategorienAntwort, riegenAntwort] = await Promise.all([
+        fetch('/api/rabatte'), fetch('/api/artikel'), fetch('/api/kategorien'), fetch('/api/riegen')
       ]);
-      const [rabattDaten, artikelDaten, kategorieDaten] = await Promise.all([
-        leseAntwort(rabattAntwort), leseAntwort(artikelAntwort), leseAntwort(kategorienAntwort)
+      const [rabattDaten, artikelDaten, kategorieDaten, riegenDaten] = await Promise.all([
+        leseAntwort(rabattAntwort), leseAntwort(artikelAntwort), leseAntwort(kategorienAntwort), leseAntwort(riegenAntwort)
       ]);
-      if (!Array.isArray(rabattDaten) || !Array.isArray(artikelDaten) || !Array.isArray(kategorieDaten)) {
+      if (!Array.isArray(rabattDaten) || !Array.isArray(artikelDaten) || !Array.isArray(kategorieDaten) || !Array.isArray(riegenDaten)) {
         throw new Error('Die API hat ein unerwartetes Datenformat zurückgegeben.');
       }
+      aktiveRiegen = (riegenDaten as (Option & { aktiv: boolean })[]).filter(r => r.aktiv).map(r => r.name);
       regeln = rabattDaten as Rabattregel[];
       artikel = (artikelDaten as Option[]).sort((a, b) => a.name.localeCompare(b.name, 'de-CH'));
       kategorien = (kategorieDaten as Option[]).sort((a, b) => a.name.localeCompare(b.name, 'de-CH'));
@@ -163,7 +165,7 @@
   <a class="zurueck" href="/stammdaten">← Zurück zu Stammdaten</a>
   <header>
     <h1>Rabattregeln</h1>
-    <p>Vereinsweite Rabatte verwalten. Die Regeln werden später im Verkaufsformular zur Auswahl angeboten.</p>
+    <p>Vereinsweite Rabatte verwalten. Die Regeln stehen im Verkaufsformular zur Auswahl. Riegen werden aus den Vereinsstammdaten übernommen.</p>
   </header>
 
   {#if fehler}<p class="meldung fehler" role="alert">{fehler}</p>{/if}
@@ -235,7 +237,7 @@
         <legend>Riegen (keine Auswahl = alle Riegen)</legend>
         <div class="auswahl">
           {#each riegenOptionen as riege}
-            <label class="checkbox"><input type="checkbox" checked={formular.riegen.includes(riege)} onchange={(event) => umschalten('riegen', riege, event.currentTarget.checked)} />{riege}</label>
+            <label class="checkbox"><input type="checkbox" checked={formular.riegen.includes(riege)} onchange={(event) => umschalten('riegen', riege, event.currentTarget.checked)} />{riege}{aktiveRiegen.includes(riege) ? '' : ' (inaktiv oder nicht zugeordnet)'}</label>
           {/each}
         </div>
       </fieldset>
