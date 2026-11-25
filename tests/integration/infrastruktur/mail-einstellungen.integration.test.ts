@@ -90,7 +90,7 @@ describe('Integration: Einstellungen speichern, laden und Testmail versenden', (
     expect(artikel).toBeDefined();
     expect(artikel?.rollen).toContain('Administrator');
     const anleitung = JSON.stringify(artikel);
-    for (const begriff of ['Microsoft', 'SMTP', 'Resend', 'Entra', 'Exchange', 'M365_PRIVATE_KEY_BASE64', 'AADSTS700027']) {
+    for (const begriff of ['Microsoft', 'SMTP', 'Resend', 'Entra', 'Exchange', 'MAIL_ENCRYPTION_KEY', 'verschlüsselt', 'privaten PEM-Schlüssel', 'AADSTS700027']) {
       expect(anleitung).toContain(begriff);
     }
   });
