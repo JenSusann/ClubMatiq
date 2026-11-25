@@ -18,8 +18,8 @@ Test-ID: ST-[Issue]-[Nummer]. Status: Offen, Bestanden, Fehler, Blockiert, Erneu
 | #21 | Inventur | 9/9 | Sammelbestätigung laut bisherigem Protokoll |
 | #22 | Bestandskonsistenz | 10/10 | Screenshot |
 | #71 | ClubDesk-Gruppenzuordnung und Riegenverwaltung | 20/20 | Screenshot und Einzelbestätigung 25.11.2026 |
-| #34 | Vereinskleider und Erstbezüge | 10/10 | Einzelbestätigung; Teilabnahme 25.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 88/88 | Dokumentierte Durchläufe |
+| #34 | Vereinskleider und Erstbezüge | 20/20 | Einzelbestätigung 25.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 98/98 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -182,7 +182,7 @@ Abnahme: 10/10 bestanden. Zusätzlich 10 Unit- und 4 Integrationstests dokumenti
 
 **Auswertung und Abnahmeentscheidung:** Beide manuellen Durchläufe zusammen 20/20 bestanden, 0 fehlgeschlagen, 0 blockiert. Die dokumentierte funktionale Abnahme ist erfolgreich. Nicht separat belegte Randfälle, reale Parallelzugriffe und unabhängige Usability-Tests sind dadurch nicht nachgewiesen.
 
-### Issue #34 – Vereinskleiderverwaltung und Erstbezüge (Teilabnahme)
+### Issue #34 – Vereinskleiderverwaltung und Erstbezüge
 
 Testdatum: 25.11.2026. Einzelbestätigung durch die Entwicklerin; genauer Commit nicht separat angegeben.
 
@@ -199,11 +199,22 @@ Testdatum: 25.11.2026. Einzelbestätigung durch die Entwicklerin; genauer Commit
 | ST-34-09 | Mehrere Stück | Zwei T-Shirts für neues berechtigtes Mitglied verkaufen | Ein Stück kostenlos, eines zum Normalpreis | Bestanden |
 | ST-34-10 | Stornierung | Nicht übergebenen und unverrechneten Erstbezug vollständig stornieren | Anspruch wieder verfügbar | Bestanden |
 
-**Auswertung:** 10/10 bestanden. Gemischte und bezahlte Stornierungen sowie weitere Akzeptanzkriterien bleiben separat zu prüfen.
+| ST-34-11 | Unverrechnete Teilstornierung | Zwei T-Shirts, eines kostenlos; ein Stück stornieren | Rest CHF 0; Anspruch bleibt | Bestanden |
+| ST-34-12 | Letztes Stück | Reststück stornieren | Anspruch erneut verfügbar | Bestanden |
+| ST-34-13 | Verrechnete Teilstornierung | Zwei Gwändli à CHF 80, Erstbezug CHF 50; eines stornieren | Gutschrift CHF 80; Rest CHF 50 | Bestanden |
+| ST-34-14 | Zweite Gutschrift | Restliches Gwändli stornieren | Gutschrift CHF 50; Anspruch frei | Bestanden |
+| ST-34-15 | Gutschriften-PDF | Beide Gutschriften öffnen | Preise, Rabatte und Endbeträge korrekt | Bestanden |
+| ST-34-16 | Vollzahlung | CHF 130 bezahlt; beide Stücke stornieren | Rückerstattung insgesamt CHF 130 | Bestanden |
+| ST-34-17 | Teilzahlung | CHF 70 bezahlt; beide Stücke stornieren | Rückerstattung insgesamt CHF 70 | Bestanden |
+| ST-34-18 | Kostenloses Reststück | Verrechnete Bestellung mit kostenlosem Reststück stornieren | Keine CHF-0-Gutschrift | Bestanden |
+| ST-34-19 | Bereits übergeben | Rabattiertes Stück übergeben; anderes stornieren | Anspruch bleibt | Bestanden |
+| ST-34-20 | Stornierungshistorie | Historie kontrollieren | Mengen, Gründe, Datum und Person korrekt | Bestanden |
+
+**Auswertung:** 20/20 bestanden, 0 fehlgeschlagen, 0 blockiert; Einzelbestätigung vom 25.11.2026. `npm run check` und Vitest lokal ohne Fehler bestätigt; erwarteter Umfang 2’584 Tests, kein abschliessender Konsolenauszug. Teststand: `dd14731`. Integrationstests mit simulierten Datenbankzugriffen; keine echte Parallelitätsprüfung. Rückerstattungen werden vorgemerkt, nicht automatisch ausgezahlt. Rabattierte Verkäufe mit mehreren Teilrechnungen bleiben geschützt.
 
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 88 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 98 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
