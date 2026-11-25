@@ -18,6 +18,7 @@ declare global {
       } | null;
 
       sessionId: string | null;
+      sessionFristen?: { absolut: number; inaktiv: number };
     }
   }
 }
