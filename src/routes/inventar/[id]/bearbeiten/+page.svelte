@@ -17,7 +17,7 @@
   type Variante = {
     groesseId: string;
     menge: number;
-    einzelwert: number;
+    einzelwert: number | null;
     mindestbestand?: number;
     aktiv?: boolean;
   };
@@ -28,7 +28,7 @@
     kategorieId: string;
     lagerortId: string;
     menge: number;
-    einzelwert: number;
+    einzelwert: number | null;
     mindestbestand?: number;
     beschreibung: string;
     hatGroessen: boolean;
@@ -50,13 +50,13 @@
   let menge = $state(0);
   let mindestbestand = $state(0);
   let groessenMindestbestaende = $state<Record<string, number>>({});
-  let einzelwert = $state(0);
+  let einzelwert = $state<number | undefined>(undefined);
   let beschreibung = $state('');
   let hatGroessen = $state(false);
   let istVereinskleidung = $state(false);
 
   let groessenBestaende = $state<Record<string, number>>({});
-  let groessenEinzelwerte = $state<Record<string, number>>({});
+  let groessenEinzelwerte = $state<Record<string, number | undefined>>({});
   let standardEinzelwert = $state(0);
   let ausgewaehlteGroessen = $state<string[]>([]);
 
@@ -126,10 +126,7 @@
     fehlermeldung = '';
 
     groessenEinzelwerte = Object.fromEntries(
-      aktiveGroessen.map((groesse) => [
-        groesse._id,
-        Number(standardEinzelwert)
-      ]).concat(Object.entries(groessenEinzelwerte).filter(([id]) => !ausgewaehlteGroessen.includes(id)))
+      [...Object.entries(groessenEinzelwerte).filter(([id]) => !ausgewaehlteGroessen.includes(id)), ...aktiveGroessen.map((groesse) => [groesse._id, Number(standardEinzelwert)] as const)]
     );
   }
 
@@ -161,7 +158,7 @@
       lieferantId = artikel.lieferantId ?? '';
       menge = artikel.menge;
       mindestbestand = artikel.mindestbestand ?? 0;
-      einzelwert = artikel.einzelwert;
+      einzelwert = artikel.einzelwert ?? undefined;
       beschreibung = artikel.beschreibung ?? '';
       hatGroessen = artikel.hatGroessen;
       istVereinskleidung = artikel.istVereinskleidung === true;
@@ -171,7 +168,7 @@
       );
 
       groessenEinzelwerte = Object.fromEntries(
-        groessen.map((groesse) => [groesse._id, 0])
+        groessen.map((groesse) => [groesse._id, undefined])
       );
 
       ausgewaehlteGroessen = artikel.varianten
@@ -182,7 +179,7 @@
         groessenBestaende[variante.groesseId] = variante.menge;
         groessenMindestbestaende[variante.groesseId] = variante.mindestbestand ?? 0;
         groessenEinzelwerte[variante.groesseId] =
-          variante.einzelwert;
+          variante.einzelwert ?? undefined;
       }
     } catch (error) {
       fehlermeldung =
@@ -205,8 +202,7 @@
     if (
       !Number.isInteger(gesamtmenge) ||
       gesamtmenge < 0 ||
-      !Number.isFinite(einzelwert) ||
-      einzelwert < 0
+      (einzelwert != null && (!Number.isFinite(einzelwert) || einzelwert < 0))
     ) {
       fehlermeldung = 'Bitte gültige Mengen und Einzelwerte eingeben.';
       return;
@@ -223,15 +219,12 @@
           groessenBestaende[groesse._id] ?? 0
         );
 
-        const wert = Number(
-          groessenEinzelwerte[groesse._id] ?? 0
-        );
+        const wert = groessenEinzelwerte[groesse._id];
 
         if (
           !Number.isInteger(bestand) ||
           bestand < 0 ||
-          !Number.isFinite(wert) ||
-          wert < 0
+          (wert != null && (!Number.isFinite(wert) || wert < 0))
         ) {
           fehlermeldung =
             'Bitte alle Grössenbestände und Einzelwerte überprüfen.';
@@ -254,9 +247,7 @@
             groesseId: groesse._id,
             mindestbestand: Number(groessenMindestbestaende[groesse._id] ?? 0),
             menge: Number(groessenBestaende[groesse._id] ?? 0),
-            einzelwert: Number(
-              groessenEinzelwerte[groesse._id] ?? 0
-            )
+            einzelwert: groessenEinzelwerte[groesse._id] ?? null
           }))
         : [];
 
@@ -272,7 +263,7 @@
           ...(lieferantenFehler ? {} : { lieferantId: lieferantId || null }),
           menge: gesamtmenge,
           mindestbestand: hatGroessen ? 0 : Number(mindestbestand),
-          einzelwert: hatGroessen ? 0 : Number(einzelwert),
+          einzelwert: hatGroessen ? 0 : (einzelwert ?? null),
           beschreibung,
           hatGroessen,
           istVereinskleidung,
@@ -417,7 +408,7 @@
 
           <div class="wert-uebernehmen">
             <div class="feld">
-              <label for="standardwert">Einzelwert (CHF)</label>
+              <label for="standardwert">Einzelwert (CHF, optional)</label>
               <input
                 id="standardwert"
                 type="number"
@@ -476,7 +467,7 @@
                         min="0"
                         step="0.01"
                         aria-label="Einzelwert {groesse.bezeichnung}"
-                        bind:value={groessenEinzelwerte[groesse._id]}
+                        placeholder="Preis fehlt" bind:value={groessenEinzelwerte[groesse._id]}
                       />
                     </td>
 
@@ -505,13 +496,13 @@
             </div>
 
             <div class="feld">
-              <label for="einzelwert">Einzelwert (CHF)</label>
+              <label for="einzelwert">Einzelwert (CHF, optional)</label>
               <input
                 id="einzelwert"
                 type="number"
                 min="0"
                 step="0.01"
-                bind:value={einzelwert}
+                placeholder="Preis fehlt" bind:value={einzelwert}
               />
             </div>
           </div>
