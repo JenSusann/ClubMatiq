@@ -33,19 +33,42 @@ Browser-Abnahme laut bisherigem Protokoll bestätigt. Einzelbeschreibungen und A
 
 Alle zehn manuellen Tests sowie Unit- und Integrationstests bestätigt. Einzelbeschreibungen nachzutragen.
 
-### Issue #21
+### Issue #21 – PDF-Inventurbericht
 
-Neun manuelle Tests laut bisherigem Protokoll bestanden. Fehler bei Grössenbezeichnungen im PDF-Inventurbericht laut bisherigem Protokoll korrigiert. Originaltestliste nachzutragen.
+Quelle: [Testabschluss im Issue #21](https://github.com/JenSusann/ClubMatiq/issues/21), 25.11.2026. Aufgaben und Erwartungen redaktionell aus den bestätigten Prüfgegenständen rekonstruiert. Einzelnummern ausser ST-21-05 nicht gesichert.
 
-### Issue #22
+| Prüfgegenstand | Aufgabe | Erwartung | Ergebnis gemäss Sammelbestätigung |
+|---|---|---|---|
+| PDF-Download | Inventurbericht herunterladen | PDF wird bereitgestellt | Bestanden |
+| PDF öffnen | Bericht öffnen | PDF ist lesbar | Bestanden |
+| Stammdaten | Stammdaten im Bericht vergleichen | Angaben stimmen überein | Bestanden |
+| Mengen | Soll-, Ist- und Differenzmengen vergleichen | Mengen stimmen überein | Bestanden |
+| ST-21-05 – Grössen | Bericht mit Kleidungsgrössen prüfen | Bezeichnungen statt MongoDB-IDs | Erneut bestanden |
+| Korrekturprotokoll | Bericht nach Korrektur prüfen | Korrekturen nachvollziehbar | Bestanden |
+| Stornierung | Bericht einer stornierten Inventur prüfen | Stornierung dargestellt | Bestanden |
+| Layout | PDF visuell kontrollieren | Inhalte lesbar | Bestanden |
+| Wiederholter Export | Bericht erneut exportieren | Export funktioniert erneut | Bestanden |
+
+Fehler: Grössen-IDs statt Bezeichnungen. Vereinsbezogene Grössenauflösung korrigiert, auch im Korrekturprotokoll. Vier manuelle Nachprüfungen erfolgreich bestätigt. Zwei parametrisierte Regressionstestfälle ergänzt. Bestehende Unit- und Integrationstests erfolgreich gemeldet. Commits: 04f2ab3, 31e7750, 3d0771b. Abnahme: 9/9 bestanden.
+
+### Issue #22 – Bestandskonsistenz
+
+Quelle: [Testabschluss im Issue #22](https://github.com/JenSusann/ClubMatiq/issues/22), 25.11.2026. Testfallnamen und Ergebnisse bestätigt; Aufgaben und Erwartungen ab ST-22-04 rekonstruiert.
 
 | ID | Testfall | Aufgabe | Erwartung | Ergebnis |
 |---|---|---|---|---|
 | ST-22-01 | Inventurabschluss | Soll 10, Ist 8 erfassen und abschliessen | Bestand 8 | Bestanden |
 | ST-22-02 | Doppelter Inventurabschluss | Dieselbe Inventur erneut abschliessen | Keine zweite Bestandsbuchung | Bestanden |
 | ST-22-03 | Nachträgliche Korrektur | Abgeschlossene Inventur von 8 auf 9 korrigieren | Bestand 9, Korrektur protokolliert | Bestanden |
+| ST-22-04 | Versionskonflikt | Konkurrierende Änderungen einer Inventurposition in zwei Tabs speichern | Veraltete Änderung überschreibt aktuellen Stand nicht | Bestanden |
+| ST-22-05 | Gleichzeitige Ausleihe | Ausleihe bei begrenztem Bestand in zwei Tabs auslösen | Kein unzulässiger negativer Bestand | Bestanden |
+| ST-22-06 | Doppelte Rückgabe | Dieselbe Rückgabe mehrfach auslösen | Keine doppelte Bestandsgutschrift | Bestanden |
+| ST-22-07 | Gleichzeitiger Verkauf | Verkauf bei begrenztem Bestand in zwei Tabs auslösen | Kein unzulässiger Lagerabgang | Bestanden |
+| ST-22-08 | Doppelte Stornierung | Dieselbe Stornierung mehrfach auslösen | Keine doppelte Verarbeitung | Bestanden |
+| ST-22-09 | Inventurstornierung | Abgeschlossene Inventur stornieren | Bestandskorrektur gemäss Stornierungslogik | Bestanden |
+| ST-22-10 | Erneute Inventurstornierung | Stornierte Inventur erneut stornieren | Keine erneute Bestandskorrektur | Bestanden |
 
-Screenshot bestätigt insgesamt 10/10; die übrigen sieben Einzelbeschreibungen sind mit der Originaltestliste abzugleichen.
+Abnahme: 10/10 bestanden. Zusätzlich 10 Unit- und 4 Integrationstests dokumentiert. Keine produktive Codeänderung erforderlich. Zwei-Tab-Szenarien sind keine echten Lasttests; Rollback wurde automatisiert geprüft.
 
 ## 3. Geplanter Regressionstestkatalog
 
