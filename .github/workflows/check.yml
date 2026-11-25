@@ -25,10 +25,10 @@ jobs:
 
     steps:
       - name: Repository auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Node.js einrichten
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '24'
           cache: npm
@@ -47,7 +47,7 @@ jobs:
 
       - name: Coverage-Bericht speichern
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: unit-test-coverage
           path: coverage/unit/
@@ -56,3 +56,62 @@ jobs:
 
       - name: Produktions-Build erstellen
         run: npm run build
+
+  integration:
+    name: Integration Tests & Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      MONGODB_URI: mongodb://127.0.0.1:27017/clubmatiq_test?replicaSet=rs0
+      MONGODB_TEST_URI: mongodb://127.0.0.1:27017/clubmatiq_test?replicaSet=rs0
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v5
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: MongoDB Replica Set starten
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run -d --name clubmatiq-mongo -p 127.0.0.1:27017:27017 mongo:8.0 --replSet rs0 --bind_ip_all
+          for i in {1..60}; do
+            if docker exec clubmatiq-mongo mongosh --quiet --eval 'db.adminCommand({ping:1}).ok' | grep -qx 1; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec clubmatiq-mongo mongosh --quiet --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]})'
+          for i in {1..60}; do
+            if docker exec clubmatiq-mongo mongosh --quiet --eval 'db.hello().isWritablePrimary' | grep -qx true; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MongoDB Replica Set nicht bereit"
+          exit 1
+
+      - name: Integrationstests und Code Coverage
+        run: npm run test:integration
+
+      - name: Integration-Coverage speichern
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: integration-test-coverage
+          path: coverage/integration/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: MongoDB stoppen
+        if: always()
+        run: docker rm -f clubmatiq-mongo || true
