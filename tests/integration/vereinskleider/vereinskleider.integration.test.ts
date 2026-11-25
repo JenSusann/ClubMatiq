@@ -415,3 +415,55 @@ describe('Issue #34 – Verrechnung von Erstbezügen', () => {
     });
   });
 });
+
+
+import { POST as erstbezugsUebergabe } from '../../../src/routes/api/vereinskleider/bestellungen/uebergabe/+server';
+
+describe('Issue #34 – kostenlose Warenübergabe und stornierte Reservierungen', () => {
+  const artikelId = new ObjectId().toHexString();
+  const groesseId = new ObjectId().toHexString();
+  const position = (groesse: string | null = null) => ({
+    artikelId, groesseId: groesse, menge: 1, verkaufsart: 'bestellung',
+    uebergebenMenge: 0, reserviertMenge: 1
+  });
+  const vorbereiten = (groesse: string | null = null, bestand = 2, bisher = 0, weitere: object[] = []) => {
+    const p = { ...position(groesse), uebergebenMenge: bisher, reserviertMenge: 1 - bisher };
+    const v = { positionen: [p], endbetrag: 0, zahlungsstatus: 'bezahlt', erstbezugsIds: [artikelId] };
+    mocks.findOne.mockReset().mockResolvedValueOnce(v)
+      .mockResolvedValueOnce({ menge: bestand, hatGroessen: groesse !== null })
+      .mockResolvedValueOnce({ menge: bestand });
+    mocks.find.mockReturnValue({ toArray: async () => [v, ...weitere] });
+    mocks.updateOne.mockReset().mockResolvedValue({ modifiedCount: 1 });
+    mocks.insertOne.mockReset().mockResolvedValue({ acknowledged: true });
+  };
+  const uebergeben = () => erstbezugsUebergabe(event('POST', { vorgangId: id, positionsIndex: 0, menge: 1 }) as never);
+  it.each([null, groesseId])('bucht kostenlosen Erstbezug ab und schliesst Bestellung ab (Grösse %s)', async (groesse) => {
+    vorbereiten(groesse);
+    const response = await uebergeben();
+    expect(response.status).toBe(200);
+    expect((await response.json()).uebergabe).toMatchObject({ uebergeben: 1, reserviert: 0, offen: 0, status: 'abgeschlossen' });
+    const abgaenge = mocks.updateOne.mock.calls.filter(([, update]) => update.$inc?.menge === -1);
+    expect(abgaenge).toHaveLength(groesse ? 2 : 1);
+    expect(mocks.insertOne).toHaveBeenCalledWith(expect.objectContaining({ artikelId, groesseId: groesse, mengeDelta: -1, referenzTyp: 'vereinskleider-uebergabe' }), expect.anything());
+    expect(mocks.updateOne.mock.calls.some(([, update]) => !!update.$pullAll || !!update.$unset)).toBe(false);
+  });
+  it('verhindert erneute Übergabe', async () => {
+    vorbereiten(null, 2, 1);
+    expect((await uebergeben()).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('verhindert Übergabe ohne Bestand', async () => {
+    vorbereiten(null, 0);
+    expect((await uebergeben()).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('ignoriert vollständig stornierte Nullpositionen', async () => {
+    vorbereiten(null, 2, 0, [{ positionen: [{ ...position(), menge: 0, reserviertMenge: 0 }] }]);
+    expect((await uebergeben()).status).toBe(200);
+  });
+  it.each([{ reserviertMenge: 1, uebergebenMenge: 0 }, { reserviertMenge: 0, uebergebenMenge: 1 }])('verweigert inkonsistente Nullposition %j', async (mengen) => {
+    vorbereiten(null, 2, 0, [{ positionen: [{ ...position(), menge: 0, ...mengen }] }]);
+    expect((await uebergeben()).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+});
