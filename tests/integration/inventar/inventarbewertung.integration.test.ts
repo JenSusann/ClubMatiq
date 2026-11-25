@@ -17,6 +17,9 @@ import { GET as exportInventar } from '../../../src/routes/api/export/inventar/+
 import { GET as aufnahmen, POST as speichern } from '../../../src/routes/api/inventarbewertung/stichtage/+server';
 import { GET as aufnahmeDetail } from '../../../src/routes/api/inventarbewertung/stichtage/[id]/+server';
 
+import { POST as artikelErstellen } from '../../../src/routes/api/artikel/+server';
+import { GET as artikelLesen, PATCH as artikelBearbeiten } from '../../../src/routes/api/artikel/[id]/+server';
+
 const vereinId = new ObjectId().toString();
 const andererVerein = new ObjectId().toString();
 const kategorieId = new ObjectId();
@@ -210,6 +213,36 @@ describe('ClubMatiq – Inventarbewertung mit MongoDB', () => {
     } finally {
       await db.collection('artikel').updateOne({ _id: ohnePreis, vereinId }, { $unset: { einzelwert: '' } });
       await db.collection('artikelvarianten').updateOne({ vereinId, artikelId: kleidung.toString(), groesseId: groesseM.toString() }, { $unset: { einzelwert: '' } });
+    }
+  });
+
+  it.each([false, true])('erhält fehlende Preise bei POST, GET und PATCH (Grössen: %s)', async hatGroessen => {
+    const basis = { name: 'Preisregression', kategorieId: String(kategorieId), lagerortId: String(lagerortId),
+      menge: 2, mindestbestand: 0, hatGroessen, einzelwert: hatGroessen ? 0 : null,
+      varianten: hatGroessen ? [{ groesseId: String(groesseS), menge: 2, mindestbestand: 0, einzelwert: null }] : [] };
+    const anfrage = (daten: unknown) => new Request('http://localhost/api/artikel', { method: 'POST', body: JSON.stringify(daten) });
+    const erstellt = await artikelErstellen({ ...event(admin), request: anfrage(basis) } as never);
+    expect(erstellt.status).toBe(201);
+    const { artikelId } = await erstellt.json();
+    const params = { id: artikelId };
+    try {
+      const lesen = async () => {
+        const antwort = await artikelLesen({ ...event(admin), params } as never);
+        expect(antwort.status).toBe(200);
+        const daten = await antwort.json();
+        return hatGroessen ? daten.varianten[0].einzelwert : daten.einzelwert;
+      };
+      expect(await lesen()).toBeNull();
+      for (const preis of [0, 25, null]) {
+        const daten = { ...basis, einzelwert: hatGroessen ? 0 : preis,
+          varianten: basis.varianten.map(v => ({ ...v, einzelwert: preis })) };
+        const antwort = await artikelBearbeiten({ ...event(admin), params, request: anfrage(daten) } as never);
+        expect(antwort.status).toBe(200);
+        expect(await lesen()).toBe(preis);
+      }
+    } finally {
+      await db.collection('artikelvarianten').deleteMany({ vereinId, artikelId });
+      await db.collection('artikel').deleteOne({ vereinId, _id: new ObjectId(artikelId) });
     }
   });
 
