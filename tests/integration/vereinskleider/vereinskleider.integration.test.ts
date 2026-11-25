@@ -318,3 +318,71 @@ describe('Integration: Preis-offen-Einstellung Vereinskleider', () => {
     expect(mocks.updateOne).not.toHaveBeenCalled();
   });
 });
+
+
+describe('Issue #34 – Stornierung von Erstbezügen', () => {
+  const mitgliedId = new ObjectId().toHexString();
+  const artikelId = new ObjectId().toHexString();
+  const session = { withTransaction: async (fn: () => Promise<unknown>) => fn(), endSession: async () => {} };
+  const verkauf = (overrides: Record<string, unknown> = {}) => ({
+    _id: new ObjectId(id), vereinId, mitgliedId, erstbezugsIds: [artikelId],
+    status: 'offen', endbetrag: 0, zwischentotal: 25, rabattTotal: 25,
+    bezahltBetrag: 0, zahlungen: [], aktualisiertAm: new Date(),
+    rabatte: [{ betrag: 25 }], positionen: [{
+      artikelId, groesseId: null, verkaufsart: 'bestellung', menge: 1,
+      einzelpreis: 25, positionsbetrag: 25, uebergebenMenge: 0, reserviertMenge: 0
+    }], ...overrides
+  });
+  const stornieren = () => route8.POST(event('POST', {
+    verkaufId: id, positionsIndex: 0, menge: 1, grund: 'Fehlbestellung'
+  }) as never);
+  beforeEach(() => {
+    mocks.startSession.mockReturnValue(session);
+    mocks.findOne.mockResolvedValue(verkauf());
+    mocks.updateOne.mockReset().mockResolvedValue({ modifiedCount: 1 });
+  });
+  it.each([0, 50])('gibt vollständigen unbezahlten Erstbezug mit CHF %s frei', async (betrag) => {
+    const v = verkauf({ endbetrag: betrag, zwischentotal: betrag + 25 });
+    v.positionen[0].einzelpreis = betrag + 25;
+    v.positionen[0].positionsbetrag = betrag + 25;
+    mocks.findOne.mockResolvedValue(v);
+    const response = await stornieren();
+    expect(response.status).toBe(200);
+    expect(mocks.updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({ vereinId, _id: new ObjectId(id) }),
+      expect.objectContaining({ $set: expect.objectContaining({ status: 'storniert', endbetrag: 0, erstbezugsFreigegebenAm: expect.any(Date) }) }),
+      { session });
+    expect(mocks.updateOne).toHaveBeenCalledWith(
+      { _id: new ObjectId(mitgliedId), vereinId, erstbezugsRabattIds: { $all: [artikelId] } },
+      { $pullAll: { erstbezugsRabattIds: [artikelId] } }, { session });
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('verweigert die Freigabe nach Übergabe', async () => {
+    const v = verkauf();
+    v.positionen[0].uebergebenMenge = 1;
+    mocks.findOne.mockResolvedValue(v);
+    expect((await stornieren()).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('verweigert wiederholte Stornierung', async () => {
+    mocks.findOne.mockResolvedValue(verkauf({ status: 'storniert' }));
+    expect((await stornieren()).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('meldet fehlgeschlagene Anspruchsfreigabe', async () => {
+    mocks.updateOne.mockResolvedValueOnce({ modifiedCount: 1 }).mockResolvedValueOnce({ modifiedCount: 0 });
+    expect((await stornieren()).status).toBe(409);
+    expect(mocks.updateOne).toHaveBeenCalledTimes(2);
+  });
+  it('verweigert Freigabe bei konkurrierender Verkaufsänderung', async () => {
+    mocks.updateOne.mockResolvedValueOnce({ modifiedCount: 0 });
+    expect((await stornieren()).status).toBe(409);
+    expect(mocks.updateOne).toHaveBeenCalledTimes(1);
+  });
+  it('verweigert fehlenden oder fremden Verkauf', async () => {
+    mocks.findOne.mockResolvedValue(null);
+    expect((await stornieren()).status).toBe(404);
+    expect(mocks.findOne).toHaveBeenCalledWith({ _id: new ObjectId(id), vereinId }, { session });
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+});
