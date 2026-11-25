@@ -6,8 +6,8 @@
   let zuordnungen = $state<Zuordnung[]>([]);
   let name = $state('');
   let bereich = $state<'juko' | 'aktive'>('juko');
-  let gruppe = $state('');
-  let funktion = $state('');
+  let gruppen = $state<{ gruppe: string; funktion: string | null }[]>([]);
+  let gruppenAuswahl = $state('');
   let riegeId = $state('');
   let fehler = $state('');
   let beschaeftigt = $state(false);
@@ -19,7 +19,8 @@
     return result;
   }
   async function laden() {
-    const [r, z] = await Promise.all([api('/api/riegen'), api('/api/gruppenzuordnungen')]);
+    const [r, z, g] = await Promise.all([api('/api/riegen'), api('/api/gruppenzuordnungen'), api('/api/gruppenzuordnungen/gruppen')]);
+    gruppen = g;
     riegen = r;
     zuordnungen = z;
   }
@@ -36,7 +37,7 @@
     return ausfuehren(async () => { await api('/api/riegen', 'POST', { name, bereich }); name = ''; });
   }
   function neueZuordnung() {
-    return ausfuehren(async () => { await api('/api/gruppenzuordnungen', 'POST', { gruppe, funktion: funktion.trim() || null, riegeId }); gruppe = ''; funktion = ''; riegeId = ''; });
+    return ausfuehren(async () => { await api('/api/gruppenzuordnungen', 'POST', { ...JSON.parse(gruppenAuswahl), riegeId }); gruppenAuswahl = ''; riegeId = ''; });
   }
 </script>
 <svelte:head><title>Riegen – ClubMatiq</title></svelte:head>
@@ -58,10 +59,9 @@
   </section>
   <section>
     <h2>ClubDesk-Gruppenzuordnung</h2>
-    <p>Gruppennamen und Funktionen wie im ClubDesk-Export erfassen. Die automatische Mitgliederzuordnung folgt noch.</p>
+    <p>Importierte Gruppen und Funktionen auswählen. Die automatische Mitgliederzuordnung folgt noch.</p>
     <form onsubmit={(e) => { e.preventDefault(); void neueZuordnung(); }}>
-      <label>ClubDesk-Gruppe<input bind:value={gruppe} required maxlength="250" /></label>
-      <label>Funktion (optional)<input bind:value={funktion} maxlength="150" placeholder="z. B. TurnerIn" /></label>
+      <label>ClubDesk-Gruppe und Funktion<select bind:value={gruppenAuswahl} required><option value="">Bitte auswählen</option>{#each gruppen as g (JSON.stringify(g))}<option value={JSON.stringify(g)}>{g.gruppe}{g.funktion ? " (" + g.funktion + ")" : " (ohne Funktion)"}</option>{/each}</select></label>
       <label>Riege<select bind:value={riegeId} required><option value="">Bitte auswählen</option>{#each riegen.filter(r => r.aktiv) as r (r._id)}<option value={r._id}>{r.name}</option>{/each}</select></label>
       <button disabled={beschaeftigt}>Zuordnung erstellen</button>
     </form>
