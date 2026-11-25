@@ -226,19 +226,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         }
         const heute = new Date().toISOString().slice(0, 10);
         for (const regel of regeln) {
-          if (regel.einmaligProMitglied === true) {
-            if (!mitglied) throw new Verkaufsfehler('Für einen Erstbezug muss ein Mitglied ausgewählt werden.', 409);
-            if (regel.rabattart !== 'fixpreis' || regel.geltungsbereich === 'warenkorb' || regel.maximaleMenge !== 1) {
-              throw new Verkaufsfehler('Ungültige Erstbezugsregel.', 409);
-            }
-            // Ein Schreibzugriff auf das Mitglied serialisiert konkurrierende Ansprüche.
-            const sperre = await db.collection('clubdesk_mitglieder').updateOne(
-              { _id: mitglied._id, vereinId, aktiv: { $ne: false }, erstbezugsRabattIds: { $ne: regel._id.toString() } },
-              { $addToSet: { erstbezugsRabattIds: regel._id.toString() } }, { session }
-            );
-            if (sperre.modifiedCount !== 1) throw new Verkaufsfehler(`Erstbezug «${regel.name}» wurde bereits beansprucht.`, 409);
-            erstbezugsIds.push(regel._id.toString());
-          }
+
           if (regel.aktiv === false || (regel.gueltigAb && heute < regel.gueltigAb) ||
               (regel.gueltigBis && heute > regel.gueltigBis)) {
             throw new Verkaufsfehler(`Rabattregel «${regel.name}» ist nicht gültig.`);
@@ -252,6 +240,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             (regel.geltungsbereich === 'kategorie' && regel.kategorieIds?.includes(p.kategorieId))
           ));
           if (!passend.length) throw new Verkaufsfehler(`Für «${regel.name}» gibt es keine passende Position.`);
+          if (regel.einmaligProMitglied === true) {
+            if (!mitglied) throw new Verkaufsfehler('Für einen Erstbezug muss ein Mitglied ausgewählt werden.', 409);
+            if (regel.rabattart !== 'fixpreis' || regel.geltungsbereich === 'warenkorb' || regel.maximaleMenge !== 1) {
+              throw new Verkaufsfehler('Ungültige Erstbezugsregel.', 409);
+            }
+            // Ein Schreibzugriff auf das Mitglied serialisiert konkurrierende Ansprüche.
+            const sperre = await db.collection('clubdesk_mitglieder').updateOne(
+              { _id: mitglied._id, vereinId, aktiv: { $ne: false }, erstbezugsRabattIds: { $nin: [passend[0].artikelId, regel._id.toString()] } },
+              { $addToSet: { erstbezugsRabattIds: passend[0].artikelId } }, { session }
+            );
+            if (sperre.modifiedCount !== 1) throw new Verkaufsfehler(`Erstbezug «${regel.name}» wurde bereits beansprucht.`, 409);
+            erstbezugsIds.push(passend[0].artikelId);
+          }
           // Maximale Menge begrenzt die Anzahl rabattierter Stücke, nicht die Warenkorbmenge.
           let restmenge: number = typeof regel.maximaleMenge === 'number' ? regel.maximaleMenge : Number.MAX_SAFE_INTEGER;
           let basis = 0;
