@@ -371,6 +371,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           kaeufer: kaeufer.trim(),
+          mitgliedId: ausgewaehltesMitglied?._id ?? null,
           verkaufsart,
           zahlungsart,
           zahlungErhalten: zahlungsart !== 'rechnung' && zahlungErhalten,
