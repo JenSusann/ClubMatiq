@@ -14,6 +14,7 @@
     { titel: 'Lagerorte', beschreibung: 'Lagerorte und Materialräume verwalten.', symbol: '📍', link: '/stammdaten/lagerorte', nurAdmin: false },
     { titel: 'Kleidergrössen', beschreibung: 'Grössen für Vereinskleider verwalten.', symbol: '👕', link: '/stammdaten/groessen', nurAdmin: false },
     { titel: 'Rabatte', beschreibung: 'Rabattregeln für Verkäufe erstellen und verwalten.', symbol: '🏷️', link: '/stammdaten/rabatte', nurAdmin: false },
+    { titel: 'Riegen und ClubDesk-Gruppen', beschreibung: 'Riegen und Gruppenzuordnungen verwalten.', symbol: '🤸', link: '/stammdaten/riegen', nurAdmin: false },
     { titel: 'Mitglieder', beschreibung: 'Mitglieder suchen und ClubDesk-CSV-Dateien importieren.', symbol: '👥', link: '/stammdaten/mitglieder', nurAdmin: true },
     { titel: 'Lieferanten', beschreibung: 'Lieferanten für Vereinskleider erfassen und verwalten.', symbol: '🚚', link: '/stammdaten/lieferanten', nurAdmin: false }
   ];
