@@ -34,7 +34,8 @@
   let fristen = $state<{ absolut: number; inaktiv: number } | undefined>(undefined);
   let rest = $state(0);
   let sessionFehler = $state('');
-  let prueft = false;
+  let prueft = $state(false);
+  let verlangerung = false;
   let letzteMeldung = 0;
   let abgelaufen = false;
   const warnung = $derived(!!data.benutzer && !!fristen && rest <= 300000);
@@ -47,17 +48,26 @@
     window.location.replace('/anmelden');
   }
   async function sessionPruefen(aktiv = false) {
-    if (!data.benutzer || prueft || abgelaufen) return;
+    if (!data.benutzer || abgelaufen) return;
+    if (prueft) { if (aktiv && rest > 0) verlangerung = true; return; }
+    if (aktiv && rest <= 0) { zurAnmeldung(); return; }
     prueft = true;
     try {
       const r = await fetch(aktiv ? '/api/session/aktivitaet' : '/api/session', { method: aktiv ? 'POST' : 'GET', cache: 'no-store' });
-      if (r.status === 401) { zurAnmeldung(); return; }
+      if (r.status === 401 || r.status === 403) { zurAnmeldung(); return; }
       if (!r.ok) throw new Error('Sessionstatus nicht verfügbar');
       fristen = await r.json();
       sessionFehler = '';
       if (fristen) rest = Math.max(0, Math.min(fristen.absolut, fristen.inaktiv) - Date.now());
-    } catch { sessionFehler = 'Sitzung konnte nicht überprüft werden. Bitte versuche es erneut.'; }
-    finally { prueft = false; }
+      if (rest === 0) zurAnmeldung();
+    } catch {
+      if (rest <= 0) zurAnmeldung();
+      else sessionFehler = 'Sitzung konnte nicht überprüft werden. Bitte versuche es erneut.';
+    }
+    finally {
+      prueft = false;
+      if (verlangerung) { verlangerung = false; if (rest > 0 && !abgelaufen) void sessionPruefen(true); }
+    }
   }
   onMount(() => {
     const aktivitaet = () => {
@@ -128,7 +138,7 @@
       <p>{absolutEndet ? 'Die maximale Sitzungsdauer von zwei Stunden ist bald erreicht. Bitte speichere deine Änderungen.' : 'Du warst längere Zeit inaktiv. Aus Sicherheitsgründen wirst du automatisch abgemeldet.'}</p>
       <div class="session-countdown">{Math.floor(Math.ceil(rest / 1000) / 60)}:{String(Math.ceil(rest / 1000) % 60).padStart(2, '0')}</div>
       {#if sessionFehler}<p role="alert">{sessionFehler}</p>{/if}
-      <div class="session-aktionen"><button onclick={abmelden}>Abmelden</button>{#if !absolutEndet}<button class="session-weiter" onclick={() => sessionPruefen(true)}>Angemeldet bleiben</button>{/if}</div>
+      <div class="session-aktionen"><button onclick={abmelden}>Abmelden</button>{#if !absolutEndet}<button class="session-weiter" disabled={rest <= 0} onclick={() => sessionPruefen(true)}>Angemeldet bleiben</button>{/if}</div>
     </div>
   </div>
 {/if}
