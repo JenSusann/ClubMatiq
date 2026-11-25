@@ -8,7 +8,7 @@ import type { RequestHandler } from './$types';
 type Variante = {
   groesseId: string;
   menge: number;
-  einzelwert: number;
+  einzelwert: number | null;
   mindestbestand: number;
 };
 
@@ -69,7 +69,7 @@ export const GET: RequestHandler = async ({
         artikelId: variante.artikelId,
         groesseId: variante.groesseId,
         menge: variante.menge,
-        einzelwert: variante.einzelwert ?? 0,
+        einzelwert: variante.einzelwert ?? null,
         mindestbestand: variante.mindestbestand ?? 0,
         aktiv: variante.aktiv !== false
       }))
@@ -164,9 +164,7 @@ export const PATCH: RequestHandler = async ({
   }
 
   if (
-    typeof einzelwert !== 'number' ||
-    !Number.isFinite(einzelwert) ||
-    einzelwert < 0
+    (einzelwert !== null && (typeof einzelwert !== 'number' || !Number.isFinite(einzelwert) || einzelwert < 0))
   ) {
     return json(
       { fehler: 'Ungültiger Einzelwert.' },
@@ -224,9 +222,7 @@ export const PATCH: RequestHandler = async ({
         typeof variante.menge !== 'number' ||
         !Number.isInteger(variante.menge) ||
         variante.menge < 0 ||
-        typeof variante.einzelwert !== 'number' ||
-        !Number.isFinite(variante.einzelwert) ||
-        variante.einzelwert < 0 ||
+        (variante.einzelwert !== null && (typeof variante.einzelwert !== 'number' || !Number.isFinite(variante.einzelwert) || variante.einzelwert < 0)) ||
         typeof variante.mindestbestand !== 'number' || !Number.isSafeInteger(variante.mindestbestand) || variante.mindestbestand < 0
       ) {
         return json(
