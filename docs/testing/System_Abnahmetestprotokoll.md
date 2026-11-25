@@ -19,7 +19,8 @@ Test-ID: ST-[Issue]-[Nummer]. Status: Offen, Bestanden, Fehler, Blockiert, Erneu
 | #22 | Bestandskonsistenz | 10/10 | Screenshot |
 | #71 | ClubDesk-Gruppenzuordnung und Riegenverwaltung | 20/20 | Screenshot und Einzelbestätigung 25.11.2026 |
 | #34 | Vereinskleider und Erstbezüge | 20/20 | Einzelbestätigung 25.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 98/98 | Dokumentierte Durchläufe |
+| #35 | Inventarbewertung (Teilabnahme) | 21/21 | Einzelbestätigung und Nachprüfung |
+| Gesamt | Quantifizierte manuelle Prüfungen | 119/119 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -212,9 +213,50 @@ Testdatum: 25.11.2026. Einzelbestätigung durch die Entwicklerin; genauer Commit
 
 **Auswertung:** 20/20 bestanden, 0 fehlgeschlagen, 0 blockiert; Einzelbestätigung vom 25.11.2026. `npm run check` und Vitest lokal ohne Fehler bestätigt; erwarteter Umfang 2’584 Tests, kein abschliessender Konsolenauszug. Teststand: `dd14731`. Integrationstests mit simulierten Datenbankzugriffen; keine echte Parallelitätsprüfung. Rückerstattungen werden vorgemerkt, nicht automatisch ausgezahlt. Rabattierte Verkäufe mit mehreren Teilrechnungen bleiben geschützt.
 
+### Issue #35 – Inventarbewertung für die Buchhaltung
+
+Nachweis: manuelle Browser-Abnahme mit einzeln markierten Ergebnissen im Chat; Screenshot zum Fehler ST-35-04 und Sammelbestätigung aller sieben Nachprüfungen. Exakter Testzeitpunkt und getesteter Commit nicht separat angegeben.
+
+| ID | Testfall | Aufgabe | Erwartung | Ergebnis |
+|---|---|---|---|---|
+| ST-35-01 | Einzelwert erfassen | 10 Stück à CHF 25 | CHF 250 | Bestanden |
+| ST-35-02 | Grössenbewertung | 5 Stück à CHF 20 und 3 à CHF 30 | CHF 190 | Bestanden |
+| ST-35-03 | Gesamtwert | Positionen summieren | Total stimmt | Bestanden |
+| ST-35-04 | Fehlende Preise | Artikel ohne Einzelwert erfassen | Preis fehlt | Zunächst Fehler; erneut bestanden gemäss Nachprüfung |
+| ST-35-05 | Nullpreis | CHF 0 erfassen | Preis vorhanden | Bestanden |
+| ST-35-06 | Filter | Suche, Kategorie, Lagerort, fehlende Preise prüfen | Filter korrekt | Bestanden |
+| ST-35-07 | Aktueller CSV-Export | CSV öffnen | Mengen, Preise, Filter und Datum korrekt | Bestanden |
+| ST-35-08 | Bewertungsaufnahme | Aktuellen Stand speichern | Aufnahme auswählbar | Bestanden |
+| ST-35-09 | Historischer Bestand | Bestand ändern | Alter Bestand bleibt | Bestanden |
+| ST-35-10 | Historischer Einzelwert | Preis ändern | Alter Preis bleibt | Bestanden |
+| ST-35-11 | Mehrere Aufnahmen | Weitere Aufnahme erstellen und wechseln | Beide abrufbar | Bestanden |
+| ST-35-12 | Dauerhafte Speicherung | Seite neu laden | Aufnahmen bleiben | Bestanden |
+| ST-35-13 | Historischer CSV | Alte Aufnahme exportieren | Ursprüngliche Werte und Datum | Bestanden |
+| ST-35-14 | Berechtigungen | Als Mitglied Aufnahmen prüfen | Kein Erstellen oder Abrufen | Bestanden |
+
+#### Fehlerkorrektur und Nachprüfung
+
+ST-35-04: Die Erfassungsmaske setzte fehlende Einzelwerte automatisch auf CHF 0.00. POST/PATCH akzeptierten keine expliziten Nullwerte. Korrektur in Artikel-APIs und Erfassungs-, Bearbeitungs- und Detailansicht (2492546, 69aa3b2, eb3a44a, 1cb15bb, f5e53c1). Bestehende Nullpreise und gespeicherte Aufnahmen bleiben unverändert.
+
+| ID | Aufgabe | Erwartung | Ergebnis |
+|---|---|---|---|
+| ST-35-04a | Artikel ohne Einzelwert erstellen | Preis fehlt | Bestanden |
+| ST-35-04b | Artikel mit CHF 0 erstellen | Nullpreis vorhanden | Bestanden |
+| ST-35-04c | Grössen mit unterschiedlichen und fehlenden Preisen erstellen | Preise getrennt | Bestanden |
+| ST-35-04d | Fehlenden Einzelwert nachtragen | Preis gespeichert | Bestanden |
+| ST-35-04e | Einzelwert entfernen | Preis fehlt | Bestanden |
+| ST-35-04f | Inventarbewertung und CSV kontrollieren | Fehlende Preise gekennzeichnet | Bestanden |
+| ST-35-04g | Aufnahme mit fehlenden Preisen erstellen | Fehlende Preise erhalten | Bestanden |
+
+**Auswertung:** Erstlauf 13/14 bestanden, ein Fehler. Nachprüfung 7/7 bestanden; ursprünglicher Fehler behoben. Final 21/21 dokumentierte Testfälle erfolgreich (14 ursprüngliche und 7 zusätzliche; kein zusätzlicher Zähler für den fehlgeschlagenen Erstversuch).
+
+**Automatisierte Nachweise:** Drei neue MongoDB-Integrationstests (f97af77) ohne Fehler gemeldet. Weiterer Regressionstest für explizite Nullwerte (114f82b) ergänzt, Ausführung noch nicht bestätigt. Erwarteter Gesamtumfang 2’588 Tests; kein abschliessender Konsolenauszug. Direkte POST/PATCH-Regressionstests noch offen.
+
+**Teilabnahme:** Aktuelle Bewertung und manuell gespeicherte Bewertungsaufnahmen erfolgreich geprüft. Automatische Aufnahmen und frei wählbare historische Stichtage nicht umgesetzt oder abgenommen. Issue #35 bleibt offen.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 98 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 119 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
