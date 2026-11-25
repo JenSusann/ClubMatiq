@@ -252,7 +252,7 @@
         <label class="checkbox"><input type="checkbox" bind:checked={formular.kombinierbar} />Mit anderen Rabattregeln kombinierbar</label>
         <label class="checkbox"><input type="checkbox" bind:checked={formular.aktiv} />Rabattregel aktiv</label>
       </div>
-      <p class="hinweis">Einmalige Regeln benötigen einen Fixpreis, Artikel oder Kategorien und maximal ein Stück. Die Verwendung im Verkauf ist bis zur technischen Anspruchsprüfung gesperrt.</p>
+      <p class="hinweis">Einmalige Regeln benötigen einen Fixpreis, Artikel oder Kategorien und maximal ein Stück. Der Anspruch wird beim Verkauf serverseitig geprüft.</p>
       <div class="aktionen">
         <button type="submit" disabled={!istGueltig || speichern || laden}>{speichern ? 'Wird gespeichert ...' : bearbeiteteId ? 'Änderungen speichern' : 'Rabattregel erstellen'}</button>
         {#if bearbeiteteId}<button type="button" class="sekundaer" onclick={neu}>Abbrechen</button>{/if}
