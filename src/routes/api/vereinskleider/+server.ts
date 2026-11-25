@@ -26,6 +26,7 @@ type Rabattregel = {
   gueltigAb?: string | null;
   gueltigBis?: string | null;
   einmaligProMitglied?: boolean;
+  anspruchsgruppe?: string;
   kombinierbar?: boolean;
   aktiv?: boolean;
 };
@@ -245,13 +246,27 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             if (regel.rabattart !== 'fixpreis' || regel.geltungsbereich === 'warenkorb' || regel.maximaleMenge !== 1) {
               throw new Verkaufsfehler('Ungültige Erstbezugsregel.', 409);
             }
+            const gruppe = regel.anspruchsgruppe;
+            if (gruppe && !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(gruppe)) throw new Verkaufsfehler('Ungültige Anspruchsgruppe.', 409);
+            const anspruch = gruppe ? 'gruppe:' + gruppe : passend[0].artikelId;
+            const bisherigeIds = [passend[0].artikelId, regel._id.toString(), anspruch];
+            if (gruppe) {
+              const gruppenregeln = await db.collection<Rabattregel>('rabattregeln').find({ vereinId, anspruchsgruppe: gruppe, einmaligProMitglied: true }, { session }).toArray();
+              for (const gr of gruppenregeln) {
+                bisherigeIds.push(gr._id.toString(), ...(gr.artikelIds ?? []));
+                if (gr.kategorieIds?.length) {
+                  const artikel = await db.collection('artikel').find({ vereinId, kategorieId: { $in: gr.kategorieIds } }, { session, projection: { _id: 1 } }).toArray();
+                  bisherigeIds.push(...artikel.map(a => String(a._id)));
+                }
+              }
+            }
             // Ein Schreibzugriff auf das Mitglied serialisiert konkurrierende Ansprüche.
             const sperre = await db.collection('clubdesk_mitglieder').updateOne(
-              { _id: mitglied._id, vereinId, aktiv: { $ne: false }, erstbezugsRabattIds: { $nin: [passend[0].artikelId, regel._id.toString()] } },
-              { $addToSet: { erstbezugsRabattIds: passend[0].artikelId } }, { session }
+              { _id: mitglied._id, vereinId, aktiv: { $ne: false }, erstbezugsRabattIds: { $nin: [...new Set(bisherigeIds)] } },
+              { $addToSet: { erstbezugsRabattIds: anspruch } }, { session }
             );
             if (sperre.modifiedCount !== 1) throw new Verkaufsfehler(`Erstbezug «${regel.name}» wurde bereits beansprucht.`, 409);
-            erstbezugsIds.push(passend[0].artikelId);
+            erstbezugsIds.push(anspruch);
           }
           // Maximale Menge begrenzt die Anzahl rabattierter Stücke, nicht die Warenkorbmenge.
           let restmenge: number = typeof regel.maximaleMenge === 'number' ? regel.maximaleMenge : Number.MAX_SAFE_INTEGER;
