@@ -69,10 +69,15 @@
     - [9.5 Manuelle System- und Abnahmetests](#95-manuelle-system--und-abnahmetests)
     - [9.6 Usability-Tests und Evaluation](#96-usability-tests-und-evaluation)
     - [9.7 Test- und Abnahmeprozess](#97-test--und-abnahmeprozess)
-- [10. Technische Entscheidungen und offene Punkte](#10-technische-entscheidungen-und-offene-punkte)
-    - [10.1 Entscheidungen](#101-entscheidungen)
-    - [10.2 Offene Aufgaben vor der Abgabe / Produktivsetzung](#102-offene-aufgaben-vor-der-abgabe--produktivsetzung)
-    - [10.3 Entwicklungsstand / Änderungsprotokoll](#103-entwicklungsstand--änderungsprotokoll)
+- [10. Technische Architektur, Integrationen und Entwicklungsstand](#10-technische-architektur-integrationen-und-entwicklungsstand)
+    - [10.1 Architektur und technische Entscheidungen](#101-architektur-und-technische-entscheidungen)
+    - [10.2 Funktionsübersicht und Modulverknüpfungen](#102-funktionsübersicht-und-modulverknüpfungen)
+    - [10.3 Externe Dienste und Schnittstellen](#103-externe-dienste-und-schnittstellen)
+    - [10.4 E-Mail-Versand und Konfiguration](#104-e-mail-versand-und-konfiguration)
+    - [10.5 Sicherheit, Datenintegrität und Nachvollziehbarkeit](#105-sicherheit-datenintegrität-und-nachvollziehbarkeit)
+    - [10.6 Entwicklungsstand und Qualitätssicherung](#106-entwicklungsstand-und-qualitätssicherung)
+    - [10.7 Offene Aufgaben bis zur Abgabe](#107-offene-aufgaben-bis-zur-abgabe)
+    - [10.8 Abgrenzung zur Produktivsetzung und Weiterentwicklung](#108-abgrenzung-zur-produktivsetzung-und-weiterentwicklung)
 
 
 ## 1. Ausgangslage
@@ -509,36 +514,146 @@ Die Usability-Evaluation gemäss [Kapitel 3.5 Validate](#35-validate) ergänzt d
 Vor der Abgabe werden die finalen automatisierten Testergebnisse und Coverage-Werte für den festgelegten Abgabestand erhoben. Das laufende Abnahmetestprotokoll wird als Word-Dokument aufbereitet und als PDF exportiert.
 
 
-## 10. Technische Entscheidungen und offene Punkte
+## 10. Technische Architektur, Integrationen und Entwicklungsstand
 
-### 10.1 Entscheidungen
+### 10.1 Architektur und technische Entscheidungen
 
-- **SvelteKit + TypeScript:** Gemeinsames Projekt für Weboberfläche und serverseitige API.
-- **MongoDB mit Vereinsfilter:** Daten werden mandantenbezogen über `vereinId` verarbeitet.
-- **Transaktionen:** Bestandsänderungen und Protokolleinträge sollen gemeinsam erfolgreich sein oder gemeinsam fehlschlagen.
-- **Versionierung:** Reduziert das Risiko, dass parallele Bearbeitungen unbemerkt überschrieben werden.
-- **Historisches Protokoll:** Änderungen bleiben nachvollziehbar, statt ausschliesslich den aktuellen Bestand zu zeigen.
-- **Serverseitiges PDF:** Einheitliche Berichtserstellung aus den gespeicherten Daten ohne clientseitige Bestandsberechnung.
-- **Schrittweise Entwicklung:** Eine Datei beziehungsweise Funktion pro Änderung, anschliessend `npm run check` und Browser-Test.
+ClubMatiq ist eine webbasierte, mandantenfähige Vereinsverwaltung. SvelteKit verbindet die Benutzeroberfläche mit serverseitigen API-Endpunkten; MongoDB dient als gemeinsame Datenbasis. Die fachlichen Module greifen auf gemeinsame Stammdaten und Berechtigungen zu.
 
-### 10.2 Offene Aufgaben vor der Abgabe / Produktivsetzung
+| Technologie | Verwendung und Begründung |
+|---|---|
+| Svelte 5 / SvelteKit | Reaktive Oberfläche, Routing und serverseitige API |
+| TypeScript | Typisierte Datenstrukturen und statische Qualitätsprüfung |
+| Node.js / Vite | Entwicklungs- und Laufzeitumgebung |
+| MongoDB | Dokumentenorientierte Speicherung, flexible Artikelvarianten und vereinsbezogene Daten |
+| Argon2 | Bibliothek für Passwort-Hashing |
+| pdf-lib | Serverseitige PDF-Erstellung |
+| ExcelJS | Excel-Exporte |
+| qrcode | QR-Code-Erstellung |
+| Nodemailer | SMTP-Mailversand |
+| Vitest / V8 | Automatisierte Tests und Coverage |
+| GitHub | Versionsverwaltung, Issues und nachvollziehbare Änderungen |
+| Netlify | Bereitstellung der Webanwendung |
 
-- [ ] Repository-Link, Klasse, Testzugänge und Entwurfsartefakte in Kapitel «Projektübersicht» ergänzen.
-- [ ] Screenshots der tatsächlichen Oberfläche, Crazy-8s, Entscheidungsreflexion, User Journey und Mockup verlinken.
-- [ ] Verbindliche Moodle-Anforderungen mit dokumentierten Erweiterungen abgleichen.
-- [ ] Strukturierte Nutzerevaluation durchführen und Ergebnisse nachvollziehbar dokumentieren.
-- [ ] PDF-Grössenbezeichnungen verbessern und Berichte mit Korrekturen/Stornierungen gegenprüfen.
-- [ ] Sämtliche Berechtigungen und die Mandantentrennung mit negativen API-Tests überprüfen.
-- [ ] Grenzfälle bei Transaktionen, konkurrierenden Änderungen und Rückbuchungen testen.
-- [ ] Öffentliche Bereitstellung, Datenschutz, Sicherung/Wiederherstellung und Betriebsprozesse klären.
-- [ ] Weitere geplante Module nur dann als implementiert kennzeichnen, wenn sie tatsächlich funktionieren.
+Die Architektur verwendet vereinsbezogene Datenfilter, serverseitige Berechtigungsprüfungen, Eingabevalidierungen sowie Transaktionen und Versionskontrollen in dafür vorgesehenen Geschäftsprozessen. Historien und Lagerbewegungen unterstützen die Nachvollziehbarkeit. Eine flächendeckende atomare Verarbeitung sämtlicher Endpunkte ist damit nicht automatisch nachgewiesen.
 
-### 10.3 Entwicklungsstand / Änderungsprotokoll
+**Technische Grundlagen:** [package.json](package.json) · [Servermodule](src/lib/server) · [API-Routen](src/routes/api) · [ER-Diagramm](docs/images/ER-Diagram_ClubMatiq.png)
 
-| Datum | Änderung | Status |
+### 10.2 Funktionsübersicht und Modulverknüpfungen
+
+Die folgende Übersicht beschreibt den im Repository vorhandenen Funktionsumfang anhand der Oberflächen, API-Routen und Servermodule. Sie ist keine vollständige Abnahme sämtlicher Funktionen.
+
+| Modul | Funktionsumfang | Technische Einbindung |
 |---|---|---|
-| Bis 10.11.2026 | Stammdaten, Artikelverwaltung, Ausleihen/Rückgaben, Anmeldung und Vereinszuordnung | Lokal entwickelt und teilweise manuell getestet |
-| 11.11.2026 | Inventurabschluss, nachträgliche Korrektur, Stornierung, Protokoll und Inventurverlauf dokumentiert | Lokal umgesetzt und geprüft |
-| 11.11.2026 | Inventur-PDF über `pdf-lib` und Download-Button | `npm run check` und Download lokal erfolgreich getestet |
+| Dashboard | Zentraler Einstieg und Übersicht | [Dashboard](src/routes/dashboard) |
+| Inventar | Artikelanlage, Bearbeitung, Suche, Bestände, Grössenvarianten, Archivierung | [Inventar](src/routes/inventar), [Artikel-API](src/routes/api/artikel) |
+| QR-Code | QR-gestützter Artikelzugriff | [QR-Code](src/routes/qr-code) |
+| Ausleihen | Ausleihen und Rückgaben, Mengen- und Bestandsprüfung | [Ausleihen](src/routes/ausleihen), [API](src/routes/api/ausleihen) |
+| Inventur | Anlegen, Zählen, Abschluss, Korrektur, Zurücksetzen, Stornierung, Korrekturhistorie und PDF | [Inventur](src/routes/inventur), [API](src/routes/api/inventuren) |
+| Inventarbewertung | Übersicht der Inventarwerte und Inventarexport | [Inventarbewertung](src/routes/inventarbewertung), [Export](src/routes/api/export/inventar) |
+| Lagerjournal | Artikelbezogene und übergreifende Lagerbewegungen, Historie und Export | [Lagerjournal](src/routes/inventar/lagerbewegungen), [Servermodul](src/lib/server/lagerbewegungen.ts), [Export](src/routes/api/export/lagerbewegungen) |
+| Schadensmeldungen | Meldungen mit Bildanhängen und Bearbeitung | [Meldungen](src/routes/meldungen), [Upload](src/routes/api/upload) |
+| Stammdaten | Kategorien, Lagerorte, Grössen, Lieferanten, Mitglieder und Rabatte | [Stammdaten](src/routes/stammdaten) |
+| Vereinskleiderbestand | Bestände nach Artikel und Grösse | [Bestand](src/routes/vereinskleider/bestand) |
+| Vereinskleiderverkauf | Verkauf, Preis- und Rabattverwaltung, Zahlungsarten | [Verkauf](src/routes/vereinskleider/verkauf), [API](src/routes/api/vereinskleider) |
+| Bestellungen | Offene Bestellungen, Preisfestlegung, Teilzahlungen, Übergaben, Stornierungen und Historien | [Bestellungen](src/routes/vereinskleider/bestellungen), [API](src/routes/api/vereinskleider/bestellungen) |
+| Sammelbestellungen | Lieferantenbezogene Bestellungen, Wareneingänge und PDF-Ausgabe | [Sammelbestellungen](src/routes/vereinskleider/sammelbestellungen), [API](src/routes/api/vereinskleider/sammelbestellungen) |
+| Verrechnung | Rechnungen, Teilrechnungen, Zahlungsverwaltung, PDF- und Datenexporte | [Verrechnung](src/routes/vereinskleider/verrechnung), [API](src/routes/api/vereinskleider/verrechnung) |
+| Retouren und Gutschriften | Retourenerfassung, Rückerstattungsstatus, Gutschriftenexport und Historie | [Retouren](src/routes/vereinskleider/retouren), [Retouren-API](src/routes/api/vereinskleider/retouren), [Gutschriften-API](src/routes/api/vereinskleider/gutschriften) |
+| Verkaufshistorie | Nachvollziehbarkeit vergangener Verkäufe und zugehöriger Vorgänge | [Historie](src/routes/vereinskleider/historie) |
+| Benutzer und Vereine | Registrierung, Anmeldung, Abmeldung, Passwortänderung, Benutzeranlage, Einladungen, Rollen, Statuswechsel und Session-Verwaltung | [Benutzerverwaltung](src/routes/benutzer), [Benutzer-API](src/routes/api/benutzer), [Session-API](src/routes/api/session) |
+| Mail-Einstellungen | Vereinsbezogene Versandkonfiguration und Testversand | [Mail-Einstellungen](src/routes/mail-einstellungen), [API](src/routes/api/mail-einstellungen) |
+| Dokumentation | In die Anwendung eingebundene Dokumentationsseiten | [Dokumentationsbereich](src/routes/docs) |
 
-> **Dokumentationsregel:** Nach jedem weiteren Entwicklungsschritt die betroffenen Funktionen, API-Routen, bekannten Einschränkungen und Testresultate hier nachführen. Nicht getestete Funktionen ausdrücklich als offen markieren.
+**Modulübergreifende Abläufe:** Stammdaten bilden die Grundlage für Inventar und Vereinskleider. Ausleihen, Rückgaben, Verkäufe, Wareneingänge, Retouren und Inventuren können Bestände verändern; das Lagerjournal dient der Nachvollziehbarkeit. Bestellungen verbinden Bedarf, Beschaffung, Übergabe und Verrechnung. Rechnungen, Teilzahlungen, Gutschriften und Rückerstattungen bilden die finanzielle Abwicklung innerhalb des Prototyps ab. Die vollständige Finanzbuchhaltung bleibt ausserhalb von ClubMatiq.
+
+### 10.3 Externe Dienste und Schnittstellen
+
+| Dienst | Einbindung | Abgrenzung |
+|---|---|---|
+| MongoDB / Atlas | [Datenbankverbindung](src/lib/server/mongodb.ts), Speicherung der Vereins- und Geschäftsdaten | Konfiguration und Betriebsnachweis separat prüfen |
+| Netlify | Hosting der [Webanwendung](https://clubmatiq.netlify.app) | Deployment des finalen Abgabestands verifizieren |
+| Cloudinary | [Bild-Upload](src/routes/api/upload) für Schadensmeldungen; vereinsbezogene Bildreferenzen in MongoDB | Zugriffsschutz, Aufbewahrung und Löschung im Betrieb prüfen |
+| Resend | HTTP-API für Einladungs-E-Mails; Standardmethode ohne individuelle Versandkonfiguration | Versandannahme ist kein Zustellnachweis |
+| SMTP | Vereinsbezogener Versand über Nodemailer und TLS | Benötigt gültige SMTP-Konfiguration |
+| Microsoft 365 | Microsoft Graph sendMail mit OAuth-Client-Credentials und Zertifikatsauthentifizierung | Benötigt Entra-App, passende Berechtigungen und gültige vereinsbezogene Zertifikate |
+| ClubDesk | CSV-basierter Mitgliederdatenaustausch und manuelle Buchungsbestätigung für Rechnungen und Gutschriften | Keine direkte ClubDesk-API-Synchronisation |
+| TWINT | Abbildung der Zahlungsart im Verkaufs- und Verrechnungsprozess | Keine hier nachgewiesene direkte Zahlungsanbieter-API oder automatische Zahlungsbestätigung |
+
+**ClubDesk:** [Testmitglieder-CSV](docs/testdaten/ClubMatiq_ClubDesk_Testmitglieder.csv) · [Mitgliederverwaltung](src/routes/stammdaten/mitglieder) · [Buchungsabgleich](src/routes/api/vereinskleider/clubdesk-abgleich). Der Buchungsabgleich speichert Datum, Referenz und erfassende Person; er löst keine Zahlung und keine externe Buchung aus.
+
+**Dateiaustausch:** PDF-Berichte für Inventuren, Sammelbestellungen und Rechnungen sowie Excel-/Datenexporte für Inventar, Lagerjournal und finanzielle Vorgänge unterstützen die Weiterverarbeitung ausserhalb der Anwendung.
+
+### 10.4 E-Mail-Versand und Konfiguration
+
+Administratoren können die Versandmethode vereinsbezogen konfigurieren. Der Einladungsprozess unterstützt Resend, SMTP und Microsoft 365. Einladungen können erneut versendet und widerrufen werden. Die Resend-Einrichtungsanleitung beschreibt den ursprünglichen Versandweg; der aktuelle Code umfasst zusätzlich die beiden weiteren Methoden.
+
+- [E-Mail-Versand](src/lib/server/email.ts)
+- [Microsoft-365-Anbindung](src/lib/server/microsoft365.ts)
+- [Mail-Konfiguration und Verschlüsselung](src/lib/server/mail-einstellungen.ts)
+- [Einladungs-API](src/routes/api/benutzer/einladen)
+- [Resend-Einrichtungsanleitung](docs/resend-einladungen.md)
+
+SMTP-Geheimnisse und Microsoft-365-Zertifikatsdaten werden serverseitig mit AES-256-GCM geschützt. Microsoft 365 verwendet vereinsbezogene Zertifikate und private Schlüssel ohne globalen Zertifikats-Fallback. Die Implementierung prüft Gültigkeitszeitraum und Übereinstimmung des Schlüssels mit dem Zertifikat. Der tatsächliche Versand über alle Anbieter muss mit geeigneten Testkonfigurationen separat nachgewiesen werden.
+
+| Umgebungsvariable | Zweck |
+|---|---|
+| `MONGODB_URI` | Datenbankverbindung |
+| `PUBLIC_APP_URL` | Basis-URL für Einladungslinks |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Resend-Versand |
+| `MAIL_ENCRYPTION_KEY` | Schlüssel zur Verschlüsselung der Mail-Zugangsdaten (32 Byte, hexadezimal) |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Bildspeicher |
+
+Diese Übersicht enthält keine geheimen Werte und ist keine abschliessende Liste aller Laufzeit- und Testvariablen.
+
+### 10.5 Sicherheit, Datenintegrität und Nachvollziehbarkeit
+
+- Rollenbasierte Zugriffe für Administratoren, Materialverantwortliche, Leitende und Mitglieder; serverseitige Prüfung unabhängig von der sichtbaren Navigation.
+- Vereinsbezogene Datenfilter und Prüfung der Zugehörigkeit bei Zugriffen.
+- Session-Verwaltung mit Inaktivitätswarnung, automatischer Abmeldung und Invalidierung bei Rollenwechsel oder Deaktivierung.
+- Schutz vor Selbstdeaktivierung und Verlust der letzten aktiven Administratorberechtigung.
+- Validierung von IDs, Mengen, E-Mail-Adressen und fachlichen Eingaben.
+- Bestätigungsdialoge bei kritischen Aktionen sowie Historien für Bestandsänderungen, Übergaben, Stornierungen und Retouren.
+- Transaktionen und Versionskontrollen in ausgewählten bestandsverändernden Abläufen.
+- Bild-Upload mit Anmeldung, Dateityp- und Signaturprüfung, maximal 5 MB sowie Registrierung der Bildreferenz in MongoDB.
+- Geheimnisse ausschliesslich serverseitig konfigurieren; keine produktiven Zugangsdaten oder persönlichen Testdaten veröffentlichen.
+
+**Nachweise:** [Berechtigungsmodul](src/lib/server/berechtigungen.ts) · [Testprotokoll](docs/testing/System_Abnahmetestprotokoll.md) · [Kapitel 9](#9-lokale-installation-und-tests)
+
+Die dokumentierten Massnahmen ersetzen keinen vollständigen Sicherheits-, Datenschutz- oder Lasttest.
+
+### 10.6 Entwicklungsstand und Qualitätssicherung
+
+Stand der Dokumentationsüberarbeitung: 25.11.2026. Die Funktionsübersicht basiert auf dem Repository-Baum und ausgewählten Implementierungsdateien. Die Anwendung befindet sich weiterhin in Entwicklung.
+
+| Bereich | Dokumentierter Stand |
+|---|---|
+| Fachliche Module | Oberflächen und API-Routen gemäss Kapitel 10.2 vorhanden |
+| Externe Dienste | Implementierungen gemäss Kapitel 10.3 und 10.4 vorhanden; Live-Nachweise je Dienst separat erforderlich |
+| Automatisierte Tests | Unit- und Integrationstests vorhanden; finale Anzahl und Coverage noch zu erheben |
+| Manuelle Abnahmen | 58/58 abschliessend bestanden in fünf dokumentierten Issue-Abnahmen (Zwischenstand 25.11.2026) |
+| Regressionstests | Weitere 56 Fälle geplant; laufende Issue-Abnahmen ergänzen den Katalog |
+| Usability | Unabhängige Evaluation noch durchzuführen bzw. auszuwerten |
+| Abgabedokumentation | Laufende Pflege; finaler Abgabestand noch festzulegen |
+
+Die detaillierte Änderungshistorie wird über [GitHub-Commits](https://github.com/JenSusann/ClubMatiq/commits/main/) und [GitHub-Issues](https://github.com/JenSusann/ClubMatiq/issues) geführt. Das [Abnahmetestprotokoll](docs/testing/System_Abnahmetestprotokoll.md) ist die zentrale Quelle für manuelle Testresultate. Der Grössenfehler im Inventur-PDF wurde im Rahmen von #21 korrigiert und erfolgreich nachgeprüft.
+
+### 10.7 Offene Aufgaben bis zur Abgabe
+
+- [ ] Verbleibende Issues und bekannte Fehler bearbeiten; Abnahmen und Regressionstests dokumentieren.
+- [ ] Finale Unit- und Integrationstestläufe, Coverage und statische Prüfungen mit Commit und Datum dokumentieren.
+- [ ] Noch offene Sicherheits-, Mandantentrennungs-, Transaktions- und Parallelitätsfälle gezielt prüfen.
+- [ ] Externe Versandwege, Bildspeicher und Deployment mit geeigneten Testkonten und Konfigurationen überprüfen.
+- [ ] Usability-Evaluation durchführen, auswerten und Verbesserungen nachvollziehbar umsetzen.
+- [ ] Moodle-Anforderungen, Anforderungsabdeckung und Artefakte abgleichen.
+- [ ] Projektübersicht, Referenz-Mockup, Screenshots, Testzugänge und finale Testversion ergänzen.
+- [ ] Laufendes Abnahmetestprotokoll als Word-Dokument aufbereiten und als PDF abgeben.
+- [ ] Finalen Abgabestand versionieren und Zugänglichkeit aller Links prüfen.
+
+### 10.8 Abgrenzung zur Produktivsetzung und Weiterentwicklung
+
+Vor einem produktiven Einsatz sind insbesondere Datenschutz, Aufbewahrungs- und Löschkonzepte, Backup und Wiederherstellung, Monitoring, Missbrauchsschutz, Schlüsselrotation, Zertifikatserneuerung sowie Betriebsverantwortlichkeiten zu klären. Zustellstatus und Bounces bei Resend benötigen gegebenenfalls Webhooks. Echte Last- und Parallelitätstests sind gesondert zu planen.
+
+Eine direkte ClubDesk-Synchronisation oder TWINT-Zahlungsintegration ist nicht als umgesetzt nachgewiesen. Solche Erweiterungen benötigen eine separate technische und fachliche Prüfung. Der Prototyp bleibt auch ohne direkte Anbindung an eine externe Vereinsbuchhaltung nutzbar.
+
+> **Dokumentationsregel:** Implementierung, bestätigte Testergebnisse und geplante Erweiterungen getrennt ausweisen. Änderungen über Issues, Commits und Testprotokoll nachvollziehbar halten.
