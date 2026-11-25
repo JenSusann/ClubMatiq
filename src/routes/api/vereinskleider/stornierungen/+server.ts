@@ -215,7 +215,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       // Vollständiger Erstbezug mit genau einer nicht übergebenen Bestellposition:
       // Rabatt und Anspruch werden gemeinsam mit der Bestellung aufgehoben.
       if (verkauf.erstbezugsIds?.length &&
-          (verkauf.rechnungId || !Array.isArray(verkauf.erstbezugsPositionen)) &&
+          !Array.isArray(verkauf.erstbezugsPositionen) &&
           (verkauf.rechnungId || ((verkauf.bezahltBetrag ?? 0) === 0 && !(verkauf.zahlungen ?? []).some(z => z.betrag > 0))) &&
           verkauf.positionen?.length === 1 && index === 0) {
         const p = verkauf.positionen[0];
@@ -281,10 +281,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             rueckerstattungOffen, status: 'storniert' };
         }
       }
-      // Positionsbezogene Erstbezüge ohne Rechnung: reguläre Stücke zuerst stornieren.
+      // Positionsbezogene Erstbezüge: reguläre Stücke zuerst stornieren.
       const zuordnungen = verkauf.erstbezugsPositionen as { anspruch: string; rabattId: string; positionsIndex: number; rabattBetrag: number }[] | undefined;
-      if (verkauf.erstbezugsIds?.length && Array.isArray(zuordnungen) && !verkauf.rechnungId &&
-          (verkauf.bezahltBetrag ?? 0) === 0 && !(verkauf.zahlungen ?? []).some(z => z.betrag > 0)) {
+      if (verkauf.erstbezugsIds?.length && Array.isArray(zuordnungen) && (verkauf.rechnungId ||
+          ((verkauf.bezahltBetrag ?? 0) === 0 && !(verkauf.zahlungen ?? []).some(z => z.betrag > 0)))) {
         const p = verkauf.positionen[index];
         const rabatte = verkauf.rabatte as { rabattId: string; betrag: number; einmaligProMitglied?: boolean }[] | undefined;
         if (!p || p.verkaufsart !== 'bestellung' || p.preisOffen || !idGueltig(verkauf.mitgliedId) ||
@@ -318,10 +318,47 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           storniertMenge: (alt.storniertMenge ?? 0)+menge } : alt);
         const ids = freigaben.map(z => z.anspruch);
         const endbetrag = (rappen(verkauf.endbetrag)-netto)/100;
+        let gutschriftId: string | null = null;
+        let rueckerstattungOffen = 0;
+        let bezahlt = 0;
+        if (verkauf.rechnungId) {
+          if (!idGueltig(verkauf.rechnungId)) throw new Stornierungsfehler('Ungültige Belegreferenz.',409);
+          const rechnungen = db.collection<Rechnung>('vereinskleider_rechnungen');
+          const rechnung = await rechnungen.findOne({ _id: new ObjectId(verkauf.rechnungId), vereinId, verkaufId: verkaufId.toString() }, { session });
+          const bp = rechnung?.positionen?.[index];
+          if (!rechnung || !bp || bp.artikelId !== p.artikelId || bp.groesseId !== p.groesseId ||
+              bp.verkaufsart !== p.verkaufsart || bp.einzelpreis !== p.einzelpreis ||
+              bp.menge < p.menge || !gueltigeRappen(rechnung.gesamtbetrag) ||
+              !gueltigeRappen(rechnung.bezahltBetrag) || !gueltigeRappen(rechnung.gutgeschriebenBetrag ?? 0) ||
+              rechnung.bezahltBetrag > rechnung.gesamtbetrag ||
+              rappen(rechnung.gesamtbetrag) - rappen(rechnung.gutgeschriebenBetrag ?? 0) !== rappen(verkauf.endbetrag) ||
+              (rechnung.status === 'storniert' && netto !== 0)) {
+            throw new Stornierungsfehler('Erstbezugsrechnung stimmt nicht eindeutig mit dem Verkauf überein.',409);
+          }
+          bezahlt = rappen(rechnung.bezahltBetrag);
+          const gutgeschrieben = rappen(rechnung.gutgeschriebenBetrag ?? 0) + netto;
+          rueckerstattungOffen = Math.max(0, bezahlt - rappen(endbetrag))/100;
+          if (netto > 0) {
+            const neuerStatus: Rechnung['status'] = endbetrag === 0 ? 'storniert' : bezahlt >= rappen(endbetrag) ? 'bezahlt' : bezahlt > 0 ? 'teilweise_bezahlt' : 'offen';
+            const korrigiert = await rechnungen.updateOne({ _id: rechnung._id, vereinId, status: rechnung.status,
+              bezahltBetrag: rechnung.bezahltBetrag, gutgeschriebenBetrag: rechnung.gutgeschriebenBetrag === undefined ? { $exists: false } : rechnung.gutgeschriebenBetrag },
+              { $set: { gutgeschriebenBetrag: gutgeschrieben/100, rueckerstattungOffen, status: neuerStatus, aktualisiertAm: jetzt } }, { session });
+            if (korrigiert.modifiedCount !== 1) throw new Stornierungsfehler('Rechnung wurde zwischenzeitlich geändert.',409);
+            const gs = new ObjectId();
+            gutschriftId = gs.toString();
+            await db.collection('vereinskleider_gutschriften').insertOne({
+              _id: gs, vereinId, verkaufId: verkaufId.toString(), rechnungId: rechnung._id.toString(),
+              rechnungsnummer: rechnung.rechnungsnummer, gutschriftnummer: `GS-${gs.toString().slice(-12).toUpperCase()}`,
+              positionsIndex: index, artikelId: p.artikelId, groesseId: p.groesseId, artikelname: p.artikelname ?? '',
+              menge, einzelpreis: p.einzelpreis, rabattBetrag: rabattKorrektur/100, betrag: netto/100,
+              grund, erstelltAm: jetzt, status: 'erstellt', pdfStatus: 'ausstehend', clubdeskExportStatus: 'nicht_exportiert'
+            }, { session });
+          }
+        }
         const status = positionen.every(p => p.menge === 0) ? 'storniert' :
           positionen.some(p => p.verkaufsart === 'bestellung' && p.menge > (p.uebergebenMenge ?? 0)) ? 'offen' : 'abgeschlossen';
         const update = await sammlung.updateOne({ _id: verkaufId, vereinId, aktualisiertAm: verkauf.aktualisiertAm }, { $set: {
-          positionen, status, endbetrag, restbetragBekannt: endbetrag, zahlungsstatus: endbetrag === 0 ? 'bezahlt' : 'offen',
+          positionen, status, endbetrag, restbetragBekannt: Math.max(0, rappen(endbetrag)-bezahlt)/100, zahlungsstatus: bezahlt >= rappen(endbetrag) ? 'bezahlt' : bezahlt > 0 ? 'teilweise_bezahlt' : 'offen',
           zwischentotal: (rappen(verkauf.zwischentotal)-brutto)/100, rabattTotal: (rappen(verkauf.rabattTotal)-rabattKorrektur)/100,
           erstbezugsIds: verkauf.erstbezugsIds.filter(id => !ids.includes(id)),
           erstbezugsPositionen: zuordnungen.filter(z => !ids.includes(z.anspruch)),
@@ -339,7 +376,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           if (freigabe.modifiedCount !== 1) throw new Stornierungsfehler('Erstbezugsanspruch konnte nicht freigegeben werden.',409);
         }
         return { verkaufId: eingabe.verkaufId, positionsIndex: index, storniert: menge, freigegebeneReserve: reserve,
-          gutschriftId: null, gutschriftBetrag: 0, rueckerstattungOffen: 0, status };
+          gutschriftId, gutschriftBetrag: gutschriftId ? netto/100 : 0, rueckerstattungOffen, status };
       }
       // Ohne Beleg bleibt der bisherige Schutz für bereits bezahlte Verkäufe bestehen.
       if (!verkauf.rechnungId && ((verkauf.bezahltBetrag ?? 0) > 0 ||
