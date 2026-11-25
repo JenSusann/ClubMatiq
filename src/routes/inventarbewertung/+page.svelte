@@ -176,7 +176,49 @@
     }
   }
 
-  onMount(() => { laden(); });
+  type Aufnahme = { _id: string; aufgenommenAm: string };
+  type HistorischeZeile = { artikelId: string; artikel: string; kategorie: string; lagerort: string; groesse: string; menge: number; einzelwert: number | null; gesamtwert: number | null };
+  let aufnahmen = $state<Aufnahme[]>([]);
+  let auswahl = $state('');
+  let historisch = $state<(Aufnahme & { zeilen: HistorischeZeile[] }) | null>(null);
+  let aufnahmeFehler = $state('');
+  let aufnahmeBusy = $state(false);
+  let aufnahmeErlaubt = $state(false);
+  let historischerWert = $derived(historisch?.zeilen.reduce((summe, z) => summe + (z.gesamtwert ?? 0), 0) ?? 0);
+  async function aufnahmenLaden() {
+    const antwort = await fetch('/api/inventarbewertung/stichtage');
+    if (antwort.status === 403 || antwort.status === 401) { aufnahmeErlaubt = false; return; }
+    if (!antwort.ok) throw new Error('Bewertungsaufnahmen konnten nicht geladen werden.');
+    aufnahmen = await antwort.json();
+    aufnahmeErlaubt = true;
+  }
+  async function aufnahmeAnzeigen() {
+    historisch = null;
+    if (!auswahl) return;
+    const antwort = await fetch('/api/inventarbewertung/stichtage/' + encodeURIComponent(auswahl));
+    if (!antwort.ok) throw new Error('Bewertungsaufnahme konnte nicht geladen werden.');
+    historisch = await antwort.json();
+  }
+  async function aufnahmeAktion(neu: boolean) {
+    aufnahmeBusy = true;
+    aufnahmeFehler = '';
+    try {
+      if (neu) {
+        const antwort = await fetch('/api/inventarbewertung/stichtage', { method: 'POST' });
+        if (!antwort.ok) throw new Error('Bewertungsaufnahme konnte nicht gespeichert werden.');
+        const daten = await antwort.json();
+        await aufnahmenLaden();
+        auswahl = daten._id;
+      }
+      await aufnahmeAnzeigen();
+    } catch (error) {
+      aufnahmeFehler = error instanceof Error ? error.message : 'Bewertungsaufnahme fehlgeschlagen.';
+    } finally { aufnahmeBusy = false; }
+  }
+  onMount(() => {
+    laden();
+    aufnahmenLaden().catch(error => { aufnahmeFehler = error.message; });
+  });
 </script>
 
 <svelte:head>
@@ -198,8 +240,44 @@
     <strong>Bewertungsstand:</strong>
     {standVom ? datum(standVom) : 'Noch nicht geladen'}
     – Die Bewertung basiert auf aktuellen Beständen und Preisen.
-    Eine historische Stichtagsbewertung ist noch nicht verfügbar.
+    Gespeicherte Bewertungsaufnahmen sind separat verfügbar.
   </p>
+
+  {#if aufnahmeFehler}
+    <p class="fehler" role="alert">{aufnahmeFehler}</p>
+  {/if}
+  {#if aufnahmeErlaubt}
+    <section class="bereich">
+      <div class="export-zeile">
+        <h2>Gespeicherte Bewertungsaufnahmen</h2>
+        <button class="aktualisieren" disabled={aufnahmeBusy} onclick={() => aufnahmeAktion(true)}>Aktuellen Stand speichern</button>
+      </div>
+      <p class="hinweis">Aufnahmen enthalten den tatsächlichen Bestand und Einzelwert zum Aufnahmezeitpunkt. Nicht gespeicherte vergangene Stichtage können nicht rückwirkend rekonstruiert werden.</p>
+      <div class="feld">
+        <label for="aufnahme">Bewertungsaufnahme auswählen</label>
+        <select id="aufnahme" bind:value={auswahl} disabled={aufnahmeBusy} onchange={() => aufnahmeAktion(false)}>
+          <option value="">Bitte auswählen</option>
+          {#each aufnahmen as a}
+            <option value={a._id}>{datum(new Date(a.aufgenommenAm))}</option>
+          {/each}
+        </select>
+      </div>
+      {#if historisch}
+        <p><strong>Inventarwert: CHF {chf(historischerWert)}</strong> – {historisch.zeilen.filter(z => z.menge > 0 && z.einzelwert === null).length} Positionen ohne Preis</p>
+        <a class="export-button" href={'/api/inventarbewertung/stichtage/' + historisch._id + '?format=csv'}>Historischen CSV exportieren</a>
+        <div class="tabelle-scroll">
+          <table>
+            <thead><tr><th>Artikel</th><th>Grösse</th><th>Kategorie</th><th>Lagerort</th><th>Bestand</th><th>Einzelwert</th><th>Gesamtwert</th></tr></thead>
+            <tbody>
+              {#each historisch.zeilen as z}
+                <tr><td>{z.artikel}</td><td>{z.groesse || '–'}</td><td>{z.kategorie}</td><td>{z.lagerort}</td><td>{z.menge}</td><td>{z.einzelwert === null ? '–' : chf(z.einzelwert)}</td><td>{z.gesamtwert === null ? 'Unvollständig' : chf(z.gesamtwert)}</td></tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {/if}
+    </section>
+  {/if}
 
   {#if fehler}
     <p class="fehler" role="alert">{fehler}</p>
@@ -373,7 +451,7 @@
 
     <p class="hinweis">
       <strong>CSV-Export:</strong> Der Download enthält aktuelle Daten und das Exportdatum,
-      keine historische Stichtagsbewertung. Fehlende Preise bleiben im Export leer.
+      keine historische Stichtagsbewertung. Für gespeicherte Aufnahmen steht oben ein separater Export bereit. Fehlende Preise bleiben im Export leer.
     </p>
   {/if}
 </main>
