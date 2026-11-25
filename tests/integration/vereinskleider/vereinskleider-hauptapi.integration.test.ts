@@ -363,6 +363,32 @@ describe('Issue #34 – Erstbezug über mehrere Verkaufsvorgänge', () => {
     expect(ansprueche.get('verein-1:' + MIT)?.has(ART)).toBe(true);
     expect((await sell()).status).toBe(409);
   });
+  it('sperrt dieselbe Anspruchsgruppe auch bei einem anderen Artikel', async () => {
+    const a = { ...regel(RAB), anspruchsgruppe: 'juko-tshirt' };
+    const b = { ...regel(RAB2), anspruchsgruppe: 'juko-tshirt', artikelIds: [GRO] };
+    collection('rabattregeln').find.mockImplementation((filter: any) => ({
+      toArray: async () => filter.anspruchsgruppe ? [a, b] : filter._id.$in.some((id: any) => String(id) === RAB) ? [a] : [b]
+    }));
+    expect((await sell()).status).toBe(201);
+    expect(ansprueche.get('verein-1:' + MIT)?.has('gruppe:juko-tshirt')).toBe(true);
+    collection('artikel').findOne.mockResolvedValue({ _id: new ObjectId(GRO), name: 'Shirt B', kategorieId: 'kat-1', istVereinskleidung: true, hatGroessen: false, menge: 10, verkaufspreis: 20 });
+    expect((await sell({ rabattIds: [RAB2], positionen: [{ artikelId: GRO, groesseId: null, menge: 1 }] })).status).toBe(409);
+  });
+  it('berücksichtigt einen früheren artikelbezogenen Anspruch', async () => {
+    ansprueche.set('verein-1:' + MIT, new Set([GRO]));
+    const a = { ...regel(RAB), anspruchsgruppe: 'juko-tshirt', artikelIds: [ART, GRO] };
+    collection('rabattregeln').find.mockReturnValue({ toArray: async () => [a] });
+    expect((await sell()).status).toBe(409);
+  });
+  it('erlaubt getrennte Anspruchsgruppen', async () => {
+    const a = { ...regel(RAB), anspruchsgruppe: 'juko-tshirt' };
+    collection('rabattregeln').find.mockReturnValue({ toArray: async () => [a] });
+    expect((await sell()).status).toBe(201);
+    const b = { ...regel(RAB2), anspruchsgruppe: 'juko-gwaendli' };
+    collection('rabattregeln').find.mockReturnValue({ toArray: async () => [b] });
+    expect((await sell({ rabattIds: [RAB2] })).status).toBe(201);
+    expect(ansprueche.get('verein-1:' + MIT)).toEqual(new Set(['gruppe:juko-tshirt', 'gruppe:juko-gwaendli']));
+  });
   it('verhindert zweiten Bezug nach erfolgreicher Bestellung', async () => {
     expect((await sell()).status).toBe(201);
     expect((await sell()).status).toBe(409);
