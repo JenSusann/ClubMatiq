@@ -29,7 +29,7 @@ const patch=(d:unknown)=>PATCH(ctx('PATCH',d));
 const good={name:'Ball',kategorieId:id2,lagerortId:id2,menge:2,einzelwert:5,beschreibung:'',hatGroessen:false,mindestbestand:0};
 describe('Artikelbearbeitung zusätzliche Fälle',()=>{
  it('GET Datenbankfehler',async()=>{m.findOne.mockRejectedValueOnce(new Error('DB'));expect((await GET(ctx('GET'))).status).toBe(500)});
- it('GET Artikel mit Varianten und Standardwerten',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id),hatGroessen:true});m.toArray.mockResolvedValueOnce([{_id:new ObjectId(id2),artikelId:id,groesseId:id2,menge:2}]);const r=await GET(ctx('GET'));expect(r.status).toBe(200);expect((await r.json()).varianten[0]).toMatchObject({einzelwert:0,mindestbestand:0,aktiv:true})});
+ it('GET Artikel mit Varianten und Standardwerten',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id),hatGroessen:true});m.toArray.mockResolvedValueOnce([{_id:new ObjectId(id2),artikelId:id,groesseId:id2,menge:2}]);const r=await GET(ctx('GET'));expect(r.status).toBe(200);expect((await r.json()).varianten[0]).toMatchObject({einzelwert:null,mindestbestand:0,aktiv:true})});
  it.each([null,[],4])('PATCH ungültiges Objekt %j',async d=>{expect((await patch(d)).status).toBe(400)});
  it.each([{mindestbestand:-1},{mindestbestand:1.5},{name:' '},{kategorieId:'falsch'},{einzelwert:-1},{hatGroessen:'ja'},{beschreibung:2},{lieferantId:'falsch'},{istVereinskleidung:'ja'},{menge:-1},{menge:1.5}])('PATCH ungültige Angaben %j',async d=>{expect((await patch({...good,...d})).status).toBe(400)});
  it('PATCH Grössenvarianten fehlen',async()=>{expect((await patch({...good,hatGroessen:true})).status).toBe(400)});
@@ -563,8 +563,8 @@ describe('Artikel-API: zusätzliche Validierungszweige', () => {
     expect(response.status).toBe(400);
     expect(mocks.insertOne).not.toHaveBeenCalled();
   });
-  it('Einzelwert fehlt', async () => {
-    const response = await POST(event({ ...base(), einzelwert: null }) as never);
+  it('Einzelwert fehlt vollständig', async () => {
+    const response = await POST(event({ ...base(), einzelwert: undefined }) as never);
     expect(response.status).toBe(400);
     expect(mocks.insertOne).not.toHaveBeenCalled();
   });
