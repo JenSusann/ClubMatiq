@@ -16,6 +16,7 @@
     maximaleMenge: number | null;
     gueltigAb: string | null;
     gueltigBis: string | null;
+    einmaligProMitglied: boolean;
     kombinierbar: boolean;
     aktiv: boolean;
   };
@@ -25,7 +26,7 @@
   const leer: Formular = {
     name: '', rabattart: 'prozent', wert: 0, geltungsbereich: 'warenkorb',
     artikelIds: [], kategorieIds: [], riegen: [], maximaleMenge: null,
-    gueltigAb: null, gueltigBis: null, kombinierbar: true, aktiv: true
+    gueltigAb: null, gueltigBis: null, einmaligProMitglied: false, kombinierbar: true, aktiv: true
   };
 
   let regeln = $state<Rabattregel[]>([]);
@@ -47,6 +48,7 @@
     (formular.geltungsbereich !== 'artikel' || formular.artikelIds.length > 0) &&
     (formular.geltungsbereich !== 'kategorie' || formular.kategorieIds.length > 0) &&
     (formular.maximaleMenge === null || (Number.isInteger(formular.maximaleMenge) && formular.maximaleMenge > 0)) &&
+    (!formular.einmaligProMitglied || (formular.rabattart === 'fixpreis' && formular.geltungsbereich !== 'warenkorb' && formular.maximaleMenge === 1)) &&
     (!formular.gueltigAb || !formular.gueltigBis || formular.gueltigAb <= formular.gueltigBis)
   );
 
@@ -73,6 +75,7 @@
       maximaleMenge: regel.maximaleMenge ?? null,
       gueltigAb: regel.gueltigAb ? regel.gueltigAb.slice(0, 10) : null,
       gueltigBis: regel.gueltigBis ? regel.gueltigBis.slice(0, 10) : null,
+      einmaligProMitglied: regel.einmaligProMitglied ?? false,
       kombinierbar: regel.kombinierbar,
       aktiv: regel.aktiv
     };
@@ -245,10 +248,11 @@
       </div>
 
       <div class="schalter">
+        <label class="checkbox"><input type="checkbox" bind:checked={formular.einmaligProMitglied} />Einmaliger Bezug pro Mitglied</label>
         <label class="checkbox"><input type="checkbox" bind:checked={formular.kombinierbar} />Mit anderen Rabattregeln kombinierbar</label>
         <label class="checkbox"><input type="checkbox" bind:checked={formular.aktiv} />Rabattregel aktiv</label>
       </div>
-      <p class="hinweis">Hinweis: „Erstes T-Shirt“ oder „erstes Turngwändli“ kann aktuell nicht automatisch anhand der bisherigen Bezüge überprüft werden. Die Berechtigung muss beim Verkauf kontrolliert werden.</p>
+      <p class="hinweis">Einmalige Regeln benötigen einen Fixpreis, Artikel oder Kategorien und maximal ein Stück. Die Verwendung im Verkauf ist bis zur technischen Anspruchsprüfung gesperrt.</p>
       <div class="aktionen">
         <button type="submit" disabled={!istGueltig || speichern || laden}>{speichern ? 'Wird gespeichert ...' : bearbeiteteId ? 'Änderungen speichern' : 'Rabattregel erstellen'}</button>
         {#if bearbeiteteId}<button type="button" class="sekundaer" onclick={neu}>Abbrechen</button>{/if}
@@ -268,7 +272,7 @@
           <div class="regel">
             <div>
               <strong>{regel.name}</strong>
-              <div class="meta">{wertText(regel)} · {regel.geltungsbereich === 'warenkorb' ? 'Warenkorb' : regel.geltungsbereich === 'artikel' ? 'Artikel' : 'Kategorie'} · {regel.aktiv ? 'Aktiv' : 'Inaktiv'}</div>
+              <div class="meta">{wertText(regel)} · {regel.geltungsbereich === 'warenkorb' ? 'Warenkorb' : regel.geltungsbereich === 'artikel' ? 'Artikel' : 'Kategorie'} · {regel.aktiv ? 'Aktiv' : 'Inaktiv'}{regel.einmaligProMitglied ? ' · Erstbezug' : ''}</div>
               <div class="meta">{regel.riegen?.length ? regel.riegen.join(', ') : 'Alle Riegen'}{regel.maximaleMenge ? ` · Max. ${regel.maximaleMenge} Stück` : ''}</div>
             </div>
             <button type="button" class="sekundaer" onclick={() => bearbeiten(regel)}>Bearbeiten</button>
