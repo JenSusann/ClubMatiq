@@ -2,6 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import { type Collection, type WithId } from 'mongodb';
 import { db } from '../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../lib/server/berechtigungen';
+import { ermittleRiegen, type Riegenregel, type Zuordnungsriege } from '../../../lib/server/riegenzuordnung';
 import type { RequestHandler } from './$types';
 
 type Mitglied = {
@@ -180,6 +181,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   const sammlung: Collection<Mitglied> = db.collection<Mitglied>('clubdesk_mitglieder');
   await sammlung.createIndex({ vereinId: 1, clubdeskId: 1 }, { unique: true });
+  if (index('Gruppen') >= 0 && index('Gruppe') >= 0) {
+    const [regeln, riegen] = await Promise.all([
+      db.collection<Riegenregel & { vereinId: string }>('clubdesk_gruppenzuordnungen').find({ vereinId }).toArray(),
+      db.collection<Zuordnungsriege & { vereinId: string }>('riegen').find({ vereinId, aktiv: true }).toArray()
+    ]);
+    for (const mitglied of mitglieder.values()) {
+      mitglied.riegen = ermittleRiegen(mitglied, regeln, riegen);
+    }
+  }
+
   const operationen = [...mitglieder.values()].map((mitglied) => ({
     updateOne: {
       filter: { vereinId, clubdeskId: mitglied.clubdeskId },
