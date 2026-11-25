@@ -133,7 +133,15 @@
   {#if vorschauAktiv && !istOeffentlicheSeite}<div class="vorschau-banner"><span>👁️ Vorschau als <strong>{rollenNamen[angezeigteRolle]}</strong> – Du bleibst Administrator.</span><button onclick={()=>rollenVorschau.zuruecksetzen()}>Vorschau beenden</button></div>{/if}
   {#if navigationAnzeigen}<nav aria-label="Hauptnavigation">{#each sichtbareNavigation as eintrag (eintrag.link)}<a href={eintrag.link} class:active={page.url.pathname===eintrag.link || page.url.pathname.startsWith(eintrag.link+'/')}>{eintrag.titel}</a>{/each}</nav>{/if}
   <div class="content" class:auth-content={page.url.pathname==='/anmelden' || page.url.pathname==='/registrieren'}>{@render children()}</div>
-  <footer><span>© {new Date().getFullYear()} ClubMatiq</span><div><a href="/">Startseite</a><a href="/docs">Dokumentation</a></div></footer>
+    <footer>
+    <span>
+      © {new Date().getFullYear()} ClubMatiq · v{__APP_VERSION__}
+    </span>
+    <div>
+      <a href="/">Startseite</a>
+      <a href="/docs">Dokumentation</a>
+    </div>
+  </footer>
 </div>
 {#if warnung}
   <div class="session-overlay">

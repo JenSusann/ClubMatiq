@@ -1,19 +1,17 @@
 {
 	"name": "clubmatiq",
-	"version": "0.0.1",
+	"version": "0.9.0",
 	"private": true,
 	"type": "module",
 	"imports": {
 		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"
 	},
-
 	"overrides": {
 		"exceljs": {
 			"uuid": "^11.1.1"
 		}
 	},
-
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
