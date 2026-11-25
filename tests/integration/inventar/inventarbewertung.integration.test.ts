@@ -189,4 +189,28 @@ describe('ClubMatiq – Inventarbewertung mit MongoDB', () => {
     expect((await detail(admin, new ObjectId().toString())).status).toBe(404);
   });
 
+  it('unterscheidet explizit gespeichertes null von Nullpreis in Übersicht und CSV', async () => {
+    try {
+      await db.collection('artikel').updateOne({ _id: ohnePreis, vereinId }, { $set: { einzelwert: null } });
+      await db.collection('artikelvarianten').updateOne({ vereinId, artikelId: kleidung.toString(), groesseId: groesseM.toString() }, { $set: { einzelwert: null } });
+      const daten = await (await uebersicht(event(admin) as never)).json();
+      expect(daten.find((a: { name: string }) => a.name === 'Unbewerteter Artikel').preisFehlt).toBe(true);
+      expect(daten.find((a: { name: string }) => a.name === 'Gratisartikel').preisFehlt).toBe(false);
+      expect(daten.find((a: { name: string }) => a.name === 'Vereinstrikot').preisFehlt).toBe(true);
+      const inhalt = await (await csv(admin, '?modus=bewertung&nurFehlende=true')).text();
+      expect(inhalt).toContain('Unbewerteter Artikel');
+      expect(inhalt).toContain('Vereinstrikot');
+      expect(inhalt).not.toContain('Gratisartikel');
+      const r = await speichern(event(admin) as never);
+      expect(r.status).toBe(201);
+      const { _id } = await r.json();
+      const aufnahme = await (await detail(admin, _id)).json();
+      expect(aufnahme.zeilen.find((z: { artikel: string }) => z.artikel === 'Unbewerteter Artikel').einzelwert).toBeNull();
+      expect(aufnahme.zeilen.find((z: { artikel: string }) => z.artikel === 'Gratisartikel').einzelwert).toBe(0);
+    } finally {
+      await db.collection('artikel').updateOne({ _id: ohnePreis, vereinId }, { $unset: { einzelwert: '' } });
+      await db.collection('artikelvarianten').updateOne({ vereinId, artikelId: kleidung.toString(), groesseId: groesseM.toString() }, { $unset: { einzelwert: '' } });
+    }
+  });
+
 });
