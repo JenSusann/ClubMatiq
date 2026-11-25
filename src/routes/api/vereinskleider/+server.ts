@@ -25,6 +25,7 @@ type Rabattregel = {
   maximaleMenge?: number | null;
   gueltigAb?: string | null;
   gueltigBis?: string | null;
+  einmaligProMitglied?: boolean;
   kombinierbar?: boolean;
   aktiv?: boolean;
 };
@@ -218,6 +219,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         }
         const heute = new Date().toISOString().slice(0, 10);
         for (const regel of regeln) {
+          if (regel.einmaligProMitglied === true) throw new Verkaufsfehler('Einmalige Erstbezugsregeln sind noch nicht für den Verkauf freigegeben.', 409);
           if (regel.aktiv === false || (regel.gueltigAb && heute < regel.gueltigAb) ||
               (regel.gueltigBis && heute > regel.gueltigBis)) {
             throw new Verkaufsfehler(`Rabattregel «${regel.name}» ist nicht gültig.`);
