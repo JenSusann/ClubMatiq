@@ -14,6 +14,9 @@ import { client, db } from '../../../src/lib/server/mongodb';
 import { GET as uebersicht } from '../../../src/routes/api/inventar-uebersicht/+server';
 import { GET as exportInventar } from '../../../src/routes/api/export/inventar/+server';
 
+import { GET as aufnahmen, POST as speichern } from '../../../src/routes/api/inventarbewertung/stichtage/+server';
+import { GET as aufnahmeDetail } from '../../../src/routes/api/inventarbewertung/stichtage/[id]/+server';
+
 const vereinId = new ObjectId().toString();
 const andererVerein = new ObjectId().toString();
 const kategorieId = new ObjectId();
@@ -62,6 +65,7 @@ describe('ClubMatiq – Inventarbewertung mit MongoDB', () => {
 
   afterAll(async () => {
     try {
+      await db.collection('inventarbewertung_aufnahmen').deleteMany({ vereinId });
       await db.collection('artikelvarianten').deleteMany({ vereinId, artikelId: kleidung.toString() });
       await db.collection('artikel').deleteMany({ _id: { $in: [normal, kleidung, ohnePreis, nullPreis, fremd] } });
       await db.collection('groessen').deleteMany({ _id: { $in: [groesseS, groesseM] } });
@@ -132,4 +136,57 @@ describe('ClubMatiq – Inventarbewertung mit MongoDB', () => {
     expect(inhalt).toContain('Trainingsball');
     expect(inhalt).not.toContain('Vereinstrikot');
   });
+  function detail(benutzer: unknown, id: string, format = '') {
+    return aufnahmeDetail({ ...event(benutzer, format), params: { id } } as never);
+  }
+
+  it('schützt Bewertungsaufnahmen vor unberechtigten Zugriffen', async () => {
+    for (const [benutzer, status] of [[null, 401], [mitglied, 403]] as const) {
+      expect((await speichern(event(benutzer) as never)).status).toBe(status);
+      expect((await aufnahmen(event(benutzer) as never)).status).toBe(status);
+      expect((await detail(benutzer, normal.toString())).status).toBe(status);
+    }
+  });
+
+  it('speichert historische Werte dauerhaft und isoliert nach Verein', async () => {
+    const r = await speichern(event(admin) as never);
+    expect(r.status).toBe(201);
+    const { _id } = await r.json();
+    const liste = await (await aufnahmen(event(admin) as never)).json();
+    expect(liste.find((a: { _id: string }) => a._id === _id)).not.toHaveProperty('zeilen');
+    const fremderAdmin = { ...admin, vereinId: andererVerein };
+    expect((await detail(fremderAdmin, _id)).status).toBe(404);
+    expect(await (await aufnahmen(event(fremderAdmin) as never)).json()).toEqual([]);
+    const vorher = await (await detail(admin, _id)).json();
+    expect(vorher.zeilen).toHaveLength(5);
+    expect(vorher.zeilen.find((z: { artikel: string }) => z.artikel === 'Trainingsball')).toMatchObject({ menge: 4, einzelwert: 12.5, gesamtwert: 50 });
+    expect(vorher.zeilen.find((z: { artikel: string }) => z.artikel === 'Gratisartikel')).toMatchObject({ einzelwert: 0, gesamtwert: 0 });
+    expect(vorher.zeilen.find((z: { artikel: string }) => z.artikel === 'Unbewerteter Artikel')).toMatchObject({ einzelwert: null, gesamtwert: null });
+    expect(vorher.zeilen.find((z: { groesse: string }) => z.groesse === 'M')).toMatchObject({ einzelwert: null, menge: 2 });
+    expect(vorher.zeilen.find((z: { groesse: string }) => z.groesse === 'S')).toMatchObject({ einzelwert: 20, gesamtwert: 60 });
+    try {
+      await db.collection('artikel').updateOne({ _id: normal, vereinId }, { $set: { name: 'Geändert', menge: 1, einzelwert: 99 } });
+      await db.collection('artikelvarianten').updateOne({ vereinId, artikelId: kleidung.toString(), groesseId: groesseS.toString() }, { $set: { menge: 1, einzelwert: 99 } });
+      expect(await (await detail(admin, _id)).json()).toEqual(vorher);
+      const exportAntwort = await detail(admin, _id, '?format=csv');
+      expect(exportAntwort.status).toBe(200);
+      expect(exportAntwort.headers.get('content-type')).toContain('text/csv');
+      const inhalt = await exportAntwort.text();
+      expect(inhalt).toContain('Trainingsball');
+      expect(inhalt).toContain('50,00');
+      expect(inhalt).toContain('60,00');
+      expect(inhalt).toContain('Bewertungsdatum');
+      expect(inhalt).not.toContain('Geändert');
+      expect(inhalt).not.toContain('Fremdartikel');
+    } finally {
+      await db.collection('artikel').updateOne({ _id: normal, vereinId }, { $set: { name: 'Trainingsball', menge: 4, einzelwert: 12.5 } });
+      await db.collection('artikelvarianten').updateOne({ vereinId, artikelId: kleidung.toString(), groesseId: groesseS.toString() }, { $set: { menge: 3, einzelwert: 20 } });
+    }
+  });
+
+  it('verweigert ungültige und unbekannte Aufnahme-IDs', async () => {
+    expect((await detail(admin, 'ungueltig')).status).toBe(400);
+    expect((await detail(admin, new ObjectId().toString())).status).toBe(404);
+  });
+
 });
