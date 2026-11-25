@@ -12,26 +12,54 @@ Test-ID: ST-[Issue]-[Nummer]. Status: Offen, Bestanden, Fehler, Blockiert, Erneu
 
 | Issue | Bereich | Bestanden | Nachweis |
 |---|---|---:|---|
-| #14 | Session-Verwaltung | 8/8 | Sammelbestätigung |
+| #14 | Session-Verwaltung | 8/8 | Original-Screenshot |
 | #15 | Benutzerverwaltung | Nicht quantifiziert | Browser-Abnahme laut bisherigem Protokoll |
-| #16 | Funktionsabnahme | 10/10 | Sammelbestätigung |
+| #16 | Rollenbasierte Berechtigungen | 10/10 | Original-Screenshot |
 | #21 | Inventur | 9/9 | Sammelbestätigung laut bisherigem Protokoll |
 | #22 | Bestandskonsistenz | 10/10 | Screenshot |
 | Gesamt | Quantifizierte Abnahmen | 37/37 | Historische Abschlussstände |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
-### Issue #14
+### Issue #14 – Session-Verwaltung
 
-Alle acht manuellen Session-Tests bestätigt. Einzelbeschreibungen nachzutragen.
+Nachweis: Original-Screenshot der manuellen Session-Abnahme, 8/8 bestanden.
+
+| ID | Testfall | Aufgabe | Erwartung | Ergebnis |
+|---|---|---|---|---|
+| ST-14-01 | Anmeldung | Erneut anmelden | Dashboard erscheint | Bestanden |
+| ST-14-02 | Inaktivitätswarnung | 90 Sekunden nichts machen | Warnungsdialog erscheint | Bestanden |
+| ST-14-03 | Countdown | Countdown im Warnungsdialog beobachten | Countdown läuft von 30 Sekunden herunter | Bestanden |
+| ST-14-04 | Session verlängern | «Angemeldet bleiben» anklicken | Dialog verschwindet | Bestanden |
+| ST-14-05 | Automatische Abmeldung | Zwei Minuten inaktiv bleiben und Warnung ignorieren | Automatische Abmeldung | Bestanden |
+| ST-14-06 | Mehrere Tabs | In einem Tab aktiv bleiben | Zweiter Tab berücksichtigt die Aktivität | Bestanden |
+| ST-14-07 | Maximale Sitzungsdauer | Fünf Minuten aktiv bleiben | Trotzdem erfolgt die Abmeldung | Bestanden |
+| ST-14-08 | Erneute Anmeldung | Nach automatischer Abmeldung wieder anmelden | Anmeldung erfolgreich | Bestanden |
+
+Abnahme: 8/8 bestanden. Zeitgrenzen entsprechen der getesteten Konfiguration.
 
 ### Issue #15
 
 Browser-Abnahme laut bisherigem Protokoll bestätigt. Einzelbeschreibungen und Anzahl nachzutragen.
 
-### Issue #16
+### Issue #16 – Rollenbasierte Berechtigungen
 
-Alle zehn manuellen Tests sowie Unit- und Integrationstests bestätigt. Einzelbeschreibungen nachzutragen.
+Nachweis: Original-Screenshot der manuellen Abnahme, 10/10 bestanden.
+
+| ID | Testfall | Aufgabe | Erwartung | Ergebnis |
+|---|---|---|---|---|
+| ST-16-01 | Administrator | Als Administrator vorgesehene Module aufrufen | Alle vorgesehenen Module zugänglich | Bestanden |
+| ST-16-02 | Materialverantwortliche | Inventar bearbeiten und Vereinskleider verwalten | Beide Funktionen möglich | Bestanden |
+| ST-16-03 | Materialverantwortliche | Benutzerverwaltung aufrufen | Benutzerverwaltung nicht zugänglich | Bestanden |
+| ST-16-04 | Leiter/in | Ausleihen und Rückgaben durchführen | Beide Funktionen möglich | Bestanden |
+| ST-16-05 | Leiter/in | Inventar bearbeiten versuchen | Bearbeitung nicht möglich | Bestanden |
+| ST-16-06 | Mitglied | Inventar lesen und bearbeiten versuchen | Lesen möglich, Bearbeiten nicht | Bestanden |
+| ST-16-07 | Direkter Seitenzugriff | Geschützte Funktionen über direkte URL aufrufen und Zugriff kontrollieren | Zugriff entsprechend Berechtigungen beschränkt | Bestanden |
+| ST-16-08 | Rollenänderung | Administrator ändert Rolle eines angemeldeten Testbenutzers | Dessen Session wird ungültig | Bestanden |
+| ST-16-09 | Erneute Anmeldung | Nach Rollenänderung erneut anmelden | Neue Berechtigungen gelten | Bestanden |
+| ST-16-10 | Rollenvorschau | Administrator wechselt Rollenansicht | Tatsächliche Rolle bleibt unverändert | Bestanden |
+
+Abnahme: 10/10 bestanden. Unit- und Integrationstests ebenfalls erfolgreich gemeldet.
 
 ### Issue #21 – PDF-Inventurbericht
 
