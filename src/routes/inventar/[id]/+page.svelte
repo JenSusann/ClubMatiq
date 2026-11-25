@@ -6,7 +6,7 @@
     _id: string;
     groesseId: string;
     menge: number;
-    einzelwert: number;
+    einzelwert: number | null;
   };
 
   type Artikel = {
@@ -17,7 +17,7 @@
     lagerortId: string;
     lieferantId?: string | null;
     menge: number;
-    einzelwert: number;
+    einzelwert: number | null;
     hatGroessen: boolean;
     varianten: Variante[];
   };
@@ -192,7 +192,7 @@
         {#if !artikel.hatGroessen}
           <div>
             <span class="feldname">Einzelwert</span>
-            <p>{geldbetrag(artikel.einzelwert ?? 0)}</p>
+            <p>{artikel.einzelwert == null ? 'Preis fehlt' : geldbetrag(artikel.einzelwert)}</p>
           </div>
         {/if}
       </div>
@@ -215,7 +215,7 @@
                   <tr>
                     <td>{groessenName(variante.groesseId)}</td>
                     <td>{variante.menge}</td>
-                    <td>{geldbetrag(variante.einzelwert)}</td>
+                    <td>{variante.einzelwert == null ? 'Preis fehlt' : geldbetrag(variante.einzelwert)}</td>
                   </tr>
                 {/each}
               </tbody>
