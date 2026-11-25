@@ -13,11 +13,11 @@ Test-ID: ST-[Issue]-[Nummer]. Status: Offen, Bestanden, Fehler, Blockiert, Erneu
 | Issue | Bereich | Bestanden | Nachweis |
 |---|---|---:|---|
 | #14 | Session-Verwaltung | 8/8 | Original-Screenshot |
-| #15 | Benutzerverwaltung | Nicht quantifiziert | Browser-Abnahme laut bisherigem Protokoll |
+| #15 | Benutzerverwaltung | 21/21 | Erneute manuelle Abnahme, Einzelbestätigung 25.11.2026 |
 | #16 | Rollenbasierte Berechtigungen | 10/10 | Original-Screenshot |
 | #21 | Inventur | 9/9 | Sammelbestätigung laut bisherigem Protokoll |
 | #22 | Bestandskonsistenz | 10/10 | Screenshot |
-| Gesamt | Quantifizierte Abnahmen | 37/37 | Historische Abschlussstände |
+| Gesamt | Quantifizierte Abnahmen | 58/58 | Historische Abschlussstände |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -38,9 +38,43 @@ Nachweis: Original-Screenshot der manuellen Session-Abnahme, 8/8 bestanden.
 
 Abnahme: 8/8 bestanden. Zeitgrenzen entsprechen der getesteten Konfiguration.
 
-### Issue #15
+### Issue #15 – Benutzerverwaltung
 
-Browser-Abnahme laut bisherigem Protokoll bestätigt. Einzelbeschreibungen und Anzahl nachzutragen.
+- Testdatum: 25.11.2026
+- Testart: Erneute manuelle funktionale Abnahme im Browser
+- Nachweis: Rückmeldung der Testperson mit allen 21 einzeln bestätigten Testfällen
+- Testumgebung und getesteter Commit: nicht separat angegeben
+- Historische Browser-Abnahme: bereits bestätigt; ursprüngliche Einzeltestliste nicht verfügbar und nicht zusätzlich gezählt.
+
+| ID | Testfall | Aufgabe | Erwartung | Ergebnis |
+|---|---|---|---|---|
+| ST-15-01 | Benutzerübersicht | Als Administrator die Benutzerverwaltung öffnen. | Alle Benutzer des eigenen Vereins werden übersichtlich angezeigt. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-02 | Benutzerdaten bearbeiten | Vorname, Nachname und E-Mail-Adresse eines Testbenutzers ändern und speichern. | Änderungen werden erfolgreich übernommen. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-03 | Dauerhafte Speicherung | Nach der Bearbeitung die Seite neu laden. | Die geänderten Benutzerdaten bleiben erhalten. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-04 | Ungültige E-Mail-Adresse | Eine ungültige E-Mail-Adresse eingeben und speichern. | Speicherung wird verhindert und eine Fehlermeldung erscheint. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-05 | Doppelte E-Mail-Adresse | Einem Benutzer die E-Mail-Adresse eines bereits vorhandenen Kontos zuweisen. | Änderung wird abgewiesen. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-06 | Rollenänderung | Die Rolle eines Testbenutzers ändern und speichern. | Die neue Rolle wird korrekt angezeigt und gespeichert. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-07 | Session bei Rollenänderung | Testbenutzer in einem zweiten Browser anmelden. Anschliessend als Administrator dessen Rolle ändern. | Die bestehende Session des Testbenutzers wird ungültig. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-08 | Benutzer deaktivieren – Abbrechen | Deaktivierung eines Testbenutzers auslösen und den Dialog abbrechen. | ClubMatiq-interner Bestätigungsdialog erscheint. Benutzer bleibt aktiv. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-09 | Benutzer deaktivieren – Bestätigen | Deaktivierung erneut auslösen und bestätigen. | Benutzer wird deaktiviert, das Konto bleibt erhalten. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-10 | Session bei Deaktivierung | Einen angemeldeten Testbenutzer deaktivieren und im zweiten Browser eine geschützte Seite aufrufen. | Bestehende Session wird ungültig. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-11 | Anmeldung deaktivierter Benutzer | Mit einem deaktivierten Benutzer eine neue Anmeldung versuchen. | Anmeldung wird verhindert. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-12 | Benutzer reaktivieren – Abbrechen | Reaktivierung auslösen und den Bestätigungsdialog abbrechen. | Benutzer bleibt deaktiviert. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-13 | Benutzer reaktivieren – Bestätigen | Reaktivierung bestätigen und mit dem Testbenutzer anmelden. | Benutzer ist wieder aktiv und kann sich anmelden. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-14 | Selbstdeaktivierung | Als Administrator versuchen, das eigene Konto zu deaktivieren. | Aktion wird verhindert oder steht nicht zur Verfügung. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-15 | Eigene Administratorrolle | Versuchen, die eigene Administratorrolle zu entfernen. | Änderung wird verhindert. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-16 | Letzter aktiver Administrator | In einem separaten Testverein mit nur einem aktiven Administrator versuchen, diesen zu deaktivieren oder herabzustufen. | Mindestens ein aktiver Administrator bleibt erhalten. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-17 | Unberechtigter Zugriff | Als Mitglied oder Leiter/in die Benutzerverwaltung direkt über die URL aufrufen. | Zugriff wird verweigert. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-18 | Benutzer löschen – Abbrechen | Löschung eines entbehrlichen Testkontos auslösen und abbrechen. | Interner Bestätigungsdialog erscheint. Konto bleibt erhalten. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-19 | Benutzer löschen – Bestätigen | Löschung des entbehrlichen Testkontos bestätigen. | Konto wird gelöscht und erscheint nicht mehr in der Übersicht. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-20 | Einladung widerrufen – Abbrechen | Widerruf einer offenen Einladung auslösen und abbrechen. | Interner Bestätigungsdialog erscheint. Einladung bleibt bestehen. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+| ST-15-21 | Einladung widerrufen – Bestätigen | Widerruf der offenen Testeinladung bestätigen. | Einladung ist nicht mehr gültig. | Bestanden – Erwartung gemäss Rückmeldung erfüllt |
+
+**Auswertung:** 21/21 bestanden, 0 fehlgeschlagen, 0 blockiert, 0 offen. Keine Bemerkungen oder Abweichungen gemeldet. Keine Fehlerkorrektur oder weitere Nachprüfung aufgrund dieses Durchlaufs erforderlich.
+
+**Automatisierte Begleitnachweise:** Laut [Issue #15](https://github.com/JenSusann/ClubMatiq/issues/15) sind 41 relevante automatisierte Tests (21 Unit, 20 Integration) dokumentiert. Diese wurden nicht im Rahmen dieser manuellen Nachprüfung erneut ausgeführt oder unabhängig verifiziert. Vereinsübergreifende API-Zugriffe und Passwort-Hash-Ausschluss sind automatisierte Nachweise, keine zusätzlichen manuellen Tests. Gleichzeitige Administratoränderungen und atomare Kopplung von Rollenänderung und Session-Invalidierung bleiben gesondert nicht nachgewiesen.
+
+**Abnahmeentscheidung:** Erneute manuelle Abnahme erfolgreich; bestehender Completed-Status bleibt bestehen.
 
 ### Issue #16 – Rollenbasierte Berechtigungen
 
@@ -100,7 +134,7 @@ Abnahme: 10/10 bestanden. Zusätzlich 10 Unit- und 4 Integrationstests dokumenti
 
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 37 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 58 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
