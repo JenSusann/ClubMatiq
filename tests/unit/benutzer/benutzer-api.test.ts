@@ -90,6 +90,10 @@ describe('Issue #15 – Benutzer bearbeiten', () => {
     expect((await PATCH(eventBearbeiten({ passwortHash: 'hack' }))).status).toBe(400);
     expect(mocks.updateOne).not.toHaveBeenCalled();
   });
+  it.each([['admin'], ['leiter'], null, 42, {}])('weist nicht-stringförmige Rollen ab: %j', async rolle => {
+    expect((await PATCH(eventBearbeiten({ rolle }))).status).toBe(400);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
   it('verweigert Zugriff ohne Berechtigung', async () => {
     mocks.permission.mockReturnValue(new Response(null, { status: 403 }));
     expect((await PATCH(eventBearbeiten({ vorname: 'Eva' }))).status).toBe(403);
