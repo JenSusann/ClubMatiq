@@ -35,6 +35,18 @@
   let kategorien = $state<Option[]>([]);
   let formular = $state<Formular>({ ...leer });
   const riegenOptionen = $derived([...new Set([...aktiveRiegen, ...formular.riegen])]);
+  let anspruchsmodus = $state<'einzeln' | 'bestehend' | 'neu'>('einzeln');
+  let anspruchsname = $state('');
+  const anspruchsoptionen = $derived([...new Set(regeln.filter(r => r.einmaligProMitglied && r.anspruchsgruppe).map(r => r.anspruchsgruppe))].sort());
+  function anspruchsmodusSetzen(modus: 'einzeln' | 'bestehend' | 'neu') {
+    anspruchsmodus = modus;
+    anspruchsname = '';
+    formular.anspruchsgruppe = modus === 'bestehend' ? (anspruchsoptionen[0] ?? '') : '';
+  }
+  function anspruchsnameSetzen(name: string) {
+    anspruchsname = name;
+    formular.anspruchsgruppe = name.trim().toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+  }
   let bearbeiteteId = $state<string | null>(null);
   let laden = $state(true);
   let speichern = $state(false);
@@ -51,6 +63,7 @@
     (formular.geltungsbereich !== 'kategorie' || formular.kategorieIds.length > 0) &&
     (formular.maximaleMenge === null || (Number.isInteger(formular.maximaleMenge) && formular.maximaleMenge > 0)) &&
     (!formular.einmaligProMitglied || (formular.rabattart === 'fixpreis' && formular.geltungsbereich !== 'warenkorb' && formular.maximaleMenge === 1)) &&
+    (!formular.einmaligProMitglied || anspruchsmodus === 'einzeln' || (!!formular.anspruchsgruppe && (anspruchsmodus !== 'neu' || !anspruchsoptionen.includes(formular.anspruchsgruppe)))) &&
     (!formular.einmaligProMitglied || !formular.anspruchsgruppe.trim() || /^[a-z0-9][a-z0-9_-]{0,79}$/i.test(formular.anspruchsgruppe.trim())) &&
     (!formular.gueltigAb || !formular.gueltigBis || formular.gueltigAb <= formular.gueltigBis)
   );
@@ -62,6 +75,8 @@
 
   function neu() {
     formular = { ...leer, artikelIds: [], kategorieIds: [], riegen: [] };
+    anspruchsmodus = 'einzeln';
+    anspruchsname = '';
     bearbeiteteId = null;
     fehler = '';
     meldung = '';
@@ -69,6 +84,8 @@
 
   function bearbeiten(regel: Rabattregel) {
     bearbeiteteId = regel._id;
+    anspruchsmodus = regel.anspruchsgruppe ? 'bestehend' : 'einzeln';
+    anspruchsname = '';
     formular = {
       name: regel.name, rabattart: regel.rabattart, wert: regel.wert,
       geltungsbereich: regel.geltungsbereich,
@@ -260,14 +277,30 @@
       </div>
       {#if formular.einmaligProMitglied}
         <div>
-          <label for="anspruchsgruppe">Anspruchsgruppe (optional)</label>
-          <input id="anspruchsgruppe" type="text" maxlength="80" placeholder="z. B. juko-tshirt" bind:value={formular.anspruchsgruppe} />
-          <p class="hinweis">Gleiche Anspruchsgruppen bilden einen gemeinsamen Erstbezugsanspruch, auch über mehrere Artikel hinweg.</p>
+          <label for="anspruchsmodus">Erstbezugsanspruch</label>
+          <select id="anspruchsmodus" value={anspruchsmodus} onchange={(event) => anspruchsmodusSetzen(event.currentTarget.value as 'einzeln' | 'bestehend' | 'neu')}>
+            <option value="einzeln">Eigener Anspruch pro Artikel</option>
+            <option value="bestehend" disabled={!anspruchsoptionen.length}>Bestehenden gemeinsamen Anspruch verwenden</option>
+            <option value="neu">Neuen gemeinsamen Anspruch erstellen</option>
+          </select>
+          {#if anspruchsmodus === 'bestehend'}
+            <label for="anspruchsgruppe">Gemeinsamer Anspruch</label>
+            <select id="anspruchsgruppe" bind:value={formular.anspruchsgruppe}>
+              {#each anspruchsoptionen as gruppe}
+                <option value={gruppe}>{gruppe.replace(/[-_]/g, ' ')} ({regeln.filter(r => r.anspruchsgruppe === gruppe).map(r => r.name).join(', ')})</option>
+              {/each}
+            </select>
+          {:else if anspruchsmodus === 'neu'}
+            <label for="anspruchsname">Name des gemeinsamen Anspruchs</label>
+            <input id="anspruchsname" type="text" maxlength="80" placeholder="z. B. JUKO T-Shirt" value={anspruchsname} oninput={(event) => anspruchsnameSetzen(event.currentTarget.value)} />
+            {#if anspruchsoptionen.includes(formular.anspruchsgruppe)}<p class="hinweis" role="status">Dieser Anspruch existiert bereits. Bitte den bestehenden Anspruch auswählen.</p>{/if}
+          {/if}
+          <p class="hinweis">Ein gemeinsamer Anspruch verhindert, dass ein Mitglied mehrere Artikelvarianten vergünstigt bezieht. Die berechtigten Riegen werden separat oben ausgewählt.</p>
         </div>
       {/if}
       <p class="hinweis">Einmalige Regeln benötigen einen Fixpreis, Artikel oder Kategorien und maximal ein Stück. Der Anspruch wird beim Verkauf serverseitig geprüft.</p>
       <div class="aktionen">
-        {#if !istGueltig && formular.einmaligProMitglied}<p class="hinweis" role="status">Bitte Bezeichnung, gültigen Fixpreis, Artikel oder Kategorie und maximale Menge 1 prüfen. Die Anspruchsgruppe darf nur Buchstaben, Zahlen, Bindestriche und Unterstriche enthalten.</p>{/if}
+        {#if !istGueltig && formular.einmaligProMitglied}<p class="hinweis" role="status">Bitte Bezeichnung, gültigen Fixpreis, Artikel oder Kategorie und maximale Menge 1 prüfen. Bei einem gemeinsamen Anspruch bitte einen gültigen, eindeutigen Namen oder einen bestehenden Anspruch auswählen.</p>{/if}
         <button type="submit" disabled={!istGueltig || speichern || laden}>{speichern ? 'Wird gespeichert ...' : bearbeiteteId ? 'Änderungen speichern' : 'Rabattregel erstellen'}</button>
         {#if bearbeiteteId}<button type="button" class="sekundaer" onclick={neu}>Abbrechen</button>{/if}
       </div>
@@ -286,7 +319,7 @@
           <div class="regel">
             <div>
               <strong>{regel.name}</strong>
-              <div class="meta">{wertText(regel)} · {regel.geltungsbereich === 'warenkorb' ? 'Warenkorb' : regel.geltungsbereich === 'artikel' ? 'Artikel' : 'Kategorie'} · {regel.aktiv ? 'Aktiv' : 'Inaktiv'}{regel.einmaligProMitglied ? ' · Erstbezug' : ''}{regel.anspruchsgruppe ? ` · Anspruchsgruppe: ${regel.anspruchsgruppe}` : ''}</div>
+              <div class="meta">{wertText(regel)} · {regel.geltungsbereich === 'warenkorb' ? 'Warenkorb' : regel.geltungsbereich === 'artikel' ? 'Artikel' : 'Kategorie'} · {regel.aktiv ? 'Aktiv' : 'Inaktiv'}{regel.einmaligProMitglied ? ' · Erstbezug' : ''}{regel.anspruchsgruppe ? ` · Gemeinsamer Erstbezugsanspruch: ${regel.anspruchsgruppe}` : ''}</div>
               <div class="meta">{regel.riegen?.length ? regel.riegen.join(', ') : 'Alle Riegen'}{regel.maximaleMenge ? ` · Max. ${regel.maximaleMenge} Stück` : ''}</div>
             </div>
             <button type="button" class="sekundaer" onclick={() => bearbeiten(regel)}>Bearbeiten</button>
