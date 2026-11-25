@@ -35,6 +35,7 @@
     maximaleMenge: number | null;
     gueltigAb: string | null;
     gueltigBis: string | null;
+    einmaligProMitglied?: boolean;
     kombinierbar: boolean;
     aktiv: boolean;
   };
@@ -45,6 +46,7 @@
     nachname: string;
     anzeigename: string;
     status: string;
+    erstbezugsRabattIds?: string[];
   };
   type Verkaufsart = 'automatisch' | 'direkt' | 'bestellung';
   type Position = {
@@ -126,6 +128,7 @@
   let zusaetzlicherRabatt = $state('0');
   let rabattregeln = $state<Rabattregel[]>([]);
   let rabattId = $state('');
+  let erstbezug = $state(false);
 
   const gesamtpreis = $derived(positionen.reduce((summe, p) => summe + p.menge * (p.einzelpreis ?? 0), 0));
   const hatOffenePreise = $derived(positionen.some((p) => p.preisOffen));
@@ -134,6 +137,7 @@
   const rabattZahl = $derived(Number(zusaetzlicherRabatt.replace(',', '.')));
   const heute = new Date().toISOString().slice(0, 10);
   const passendeRegeln = $derived(rabattregeln.filter((regel) => {
+    if (regel.einmaligProMitglied && (!erstbezug || !ausgewaehltesMitglied || ausgewaehltesMitglied.erstbezugsRabattIds?.includes(regel._id))) return false;
     if (!regel.aktiv || (regel.gueltigAb && regel.gueltigAb > heute) ||
         (regel.gueltigBis && regel.gueltigBis < heute)) return false;
     if (regel.riegen.length && !regel.riegen.some((r) => riegen.includes(r))) return false;
@@ -403,6 +407,7 @@
       zahlungErhalten = false;
       zusaetzlicherRabatt = '0';
       rabattId = '';
+      erstbezug = false;
       positionsFehler = '';
       speichernErfolg = `Vorgang erfolgreich gespeichert: ${ergebnis.verkauf?.direktMenge ?? 0} direkt verkauft, ${ergebnis.verkauf?.bestellMenge ?? 0} bestellt${ergebnis.verkauf?._id ? ` (ID: ${ergebnis.verkauf._id})` : ''}.`;
       // Bei einem Direktverkauf Bestände erneut vom Server laden.
@@ -617,6 +622,8 @@
           {/if}
           <div class="rabattbereich">
             <h3>Rabatt</h3>
+            <label><input type="checkbox" bind:checked={erstbezug} disabled={!ausgewaehltesMitglied || hatOffenePreise} onchange={() => { rabattId = ''; }} /> Vergünstigter Erstbezug</label>
+            {#if erstbezug && ausgewaehltesMitglied}<p class="hinweis">Bereits beanspruchte Erstbezugsregeln werden ausgeblendet. Der Server prüft den Anspruch beim Speichern erneut.</p>{/if}
             <label for="rabattregel">Gespeicherte Rabattregel (optional)</label>
             <select id="rabattregel" bind:value={rabattId}>
               <option value="">Keine Rabattregel</option>
@@ -632,7 +639,7 @@
             {#if !rabattAuswahlGueltig}
               <p class="warnung" role="alert">Die ausgewählte Rabattregel ist nicht mehr gültig. Bitte neu auswählen.</p>
             {/if}
-            <p class="hinweis">Pro Vorgang ist derzeit eine gespeicherte Rabattregel auswählbar. Einmalige Ansprüche (z. B. erstes T-Shirt) müssen vor dem Verkauf geprüft werden.</p>
+            <p class="hinweis">Pro Vorgang ist eine gespeicherte Rabattregel auswählbar. Für Erstbezüge muss ein ClubDesk-Mitglied ausgewählt werden.</p>
             <label for="zusatzrabatt">Weiterer Rabatt in CHF (optional)</label>
             <input id="zusatzrabatt" type="text" inputmode="decimal" bind:value={zusaetzlicherRabatt} />
             {#if !rabattGueltig}<p class="warnung" role="alert">Bitte einen gültigen Rabatt zwischen CHF 0 und {formatCHF(restNachSonderrabatt)} eingeben.</p>{/if}
