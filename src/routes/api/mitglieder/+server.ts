@@ -18,6 +18,8 @@ type Mitglied = {
   importiertAm: Date;
   erstbezugsRabattIds?: string[];
   riegen?: string[];
+  clubdeskGruppen?: string[];
+  clubdeskHauptgruppe?: string;
 };
 
 function csvLesen(text: string): string[][] {
@@ -88,6 +90,8 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     status: mitglied.status,
     erstbezugsRabattIds: mitglied.erstbezugsRabattIds ?? [],
     ...(mitglied.riegen !== undefined ? { riegen: mitglied.riegen } : {}),
+    ...(mitglied.clubdeskGruppen !== undefined ? { clubdeskGruppen: mitglied.clubdeskGruppen } : {}),
+    ...(mitglied.clubdeskHauptgruppe !== undefined ? { clubdeskHauptgruppe: mitglied.clubdeskHauptgruppe } : {}),
     aktiv: mitglied.aktiv
   })));
 };
@@ -149,6 +153,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       ort: wert('Ort'),
       plz: wert('PLZ'),
       status: wert('Status'),
+      ...(index('Gruppe') >= 0 ? { clubdeskHauptgruppe: wert('Gruppe') } : {}),
+      ...(index('Gruppen') >= 0 ? { clubdeskGruppen: [...new Set(wert('Gruppen').split(',').map(g => g.trim()).filter(Boolean))] } : {}),
       ...(index('Riegen') >= 0 ? { riegen: [...new Set(wert('Riegen').split('|').map(r => r.trim()).filter(Boolean))] } : {}),
       aktiv: true,
       importiertAm: new Date()
