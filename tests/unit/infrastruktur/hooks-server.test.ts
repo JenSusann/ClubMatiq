@@ -48,6 +48,22 @@ describe('Server-Hook – Authentifizierung und Routing', () => {
     findOne.mockResolvedValueOnce({ ...session, ...bad });
     const x = run('/', 'token'); await x.response; expect(x.cookies.delete).toHaveBeenCalledOnce(); expect(collection).not.toHaveBeenCalledWith('benutzer');
   });
+  it.each(['/api/artikel', '/api/ausleihen'])('blockiert Geschäfts-API bei Startpasswortwechsel: %s', async path => {
+    findOne.mockResolvedValueOnce(session).mockResolvedValueOnce({ ...user, passwortwechselErforderlich: true });
+    const x = run(path, 'token');
+    const r = await x.response;
+    expect(r.status).toBe(403);
+    expect(await r.json()).toMatchObject({ code: 'PASSWORTWECHSEL_ERFORDERLICH' });
+    expect(x.resolve).not.toHaveBeenCalled();
+  });
+  it('leitet bei Startpasswortwechsel auf die Passwortseite um', async () => {
+    findOne.mockResolvedValueOnce(session).mockResolvedValueOnce({ ...user, passwortwechselErforderlich: true });
+    await expect(run('/dashboard', 'token').response).rejects.toMatchObject({ status: 303, location: '/passwort-aendern' });
+  });
+  it.each(['/passwort-aendern', '/api/passwort-aendern', '/api/abmelden'])('erlaubt notwendige Route bei Startpasswortwechsel: %s', async path => {
+    findOne.mockResolvedValueOnce(session).mockResolvedValueOnce({ ...user, passwortwechselErforderlich: true });
+    expect((await run(path, 'token').response).status).toBe(200);
+  });
   it('verwirft Session ohne aktiven Benutzer', async () => {
     findOne.mockResolvedValueOnce(session).mockResolvedValueOnce(null);
     const x = run('/', 'token'); await x.response; expect(x.cookies.delete).toHaveBeenCalledOnce();
