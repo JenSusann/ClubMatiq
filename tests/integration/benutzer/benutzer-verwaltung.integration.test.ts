@@ -92,6 +92,7 @@ function patchEvent(id: string, body: unknown, localsBenutzer: unknown = admin) 
 beforeAll(async () => {
   if (db.databaseName !== 'clubmatiq_test') throw new Error('Sicherheitsabbruch: falsche Datenbank');
   await client.connect();
+  await db.collection('benutzer').createIndex({ email: 1 }, { unique: true });
   await db.collection('benutzer').insertMany([
     { _id: adminId, vereinId, vorname: 'Admin', nachname: 'Test', email: email('admin'), rolle: 'admin', aktiv: true, passwortHash: 'test-hash' },
     { _id: mitgliedId, vereinId, vorname: 'Mit', nachname: 'Glied', email: email('mitglied'), rolle: 'mitglied', aktiv: true, passwortHash: 'test-hash' },
