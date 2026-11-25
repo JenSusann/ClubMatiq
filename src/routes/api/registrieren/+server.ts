@@ -77,7 +77,7 @@ export const POST: RequestHandler = async ({
     const jetzt = new Date();
     const token = randomBytes(32).toString('hex');
     const tokenHash = createHash('sha256').update(token).digest('hex');
-    const ablaufdatum = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const ablaufdatum = new Date(Date.now() + 2 * 60 * 60 * 1000);
 
     const session = client.startSession();
     let vereinId = '';
@@ -111,6 +111,7 @@ export const POST: RequestHandler = async ({
           benutzerId,
           vereinId,
           erstelltAm: jetzt,
+          letzteAktivitaet: jetzt,
           ablaufdatum
         }, { session });
       });
