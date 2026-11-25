@@ -17,8 +17,8 @@ Test-ID: ST-[Issue]-[Nummer]. Status: Offen, Bestanden, Fehler, Blockiert, Erneu
 | #16 | Rollenbasierte Berechtigungen | 10/10 | Original-Screenshot |
 | #21 | Inventur | 9/9 | Sammelbestätigung laut bisherigem Protokoll |
 | #22 | Bestandskonsistenz | 10/10 | Screenshot |
-| #71 | ClubDesk-Gruppenzuordnung und Riegenverwaltung | 10/10 | Screenshot; Teilabnahme |
-| Gesamt | Quantifizierte manuelle Prüfungen | 68/68 | Dokumentierte Durchläufe inklusive Teilabnahme |
+| #71 | ClubDesk-Gruppenzuordnung und Riegenverwaltung | 20/20 | Screenshot und Einzelbestätigung 25.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 78/78 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -154,15 +154,36 @@ Abnahme: 10/10 bestanden. Zusätzlich 10 Unit- und 4 Integrationstests dokumenti
 | ST-71-09 | Nicht zugeordnet | Filter «Nicht zugeordnet» auswählen | Filter «Nicht zugeordnet» funktioniert | Bestanden |
 | ST-71-10 | Aktualisierte Gruppenzuordnung | Gruppenzuordnung ändern und Mitgliederübersicht aktualisieren | Geänderte Gruppenzuordnung wird nach Aktualisierung angezeigt | Bestanden |
 
-**Auswertung:** 10/10 bestanden, 0 fehlgeschlagen, 0 blockiert innerhalb dieses Testdurchlaufs. Keine Fehlerkorrektur aufgrund dieser zehn Prüfungen gemeldet.
+**Teilabnahme 1:** 10/10 bestanden, 0 fehlgeschlagen, 0 blockiert.
 
-**Offene Punkte:** Die Riegen werden für die Mitgliederübersicht dynamisch berechnet. Die serverseitige Erstbezugsprüfung aus [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34) muss noch an diese Logik angebunden werden. Weitere Akzeptanzkriterien gemäss [Issue #71](https://github.com/JenSusann/ClubMatiq/issues/71), insbesondere automatisierte Tests und nicht durch diese zehn Prüfungen belegte Randfälle, sind separat nachzuweisen. Automatisierte Testergebnisse wurden mit diesem Screenshot nicht bestätigt.
+#### Teilabnahme 2 – Rabattstammdaten und Verkauf
 
-**Abnahmeentscheidung:** Manueller Teiltest erfolgreich; vollständige Issue-Abnahme noch offen. Issue #71 bleibt offen.
+- Testdatum: 25.11.2026
+- Nachweis: Einzelbestätigung aller zehn Testfälle durch die Entwicklerin im Chat; [GitHub-Abnahme](https://github.com/JenSusann/ClubMatiq/issues/71#issuecomment-7170658320).
+- Testumgebung: lokale Browseranwendung; exakter getesteter Commit nicht separat protokolliert.
+
+| ID | Testfall | Aufgabe | Erwartung | Ergebnis |
+|---|---|---|---|---|
+| ST-71-11 | Dynamische Rabattstammdaten | Stammdaten → Rabatte öffnen | Selbst angelegte aktive Riegen werden angezeigt | Bestanden |
+| ST-71-12 | Automatische Riegenauswahl | JUKO-Mitglied im Verkaufsformular auswählen | Zugeordnete Riegen werden automatisch markiert | Bestanden |
+| ST-71-13 | Mehrfachmitgliedschaft | Mitglied mit mehreren Riegen auswählen | Alle zugeordneten Riegen werden markiert | Bestanden |
+| ST-71-14 | Mitglied wechseln | Anderes Mitglied auswählen | Vorherige Riegen und Rabatte werden zurückgesetzt | Bestanden |
+| ST-71-15 | Berechtigter Erstbezug | JUKO-Mitglied auswählen und Erstbezug aktivieren | Passende Rabattregel ist verfügbar | Bestanden |
+| ST-71-16 | Unberechtigter Erstbezug | Aktivmitglied auswählen | JUKO-Erstbezugsrabatt ist nicht verfügbar | Bestanden |
+| ST-71-17 | Mitglied ohne Riege | Mitglied ohne Zuordnung auswählen | Entsprechender Hinweis erscheint | Bestanden |
+| ST-71-18 | Deaktivierte Riege | Riege deaktivieren | Bei neuen Verkäufen nicht mehr auswählbar | Bestanden |
+| ST-71-19 | Materialverantwortliche | Mitgliedersuche im Verkauf und Mitgliederverwaltung prüfen | Suche funktioniert, Mitgliederverwaltung bleibt gesperrt | Bestanden |
+| ST-71-20 | Manueller Verkauf | Käufer ohne ClubDesk-Mitgliedschaft eingeben und Riege manuell auswählen | Normaler Verkauf funktioniert | Bestanden |
+
+**Fehler und Korrekturen:** Die Deklarationsreihenfolge im Rabattformular verursachte zwei TypeScript-Fehler (Korrektur: 9199584). Die Bedienung des einmaligen Bezugs wurde durch automatische Vorkonfiguration und Validierungshinweise verbessert (03fedd9). Gemeinsame Erstbezugsansprüche werden über eine verständliche Auswahl statt eines technischen Schlüssels konfiguriert (ae5ebcd).
+
+**Automatisierte Prüfungen:** Erfolgreiche lokale Prüfungen durch die Entwicklerin bestätigt, zuletzt auch nach der Formularänderung. Erwarteter Gesamtumfang gemäss vorherigem Teststand: 2’561 Tests in 100 Dateien; kein separater abschliessender Konsolenauszug vorgelegt. Neue Tests umfassen Riegenzuordnung, CSV-Duplikate, serverseitige Erstbezugsberechtigung und eingeschränkte Mitgliedersuche. Datenbankzugriffe in den neuen Integrationstests sind simuliert.
+
+**Auswertung und Abnahmeentscheidung:** Beide manuellen Durchläufe zusammen 20/20 bestanden, 0 fehlgeschlagen, 0 blockiert. Die dokumentierte funktionale Abnahme ist erfolgreich. Nicht separat belegte Randfälle, reale Parallelzugriffe und unabhängige Usability-Tests sind dadurch nicht nachgewiesen.
 
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 68 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 78 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
