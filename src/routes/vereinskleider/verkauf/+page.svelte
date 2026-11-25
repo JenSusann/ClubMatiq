@@ -48,6 +48,7 @@
     anzeigename: string;
     status: string;
     erstbezugsRabattIds?: string[];
+    riegen?: string[];
   };
   type Verkaufsart = 'automatisch' | 'direkt' | 'bestellung';
   type Position = {
@@ -82,6 +83,9 @@
   async function mitgliederSuchen(): Promise<void> {
     const anfrage = ++mitgliederAnfrage;
     ausgewaehltesMitglied = null;
+    riegen = [];
+    erstbezug = false;
+    rabattId = '';
     mitgliederSucheFehler = '';
     speichernErfolg = '';
     const suchtext = kaeufer.trim();
@@ -94,7 +98,7 @@
     mitgliederListeOffen = true;
     mitgliederSucheLaeuft = true;
     try {
-      const antwort = await fetch(`/api/mitglieder?suche=${encodeURIComponent(suchtext)}`);
+      const antwort = await fetch(`/api/vereinskleider/mitglieder?suche=${encodeURIComponent(suchtext)}`);
       if (!antwort.ok) throw new Error('Mitglieder konnten nicht geladen werden.');
       const ergebnis = (await antwort.json()) as Mitglied[];
       if (anfrage !== mitgliederAnfrage) return;
@@ -111,6 +115,9 @@
   function mitgliedAuswaehlen(mitglied: Mitglied): void {
     ++mitgliederAnfrage;
     ausgewaehltesMitglied = mitglied;
+    riegen = (mitglied.riegen ?? []).filter(r => riegenOptionen.includes(r));
+    erstbezug = false;
+    rabattId = '';
     kaeufer = mitglied.anzeigename;
     mitgliederVorschlaege = [];
     mitgliederListeOffen = false;
@@ -121,7 +128,7 @@
   let zahlungsart = $state('rechnung');
   let zahlungErhalten = $state(false);
   let bemerkung = $state('');
-  const riegenOptionen = ['Allround', 'GETU Meitli', 'GETU Buebe', 'Jugend Aerobic', 'KITU', 'Aktive'];
+  let riegenOptionen = $state<string[]>([]);
   let riegen = $state<string[]>([]);
   let speichernLaeuft = $state(false);
   let speichernFehler = $state('');
@@ -141,7 +148,7 @@
     if (regel.einmaligProMitglied && (!erstbezug || !ausgewaehltesMitglied || ausgewaehltesMitglied.erstbezugsRabattIds?.includes(regel._id))) return false;
     if (!regel.aktiv || (regel.gueltigAb && regel.gueltigAb > heute) ||
         (regel.gueltigBis && regel.gueltigBis < heute)) return false;
-    if (regel.riegen.length && !regel.riegen.some((r) => riegen.includes(r))) return false;
+    if (regel.riegen.length && !regel.riegen.some((r) => riegen.includes(r) && (!regel.einmaligProMitglied || ausgewaehltesMitglied?.riegen?.includes(r)))) return false;
     if (regel.rabattart === 'fixpreis' && regel.geltungsbereich === 'warenkorb') return false;
     const passend = positionen.find((p) => regel.geltungsbereich === 'warenkorb' ||
       (regel.geltungsbereich === 'artikel' && regel.artikelIds.includes(p.artikelId)) ||
@@ -350,14 +357,15 @@
   const bestellTotal = $derived(warenkorbAufteilung.reduce((summe, p) => summe + p.bestellung, 0));
 
   async function datenLaden(): Promise<void> {
-    const [kategorienAntwort, artikelAntwort, groessenAntwort, preiseAntwort, rabatteAntwort] = await Promise.all([
+    const [kategorienAntwort, artikelAntwort, groessenAntwort, preiseAntwort, rabatteAntwort, riegenAntwort] = await Promise.all([
       fetch('/api/kategorien'),
       fetch('/api/artikel'),
       fetch('/api/groessen'),
       fetch('/api/vereinskleider/preise'),
-      fetch('/api/rabatte')
+      fetch('/api/rabatte'),
+      fetch('/api/riegen')
     ]);
-    if (![kategorienAntwort, artikelAntwort, groessenAntwort, preiseAntwort, rabatteAntwort].every((r) => r.ok)) {
+    if (![kategorienAntwort, artikelAntwort, groessenAntwort, preiseAntwort, rabatteAntwort, riegenAntwort].every((r) => r.ok)) {
       throw new Error('Die Vereinskleiderdaten konnten nicht geladen werden.');
     }
     const kategorien: Kategorie[] = await kategorienAntwort.json();
@@ -365,6 +373,9 @@
     groessen = await groessenAntwort.json();
     preise = await preiseAntwort.json();
     rabattregeln = await rabatteAntwort.json();
+    const riegenDaten: { name: string; aktiv: boolean }[] = await riegenAntwort.json();
+    riegenOptionen = riegenDaten.filter(r => r.aktiv).map(r => r.name);
+    riegen = riegen.filter(r => riegenOptionen.includes(r));
     const kleider = alleArtikel.filter((a) => a.istVereinskleidung === true && a.archiviert !== true);
     kategorieGefunden = kleider.length > 0;
     artikel = await Promise.all(kleider.map(async (a) => {
@@ -530,6 +541,8 @@
             {/if}
             <div class="volle-breite">
               <span class="feldtitel">Riege(n)</span>
+              {#if ausgewaehltesMitglied}<p class="hinweis">{ausgewaehltesMitglied.riegen?.length ? 'Riegen automatisch aus ClubDesk übernommen.' : 'Keine Riege zugeordnet. Bitte Zuordnung in den Stammdaten prüfen.'}</p>{/if}
+              {#if !riegenOptionen.length}<p class="hinweis">Bitte zuerst aktive Riegen in den Stammdaten anlegen.</p>{/if}
               <div class="riegenliste">
                 {#each riegenOptionen as riege}
                   <label class="checkzeile">
