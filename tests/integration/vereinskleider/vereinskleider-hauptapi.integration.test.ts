@@ -328,7 +328,9 @@ describe('Issue #34 – Erstbezug über mehrere Verkaufsvorgänge', () => {
     };
     collection('rabattregeln').find.mockReturnValue({ toArray: async () => [regel(RAB)] });
   });
-  it('erlaubt erneuten Erstbezug nach vollständiger Stornierung', async () => {
+  it.each([false, true])('erlaubt erneuten Erstbezug nach vollständiger Stornierung (Anspruchsgruppe: %s)', async (mitGruppe) => {
+    const anspruch = mitGruppe ? 'gruppe:juko-tshirt' : ART;
+    if (mitGruppe) collection('rabattregeln').find.mockReturnValue({ toArray: async () => [{ ...regel(RAB), anspruchsgruppe: 'juko-tshirt' }] });
     const sales = collection('vereinskleider_verkaeufe');
     const verkaufId = new ObjectId();
     let gespeichert: any;
@@ -358,9 +360,9 @@ describe('Issue #34 – Erstbezug über mehrere Verkaufsvorgänge', () => {
     } as never);
     expect(response.status).toBe(200);
     expect(gespeichert.status).toBe('storniert');
-    expect(ansprueche.get('verein-1:' + MIT)?.has(ART)).toBe(false);
+    expect(ansprueche.get('verein-1:' + MIT)?.has(anspruch)).toBe(false);
     expect((await sell()).status).toBe(201);
-    expect(ansprueche.get('verein-1:' + MIT)?.has(ART)).toBe(true);
+    expect(ansprueche.get('verein-1:' + MIT)?.has(anspruch)).toBe(true);
     expect((await sell()).status).toBe(409);
   });
   it('sperrt dieselbe Anspruchsgruppe auch bei einem anderen Artikel', async () => {
