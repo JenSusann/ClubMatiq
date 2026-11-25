@@ -18,6 +18,7 @@ type RabattEingabe = {
   gueltigAb: string | null;
   gueltigBis: string | null;
   einmaligProMitglied: boolean;
+  anspruchsgruppe?: string;
   kombinierbar: boolean;
   aktiv: boolean;
 };
@@ -68,6 +69,11 @@ function parseRabatt(daten: unknown): { wert?: RabattEingabe; fehler?: string } 
   }
   if (d.einmaligProMitglied !== undefined && typeof d.einmaligProMitglied !== 'boolean') return { fehler: 'Ungültige Erstbezugsregel.' };
   if (d.einmaligProMitglied === true && (d.rabattart !== 'fixpreis' || d.geltungsbereich === 'warenkorb' || maximaleMenge !== 1)) return { fehler: 'Ein Erstbezug benötigt einen Fixpreis für Artikel oder Kategorien und maximal ein Stück.' };
+  const anspruchsgruppe = typeof d.anspruchsgruppe === 'string' ? d.anspruchsgruppe.trim().toLowerCase() : '';
+  if (d.anspruchsgruppe != null && typeof d.anspruchsgruppe !== 'string' ||
+      anspruchsgruppe && (!/^[a-z0-9][a-z0-9_-]{0,79}$/.test(anspruchsgruppe) || d.einmaligProMitglied !== true)) {
+    return { fehler: 'Ungültige Anspruchsgruppe. Erlaubt sind Buchstaben, Zahlen, Bindestriche und Unterstriche.' };
+  }
   function datum(feld: unknown): string | null | undefined {
     if (feld === null || feld === undefined || feld === '') return null;
     if (typeof feld !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(feld)) return undefined;
@@ -95,6 +101,7 @@ function parseRabatt(daten: unknown): { wert?: RabattEingabe; fehler?: string } 
       gueltigAb,
       gueltigBis,
       einmaligProMitglied: d.einmaligProMitglied === true,
+      ...(anspruchsgruppe ? { anspruchsgruppe } : {}),
       kombinierbar: (d.kombinierbar as boolean | undefined) ?? false,
       aktiv: (d.aktiv as boolean | undefined) ?? true
     }
@@ -115,6 +122,7 @@ function ausgabe(eintrag: Record<string, any>) {
     gueltigAb: eintrag.gueltigAb ?? null,
     gueltigBis: eintrag.gueltigBis ?? null,
     einmaligProMitglied: eintrag.einmaligProMitglied === true,
+    ...(eintrag.anspruchsgruppe ? { anspruchsgruppe: eintrag.anspruchsgruppe } : {}),
     kombinierbar: eintrag.kombinierbar ?? false,
     aktiv: eintrag.aktiv ?? true
   };
@@ -191,7 +199,7 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
     }
     const ergebnis = await db.collection('rabattregeln').findOneAndUpdate(
       { _id: new ObjectId(id), vereinId },
-      { $set: { ...parsed.wert, aktualisiertAm: new Date() } },
+      { $set: { ...parsed.wert, aktualisiertAm: new Date() }, ...(parsed.wert.anspruchsgruppe ? {} : { $unset: { anspruchsgruppe: '' } }) },
       { returnDocument: 'after' }
     );
     if (!ergebnis) return json({ fehler: 'Rabattregel nicht gefunden.' }, { status: 404 });
