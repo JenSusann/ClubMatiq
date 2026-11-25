@@ -16,6 +16,7 @@ type Mitglied = {
   status: string;
   aktiv: boolean;
   importiertAm: Date;
+  erstbezugsRabattIds?: string[];
 };
 
 function csvLesen(text: string): string[][] {
@@ -84,6 +85,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     ort: mitglied.ort,
     plz: mitglied.plz,
     status: mitglied.status,
+    erstbezugsRabattIds: mitglied.erstbezugsRabattIds ?? [],
     aktiv: mitglied.aktiv
   })));
 };
