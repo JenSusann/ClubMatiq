@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { db, client } from '../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
+import { ermittleRiegen, type Gruppenmitglied, type Riegenregel, type Zuordnungsriege } from '../../../lib/server/riegenzuordnung';
 import { berechneZahlungsstand } from '../../../lib/server/vereinskleider-teilzahlungen';
 
 type PositionEingabe = {
@@ -234,6 +235,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           }
           if (regel.riegen?.length && !regel.riegen.some((r: string) => eingabe.riegen.includes(r))) {
             throw new Verkaufsfehler(`Rabattregel «${regel.name}» gilt nicht für die gewählte Riege.`);
+          }
+          if (regel.einmaligProMitglied === true && regel.riegen?.length) {
+            if (!mitglied) throw new Verkaufsfehler('Für einen Erstbezug muss ein Mitglied ausgewählt werden.', 409);
+            const zuordnungen = await db.collection<Riegenregel & { vereinId: string }>('clubdesk_gruppenzuordnungen').find({ vereinId }, { session }).toArray();
+            const aktiveRiegen = await db.collection<Zuordnungsriege & { vereinId: string }>('riegen').find({ vereinId, aktiv: true }, { session }).toArray();
+            const tatsaechlicheRiegen = ermittleRiegen(mitglied as Gruppenmitglied, zuordnungen, aktiveRiegen);
+            if (!regel.riegen.some(r => tatsaechlicheRiegen.includes(r) && eingabe.riegen.includes(r))) {
+              throw new Verkaufsfehler('Das Mitglied ist für diese Riege nicht erstbezugsberechtigt.', 409);
+            }
           }
           const passend = geprueft.filter((p) => p.einzelpreis !== null && (
             regel.geltungsbereich === 'warenkorb' ||
