@@ -81,7 +81,14 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     .limit(3000)
     .toArray();
 
-  const ergebnis = eintraege.filter((mitglied: WithId<Mitglied>) =>
+  const riegeFilter = url.searchParams.get('riege') ?? '';
+  const bereichFilter = url.searchParams.get('bereich') ?? '';
+  const erweitert = url.searchParams.get('details') === '1';
+  const riegen = erweitert ? await db.collection<{ vereinId: string; name: string; bereich: string; aktiv: boolean }>('riegen').find({ vereinId, aktiv: true }).toArray() : [];
+  const regeln = erweitert ? await db.collection<Riegenregel & { vereinId: string }>('clubdesk_gruppenzuordnungen').find({ vereinId }).toArray() : [];
+  const aktuelle = eintraege.map(m => erweitert && (m.clubdeskGruppen !== undefined || m.clubdeskHauptgruppe !== undefined || m.clubdeskGruppendetails !== undefined) ? { ...m, riegen: ermittleRiegen(m, regeln, riegen) } : m);
+  const bereiche = (m: Mitglied) => [...new Set(riegen.filter(r => m.riegen?.includes(r.name)).map(r => r.bereich))];
+  const ergebnis = aktuelle.filter(m => (!riegeFilter || (riegeFilter === '__ohne' ? !m.riegen?.length : m.riegen?.includes(riegeFilter))) && (!bereichFilter || bereiche(m).includes(bereichFilter))).filter((mitglied: WithId<Mitglied>) =>
     !suche || `${mitglied.vorname} ${mitglied.nachname} ${mitglied.nachname} ${mitglied.vorname} ${mitglied.clubdeskId}`
       .toLocaleLowerCase('de-CH').includes(suche)
   ).slice(0, 50);
@@ -102,6 +109,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     ...(mitglied.clubdeskGruppen !== undefined ? { clubdeskGruppen: mitglied.clubdeskGruppen } : {}),
     ...(mitglied.clubdeskHauptgruppe !== undefined ? { clubdeskHauptgruppe: mitglied.clubdeskHauptgruppe } : {}),
     ...(mitglied.clubdeskGruppendetails !== undefined ? { clubdeskGruppendetails: mitglied.clubdeskGruppendetails } : {}),
+    ...(erweitert ? { bereiche: bereiche(mitglied) } : {}),
     aktiv: mitglied.aktiv
   })));
 };
