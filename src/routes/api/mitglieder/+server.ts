@@ -17,6 +17,7 @@ type Mitglied = {
   aktiv: boolean;
   importiertAm: Date;
   erstbezugsRabattIds?: string[];
+  riegen?: string[];
 };
 
 function csvLesen(text: string): string[][] {
@@ -86,6 +87,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     plz: mitglied.plz,
     status: mitglied.status,
     erstbezugsRabattIds: mitglied.erstbezugsRabattIds ?? [],
+    ...(mitglied.riegen !== undefined ? { riegen: mitglied.riegen } : {}),
     aktiv: mitglied.aktiv
   })));
 };
@@ -147,6 +149,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       ort: wert('Ort'),
       plz: wert('PLZ'),
       status: wert('Status'),
+      ...(index('Riegen') >= 0 ? { riegen: [...new Set(wert('Riegen').split('|').map(r => r.trim()).filter(Boolean))] } : {}),
       aktiv: true,
       importiertAm: new Date()
     });
