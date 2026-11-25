@@ -298,3 +298,59 @@ describe('Paket 35 – Verkaufshistorie', () => {
   });
 });
 
+
+
+describe('Issue #34 – Erstbezug über mehrere Verkaufsvorgänge', () => {
+  const MIT = 'eeeeeeeeeeeeeeeeeeeeeeee';
+  const MIT2 = 'ffffffffffffffffffffffff';
+  const ansprueche = new Map<string, Set<string>>();
+  const regel = (rabattId: string) => ({ _id: new ObjectId(rabattId), name: 'Erstbezug',
+    rabattart: 'fixpreis', wert: 0, geltungsbereich: 'artikel', artikelIds: [ART],
+    maximaleMenge: 1, einmaligProMitglied: true, aktiv: true });
+  const sell = (overrides: Record<string, unknown> = {}) => post({
+    ...defaultInput(), mitgliedId: MIT, rabattIds: [RAB],
+    positionen: [{ artikelId: ART, groesseId: null, menge: 1 }], ...overrides
+  });
+  beforeEach(() => {
+    ansprueche.clear();
+    mock.collections.clubdesk_mitglieder = {
+      findOne: vi.fn(async (filter: any) => filter.vereinId === 'verein-1' &&
+        [MIT, MIT2].includes(String(filter._id)) ? { _id: filter._id, vorname: 'Test', nachname: 'Mitglied', aktiv: true } : null),
+      updateOne: vi.fn(async (filter: any, update: any) => {
+        const key = filter.vereinId + ':' + String(filter._id);
+        const ids = ansprueche.get(key) ?? new Set<string>();
+        if (filter.erstbezugsRabattIds.$nin.some((x: string) => ids.has(x))) return { modifiedCount: 0 };
+        ids.add(update.$addToSet.erstbezugsRabattIds);
+        ansprueche.set(key, ids);
+        return { modifiedCount: 1 };
+      })
+    };
+    collection('rabattregeln').find.mockReturnValue({ toArray: async () => [regel(RAB)] });
+  });
+  it('verhindert zweiten Bezug nach erfolgreicher Bestellung', async () => {
+    expect((await sell()).status).toBe(201);
+    expect((await sell()).status).toBe(409);
+    expect(collection('vereinskleider_verkaeufe').insertOne).toHaveBeenCalledTimes(1);
+  });
+  it('verhindert Umgehung durch eine neue Rabattregel', async () => {
+    expect((await sell()).status).toBe(201);
+    collection('rabattregeln').find.mockReturnValue({ toArray: async () => [regel(RAB2)] });
+    expect((await sell({ rabattIds: [RAB2] })).status).toBe(409);
+  });
+  it('erlaubt denselben Erstbezug einem anderen Mitglied', async () => {
+    expect((await sell()).status).toBe(201);
+    expect((await sell({ mitgliedId: MIT2 })).status).toBe(201);
+    expect(collection('vereinskleider_verkaeufe').insertOne).toHaveBeenCalledTimes(2);
+  });
+  it('verweigert ein nicht im Verein gefundenes Mitglied', async () => {
+    expect((await sell({ mitgliedId: GRO })).status).toBe(409);
+    expect(collection('clubdesk_mitglieder').findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ vereinId: 'verein-1', _id: new ObjectId(GRO) }), expect.anything());
+    expect(collection('vereinskleider_verkaeufe').insertOne).not.toHaveBeenCalled();
+  });
+  it('verhindert zweiten Bezug bei anderer Kleidergrösse', async () => {
+    collection('artikel').findOne.mockResolvedValue({ _id: new ObjectId(ART), name: 'Shirt', kategorieId: 'kat-1', istVereinskleidung: true, hatGroessen: true, menge: 10 });
+    expect((await sell({ positionen: [{ artikelId: ART, groesseId: GRO, menge: 1 }] })).status).toBe(201);
+    expect((await sell({ positionen: [{ artikelId: ART, groesseId: RAB2, menge: 1 }] })).status).toBe(409);
+  });
+});
