@@ -220,7 +220,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         const p = verkauf.positionen[0];
         if (p.verkaufsart === 'bestellung' && (p.uebergebenMenge ?? 0) === 0 &&
             p.menge === menge && idGueltig(verkauf.mitgliedId) &&
-            verkauf.erstbezugsIds.every(idGueltig)) {
+            verkauf.erstbezugsIds.every(id => idGueltig(id) || /^gruppe:[a-z0-9][a-z0-9_-]{0,79}$/.test(id))) {
           const jetzt = new Date();
           const update = await sammlung.updateOne(
             { _id: verkaufId, vereinId, aktualisiertAm: verkauf.aktualisiertAm },
