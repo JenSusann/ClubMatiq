@@ -71,9 +71,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       .update(sessionToken)
       .digest('hex');
 
-    // Session bleibt 7 Tage gültig
+    // Absolute Sitzungsdauer: zwei Stunden
     const ablaufdatum = new Date(
-      Date.now() + 7 * 24 * 60 * 60 * 1000
+      Date.now() + 2 * 60 * 60 * 1000
     );
 
     // Session in MongoDB speichern
@@ -82,6 +82,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       vereinId: benutzer.vereinId,
       tokenHash,
       erstelltAm: new Date(),
+      letzteAktivitaet: new Date(),
       ablaufdatum
     });
 
