@@ -39,7 +39,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
     aenderungen.email = daten.email.trim().toLowerCase();
   }
   if ('rolle' in daten) {
-    if (!['admin', 'materialverantwortlich', 'leiter', 'mitglied'].includes(String(daten.rolle))) {
+    if (typeof daten.rolle !== 'string' || !['admin', 'materialverantwortlich', 'leiter', 'mitglied'].includes(daten.rolle)) {
       return json({ fehler: 'Ungültige Benutzerrolle.' }, { status: 400 });
     }
     aenderungen.rolle = daten.rolle as string;
