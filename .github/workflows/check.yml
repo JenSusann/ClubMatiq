@@ -3,6 +3,7 @@ name: ClubMatiq CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -115,3 +116,47 @@ jobs:
       - name: MongoDB stoppen
         if: always()
         run: docker rm -f clubmatiq-mongo || true
+
+  release:
+    name: Publish GitHub Release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [check, integration]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Version prüfen
+        shell: bash
+        run: |
+          node --input-type=commonjs -e '
+            const p = require("./package.json");
+            const l = require("./package-lock.json");
+            const tag = process.env.GITHUB_REF_NAME;
+            if (!/^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$/.test(tag) || tag !== "v"+p.version || l.version !== p.version || l.packages[""].version !== p.version) {
+              throw new Error("Git-Tag und Paketversionen stimmen nicht überein");
+            }
+          '
+      - name: Coverage-Artefakte herunterladen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "$GITHUB_RUN_ID" -n unit-test-coverage -D release-assets/unit
+          gh run download "$GITHUB_RUN_ID" -n integration-test-coverage -D release-assets/integration
+          (cd release-assets/unit && zip -qr ../unit-test-coverage.zip .)
+          (cd release-assets/integration && zip -qr ../integration-test-coverage.zip .)
+      - name: GitHub Release erstellen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          args=()
+          if [[ "$tag" == v0.* || "$tag" == *-* ]]; then
+            args+=(--prerelease)
+          fi
+          gh release create "$tag" --verify-tag --generate-notes --title "ClubMatiq $tag" "${args[@]}" release-assets/unit-test-coverage.zip release-assets/integration-test-coverage.zip
