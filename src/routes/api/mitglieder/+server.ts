@@ -148,11 +148,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     if (!clubdeskId || (!vorname && !nachname)) {
       throw error(400, `Ungültiger Mitgliedereintrag in CSV-Zeile ${i + 1}.`);
     }
-    if (mitglieder.has(clubdeskId)) {
-      throw error(400, `Doppelte ClubDesk-ID in CSV-Zeile ${i + 1}.`);
+    const bisher = mitglieder.get(clubdeskId);
+    if (bisher && (bisher.vorname !== vorname || bisher.nachname !== nachname)) {
+      throw error(400, `Widersprüchliche Namen zur gleichen ClubDesk-ID in CSV-Zeile ${i + 1}.`);
     }
 
-    mitglieder.set(clubdeskId, {
+    const eintrag: Mitglied = {
       vereinId,
       clubdeskId,
       anrede: wert('Anrede'),
@@ -168,7 +169,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       ...(index('Riegen') >= 0 ? { riegen: [...new Set(wert('Riegen').split('|').map(r => r.trim()).filter(Boolean))] } : {}),
       aktiv: true,
       importiertAm: new Date()
-    });
+    };
+    if (bisher) {
+      if (eintrag.clubdeskGruppen !== undefined) eintrag.clubdeskGruppen = [...new Set([...(bisher.clubdeskGruppen ?? []), ...eintrag.clubdeskGruppen, ...[bisher.clubdeskHauptgruppe, eintrag.clubdeskHauptgruppe].filter((g): g is string => !!g)])];
+      if (eintrag.clubdeskGruppen !== undefined) eintrag.clubdeskGruppendetails = gruppendetails(eintrag.clubdeskGruppen.join(','));
+      if (eintrag.riegen !== undefined) eintrag.riegen = [...new Set([...(bisher.riegen ?? []), ...eintrag.riegen])];
+    }
+    mitglieder.set(clubdeskId, eintrag);
   }
 
   const sammlung: Collection<Mitglied> = db.collection<Mitglied>('clubdesk_mitglieder');
