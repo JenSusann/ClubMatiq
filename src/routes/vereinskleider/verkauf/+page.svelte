@@ -142,11 +142,12 @@
         (regel.gueltigBis && regel.gueltigBis < heute)) return false;
     if (regel.riegen.length && !regel.riegen.some((r) => riegen.includes(r))) return false;
     if (regel.rabattart === 'fixpreis' && regel.geltungsbereich === 'warenkorb') return false;
-    return positionen.some((p) => regel.geltungsbereich === 'warenkorb' ||
+    const passend = positionen.find((p) => regel.geltungsbereich === 'warenkorb' ||
       (regel.geltungsbereich === 'artikel' && regel.artikelIds.includes(p.artikelId)) ||
       (regel.geltungsbereich === 'kategorie' && regel.kategorieIds.includes(
         artikel.find((a) => a._id === p.artikelId)?.kategorieId ?? ''
       )));
+    return !!passend && (!regel.einmaligProMitglied || !ausgewaehltesMitglied?.erstbezugsRabattIds?.includes(passend.artikelId));
   }));
   const ausgewaehlterRabatt = $derived(passendeRegeln.find((r) => r._id === rabattId));
   function rappen(wert: number): number { return Math.round((wert + Number.EPSILON) * 100); }
