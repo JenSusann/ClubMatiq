@@ -1,4 +1,4 @@
-name: Code-Check
+name: ClubMatiq CI
 
 on:
   push:
@@ -10,11 +10,18 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
-    name: Svelte & TypeScript
+    name: Code Quality & Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
+
+    env:
+      MONGODB_URI: mongodb://127.0.0.1:27017/clubmatiq_ci
 
     steps:
       - name: Repository auschecken
@@ -26,8 +33,26 @@ jobs:
           node-version: '24'
           cache: npm
 
-      - name: Abhaengigkeiten installieren
+      - name: Abhängigkeiten installieren
         run: npm ci
 
-      - name: Svelte und TypeScript pruefen
+      - name: Softwareversion anzeigen
+        run: npm pkg get name version
+
+      - name: Svelte und TypeScript prüfen
         run: npm run check
+
+      - name: Unit-Tests und Code Coverage
+        run: npm run test:coverage
+
+      - name: Coverage-Bericht speichern
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-coverage
+          path: coverage/unit/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Produktions-Build erstellen
+        run: npm run build
