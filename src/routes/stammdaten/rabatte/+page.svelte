@@ -254,7 +254,7 @@
       </div>
 
       <div class="schalter">
-        <label class="checkbox"><input type="checkbox" bind:checked={formular.einmaligProMitglied} />Einmaliger Bezug pro Mitglied</label>
+        <label class="checkbox"><input type="checkbox" bind:checked={formular.einmaligProMitglied} onchange={(event) => { if (event.currentTarget.checked) { formular.rabattart = 'fixpreis'; formular.wert = 0; formular.maximaleMenge = 1; if (formular.geltungsbereich === 'warenkorb') formular.geltungsbereich = 'artikel'; formular.kombinierbar = false; } }} />Einmaliger Bezug pro Mitglied</label>
         <label class="checkbox"><input type="checkbox" bind:checked={formular.kombinierbar} />Mit anderen Rabattregeln kombinierbar</label>
         <label class="checkbox"><input type="checkbox" bind:checked={formular.aktiv} />Rabattregel aktiv</label>
       </div>
@@ -262,11 +262,12 @@
         <div>
           <label for="anspruchsgruppe">Anspruchsgruppe (optional)</label>
           <input id="anspruchsgruppe" type="text" maxlength="80" placeholder="z. B. juko-tshirt" bind:value={formular.anspruchsgruppe} />
-          <p class="hinweis">Gleiche Anspruchsgruppen sollen einen gemeinsamen Erstbezugsanspruch bilden. Die artikelübergreifende Prüfung ist noch in Vorbereitung.</p>
+          <p class="hinweis">Gleiche Anspruchsgruppen bilden einen gemeinsamen Erstbezugsanspruch, auch über mehrere Artikel hinweg.</p>
         </div>
       {/if}
       <p class="hinweis">Einmalige Regeln benötigen einen Fixpreis, Artikel oder Kategorien und maximal ein Stück. Der Anspruch wird beim Verkauf serverseitig geprüft.</p>
       <div class="aktionen">
+        {#if !istGueltig && formular.einmaligProMitglied}<p class="hinweis" role="status">Bitte Bezeichnung, gültigen Fixpreis, Artikel oder Kategorie und maximale Menge 1 prüfen. Die Anspruchsgruppe darf nur Buchstaben, Zahlen, Bindestriche und Unterstriche enthalten.</p>{/if}
         <button type="submit" disabled={!istGueltig || speichern || laden}>{speichern ? 'Wird gespeichert ...' : bearbeiteteId ? 'Änderungen speichern' : 'Rabattregel erstellen'}</button>
         {#if bearbeiteteId}<button type="button" class="sekundaer" onclick={neu}>Abbrechen</button>{/if}
       </div>
