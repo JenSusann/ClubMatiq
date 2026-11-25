@@ -418,3 +418,45 @@ describe('Issue #34 – Erstbezug über mehrere Verkaufsvorgänge', () => {
     expect((await sell({ positionen: [{ artikelId: ART, groesseId: RAB2, menge: 1 }] })).status).toBe(409);
   });
 });
+
+describe('Issue #71 – serverseitige Erstbezugsberechtigung', () => {
+  const MIT = 'eeeeeeeeeeeeeeeeeeeeeeee';
+  const RID = new ObjectId('111111111111111111111111');
+  const regel = { _id: new ObjectId(RAB), name: 'JUKO Erstbezug', rabattart: 'fixpreis', wert: 0,
+    geltungsbereich: 'artikel', artikelIds: [ART], maximaleMenge: 1, einmaligProMitglied: true, aktiv: true, riegen: ['GETU Meitli'] };
+  const sell = (riegen = ['GETU Meitli']) => post({ ...defaultInput(), mitgliedId: MIT, rabattIds: [RAB], riegen,
+    positionen: [{ artikelId: ART, groesseId: null, menge: 1 }] });
+  const mitglied = (gruppen: string[]) => ({ _id: new ObjectId(MIT), vorname: 'Test', nachname: 'Mitglied', aktiv: true, clubdeskGruppen: gruppen });
+  beforeEach(() => {
+    mock.collections.clubdesk_mitglieder = { findOne: vi.fn(async () => mitglied(['K3/4 Ti (TurnerIn)'])), updateOne: vi.fn(async () => ({ modifiedCount: 1 })) };
+    mock.collections.clubdesk_gruppenzuordnungen = { find: vi.fn(() => ({ toArray: async () => [{ gruppe: 'K3/4 Ti', funktion: 'TurnerIn', riegeId: RID }] })) };
+    mock.collections.riegen = { find: vi.fn(() => ({ toArray: async () => [{ _id: RID, name: 'GETU Meitli', aktiv: true }] })) };
+    collection('rabattregeln').find.mockReturnValue({ toArray: async () => [regel] });
+  });
+  it('erlaubt berechtigten Erstbezug und fragt nur den eigenen Verein ab', async () => {
+    expect((await sell()).status).toBe(201);
+    expect(collection('clubdesk_gruppenzuordnungen').find).toHaveBeenCalledWith({ vereinId: 'verein-1' }, { session: mock.session });
+    expect(collection('riegen').find).toHaveBeenCalledWith({ vereinId: 'verein-1', aktiv: true }, { session: mock.session });
+  });
+  it.each([['K3/4 Ti (LeiterIn)'], ['Ti/Tu TV (TurnerIn)'], []])('verweigert unberechtigte Gruppen %j', async (...gruppen) => {
+    collection('clubdesk_mitglieder').findOne.mockResolvedValue({ ...mitglied(gruppen), riegen: ['GETU Meitli'] });
+    expect((await sell()).status).toBe(409);
+    expect(collection('clubdesk_mitglieder').updateOne).not.toHaveBeenCalled();
+    expect(collection('vereinskleider_verkaeufe').insertOne).not.toHaveBeenCalled();
+  });
+  it('erlaubt Mehrfachmitgliedschaft', async () => {
+    collection('clubdesk_mitglieder').findOne.mockResolvedValue(mitglied(['Ti/Tu TV (TurnerIn)', 'K3/4 Ti (TurnerIn)']));
+    expect((await sell()).status).toBe(201);
+  });
+  it('verweigert deaktivierte Riege', async () => {
+    collection('riegen').find.mockReturnValue({ toArray: async () => [{ _id: RID, name: 'GETU Meitli', aktiv: false }] });
+    expect((await sell()).status).toBe(409);
+  });
+  it('verweigert entfernte oder vereinsfremde Zuordnung', async () => {
+    collection('clubdesk_gruppenzuordnungen').find.mockReturnValue({ toArray: async () => [] });
+    expect((await sell()).status).toBe(409);
+  });
+  it('verweigert unpassende Auswahl im Formular', async () => {
+    expect((await sell(['Aktive'])).status).toBe(400);
+  });
+});
