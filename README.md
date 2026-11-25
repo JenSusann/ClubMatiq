@@ -46,6 +46,7 @@
         - [4.2.4 Systematische Testmatrix und Testprotokolle](#424-systematische-testmatrix-und-testprotokolle)
         - [4.2.5 Anforderungs- und Rückverfolgungsmatrix](#425-anforderungs--und-rückverfolgungsmatrix)
         - [4.2.6 Rollenbasiertes Berechtigungskonzept](#426-rollenbasiertes-berechtigungskonzept)
+        - [4.2.7 Strukturiertes Release- und Versionsmanagement](#427-strukturiertes-release--und-versionsmanagement)
 - [5. Projektorganisation \[Optional\]](#5-projektorganisation-optional)
 - [6. KI-Deklaration](#6-ki-deklaration)
     - [6.1 KI-Tools](#61-ki-tools)
@@ -320,6 +321,14 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 - **Nachweise:** [Benutzer- und Berechtigungskonzept](docs/architektur/ClubMatiq_Benutzer_Berechtigungskonzept.pdf) · [Berechtigungslogik](src/lib/server/berechtigungen.ts) · [Session-Verwaltung](src/hooks.server.ts).
 - **Bezug zur Evaluation:** Nein. Das Konzept entstand im Rahmen der technischen Umsetzung. Die systematische Validierung der Rollenrechte ist separat nachzuweisen.
 
+
+#### 4.2.7 Strukturiertes Release- und Versionsmanagement
+
+- **Beschreibung & Nutzen:** Die Weiterentwicklung wird über Zielversionen, eine Produkt-Roadmap und einen dokumentierten Freigabeprozess strukturiert. Dadurch bleiben Abgabeumfang und spätere Produktentwicklung nachvollziehbar getrennt.
+- **Abgrenzung zum Mindestumfang:** Zusätzlich zur Git-Versionsverwaltung werden Release-Planung, Zielversionslabels, Changelog und Freigabekriterien gepflegt. Geplante Funktionen sind keine umgesetzten Software-Erweiterungen.
+- **Umsetzung:** Am 25.11.2026 wurden die 43 optionalen Issues #72–114 den Zielversionen v1.1 bis v3.0 zugeordnet. Die bestehenden Projektmilestones bleiben erhalten. Roadmap, Changelog, Release-Management und Freigabecheckliste wurden im Repository angelegt. Die separat deployte Evaluationsversion und der erste stabile Release sind noch ausstehend; Zielnummern werden vor Freigabe gemäss Semantic Versioning überprüft.
+- **Nachweise:** [Produkt-Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Release-Management](docs/releases/Release_Management.md) · [Freigabecheckliste](docs/releases/Release_Checkliste.md) · [GitHub-Labels](https://github.com/JenSusann/ClubMatiq/labels). Screenshot und tatsächliche Release-Nachweise nach Einrichtung ergänzen.
+- **Bezug zur Evaluation:** Nein. Die Planung entstand als zusätzliche organisatorische Erweiterung; die eingefrorene Evaluationsversion wird nach Durchführung separat nachgewiesen.
 
 ## 5. Projektorganisation [Optional]
 
