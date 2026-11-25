@@ -36,6 +36,7 @@
     gueltigAb: string | null;
     gueltigBis: string | null;
     einmaligProMitglied?: boolean;
+    anspruchsgruppe?: string;
     kombinierbar: boolean;
     aktiv: boolean;
   };
@@ -147,7 +148,16 @@
       (regel.geltungsbereich === 'kategorie' && regel.kategorieIds.includes(
         artikel.find((a) => a._id === p.artikelId)?.kategorieId ?? ''
       )));
-    return !!passend && (!regel.einmaligProMitglied || !ausgewaehltesMitglied?.erstbezugsRabattIds?.includes(passend.artikelId));
+    if (!passend) return false;
+    if (!regel.einmaligProMitglied) return true;
+    const ids = ausgewaehltesMitglied?.erstbezugsRabattIds ?? [];
+    if (ids.includes(passend.artikelId)) return false;
+    if (!regel.anspruchsgruppe) return true;
+    if (ids.includes('gruppe:' + regel.anspruchsgruppe)) return false;
+    const gruppenregeln = rabattregeln.filter(r => r.einmaligProMitglied && r.anspruchsgruppe === regel.anspruchsgruppe);
+    return !gruppenregeln.some(r => ids.includes(r._id) ||
+      r.artikelIds.some(id => ids.includes(id)) ||
+      artikel.some(a => r.kategorieIds.includes(a.kategorieId) && ids.includes(a._id)));
   }));
   const ausgewaehlterRabatt = $derived(passendeRegeln.find((r) => r._id === rabattId));
   function rappen(wert: number): number { return Math.round((wert + Number.EPSILON) * 100); }
