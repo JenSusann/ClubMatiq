@@ -44,6 +44,7 @@ beforeEach(() => {
   Object.assign(mock.collections, cols);
 });
 import * as route0 from '../../../src/routes/api/vereinskleider/+server';
+import { POST as stornierungPOST } from '../../../src/routes/api/vereinskleider/stornierungen/+server';
 
 // Ursprüngliche Datei: 35-vereinskleider-hauptapi.integration.test.ts
 describe('Paket 35 – Vereinskleider Haupt-API: Eingabe', () => {
@@ -326,6 +327,41 @@ describe('Issue #34 – Erstbezug über mehrere Verkaufsvorgänge', () => {
       })
     };
     collection('rabattregeln').find.mockReturnValue({ toArray: async () => [regel(RAB)] });
+  });
+  it('erlaubt erneuten Erstbezug nach vollständiger Stornierung', async () => {
+    const sales = collection('vereinskleider_verkaeufe');
+    const verkaufId = new ObjectId();
+    let gespeichert: any;
+    sales.insertOne.mockImplementation(async (doc: any) => {
+      gespeichert = { ...doc, _id: verkaufId };
+      return { insertedId: verkaufId };
+    });
+    sales.findOne = vi.fn(async () => gespeichert);
+    sales.updateOne = vi.fn(async (_filter: any, update: any) => {
+      gespeichert = { ...gespeichert, ...update.$set };
+      return { modifiedCount: 1 };
+    });
+    const members = collection('clubdesk_mitglieder');
+    const claim = members.updateOne.getMockImplementation();
+    members.updateOne.mockImplementation(async (filter: any, update: any) => {
+      if (!update.$pullAll) return claim(filter, update);
+      const ids = ansprueche.get(filter.vereinId + ':' + String(filter._id));
+      if (!ids || !filter.erstbezugsRabattIds.$all.every((x: string) => ids.has(x))) return { modifiedCount: 0 };
+      for (const x of update.$pullAll.erstbezugsRabattIds) ids.delete(x);
+      return { modifiedCount: 1 };
+    });
+    expect((await sell()).status).toBe(201);
+    expect((await sell()).status).toBe(409);
+    const response = await stornierungPOST({
+      request: req({ verkaufId: String(verkaufId), positionsIndex: 0, menge: 1, grund: 'Fehlbestellung' }),
+      locals: { benutzer: { vereinId: 'verein-1', id: MIT } }
+    } as never);
+    expect(response.status).toBe(200);
+    expect(gespeichert.status).toBe('storniert');
+    expect(ansprueche.get('verein-1:' + MIT)?.has(ART)).toBe(false);
+    expect((await sell()).status).toBe(201);
+    expect(ansprueche.get('verein-1:' + MIT)?.has(ART)).toBe(true);
+    expect((await sell()).status).toBe(409);
   });
   it('verhindert zweiten Bezug nach erfolgreicher Bestellung', async () => {
     expect((await sell()).status).toBe(201);
