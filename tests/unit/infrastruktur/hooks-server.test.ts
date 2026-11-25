@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHash } from 'node:crypto';
 import { ObjectId } from 'mongodb';
 
-const { findOne, collection } = vi.hoisted(() => ({ findOne: vi.fn(), collection: vi.fn() }));
+const { findOne, collection, updateOne } = vi.hoisted(() => ({ findOne: vi.fn(), collection: vi.fn(), updateOne: vi.fn() }));
 vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection } }));
 import { handle } from '../../../src/hooks.server';
 
 const uid = '507f1f77bcf86cd799439011';
 const sid = '507f1f77bcf86cd799439012';
 const user = { _id: new ObjectId(uid), vereinId: 'verein-a', vorname: 'Ada', nachname: 'Test', email: 'ada@example.test', rolle: 'admin' };
-const session = { _id: new ObjectId(sid), benutzerId: uid };
+const session = { _id: new ObjectId(sid), benutzerId: uid, erstelltAm: new Date(), ablaufdatum: new Date(Date.now() + 7200000), letzteAktivitaet: new Date() };
 function run(path: string, token?: string) {
   const cookies = { get: vi.fn(() => token), delete: vi.fn() };
   const event = { url: new URL('http://localhost' + path), cookies, locals: { benutzer: { alt: true }, sessionId: 'alt' } };
@@ -17,7 +17,7 @@ function run(path: string, token?: string) {
   return { event, cookies, resolve, response: handle({ event, resolve } as never) };
 }
 describe('Server-Hook – Authentifizierung und Routing', () => {
-  beforeEach(() => { vi.clearAllMocks(); collection.mockReturnValue({ findOne }); findOne.mockResolvedValue(null); });
+  beforeEach(() => { vi.clearAllMocks(); collection.mockReturnValue({ findOne, updateOne }); updateOne.mockResolvedValue({ matchedCount: 1 }); findOne.mockResolvedValue(null); });
   it.each(['/', '/anmelden', '/registrieren', '/funktionen', '/einladung', '/docs', '/docs/api', '/api/anmelden', '/api/registrieren', '/api/einladung'])('erlaubt öffentliche Route %s', async (path) => {
     const x = run(path); expect((await x.response).status).toBe(200); expect(x.resolve).toHaveBeenCalledOnce(); expect(x.event.locals.benutzer).toBeNull(); expect(x.event.locals.sessionId).toBeNull();
   });
@@ -63,6 +63,21 @@ describe('Server-Hook – Authentifizierung und Routing', () => {
   it.each(['/passwort-aendern', '/api/passwort-aendern', '/api/abmelden'])('erlaubt notwendige Route bei Startpasswortwechsel: %s', async path => {
     findOne.mockResolvedValueOnce(session).mockResolvedValueOnce({ ...user, passwortwechselErforderlich: true });
     expect((await run(path, 'token').response).status).toBe(200);
+  });
+  it('Statusabfrage verlängert die Sitzung nicht', async () => {
+    findOne.mockResolvedValueOnce(session).mockResolvedValueOnce(user);
+    expect((await run('/api/session', 'token').response).status).toBe(200);
+    expect(updateOne).not.toHaveBeenCalled();
+  });
+  it('Aktivität aktualisiert nur die letzte Aktivität', async () => {
+    findOne.mockResolvedValueOnce(session).mockResolvedValueOnce(user);
+    expect((await run('/api/session/aktivitaet', 'token').response).status).toBe(200);
+    expect(updateOne).toHaveBeenCalledWith(expect.objectContaining({ letzteAktivitaet: { $gt: expect.any(Date) }, erstelltAm: { $gt: expect.any(Date) } }), { $max: { letzteAktivitaet: expect.any(Date) } });
+  });
+  it('verwirft zwischenzeitlich widerrufene Session', async () => {
+    findOne.mockResolvedValueOnce(session).mockResolvedValueOnce(user);
+    updateOne.mockResolvedValueOnce({ matchedCount: 0 });
+    expect((await run('/api/artikel', 'token').response).status).toBe(401);
   });
   it('verwirft Session ohne aktiven Benutzer', async () => {
     findOne.mockResolvedValueOnce(session).mockResolvedValueOnce(null);
