@@ -214,7 +214,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       }
       const zwischentotalRappen = geprueft.reduce((summe, p) => summe + p.positionsbetrag, 0);
       let regelRabattRappen = 0;
-      const angewendeteRabatte: Array<{ rabattId: string; name: string; betrag: number }> = [];
+      const angewendeteRabatte: Array<{ rabattId: string; name: string; betrag: number; einmaligProMitglied?: boolean }> = [];
+      const erstbezugsIds: string[] = [];
       if (eingabe.rabattIds.length) {
         const regeln = await db.collection<Rabattregel>('rabattregeln').find({
           _id: { $in: eingabe.rabattIds.map((id) => new ObjectId(id)) }, vereinId
@@ -225,7 +226,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         }
         const heute = new Date().toISOString().slice(0, 10);
         for (const regel of regeln) {
-          if (regel.einmaligProMitglied === true) throw new Verkaufsfehler('Einmalige Erstbezugsregeln sind noch nicht für den Verkauf freigegeben.', 409);
+          if (regel.einmaligProMitglied === true) {
+            if (!mitglied) throw new Verkaufsfehler('Für einen Erstbezug muss ein Mitglied ausgewählt werden.', 409);
+            if (regel.rabattart !== 'fixpreis' || regel.geltungsbereich === 'warenkorb' || regel.maximaleMenge !== 1) {
+              throw new Verkaufsfehler('Ungültige Erstbezugsregel.', 409);
+            }
+            // Ein Schreibzugriff auf das Mitglied serialisiert konkurrierende Ansprüche.
+            const sperre = await db.collection('clubdesk_mitglieder').updateOne(
+              { _id: mitglied._id, vereinId, aktiv: { $ne: false }, erstbezugsRabattIds: { $ne: regel._id.toString() } },
+              { $addToSet: { erstbezugsRabattIds: regel._id.toString() } }, { session }
+            );
+            if (sperre.modifiedCount !== 1) throw new Verkaufsfehler(`Erstbezug «${regel.name}» wurde bereits beansprucht.`, 409);
+            erstbezugsIds.push(regel._id.toString());
+          }
           if (regel.aktiv === false || (regel.gueltigAb && heute < regel.gueltigAb) ||
               (regel.gueltigBis && heute > regel.gueltigBis)) {
             throw new Verkaufsfehler(`Rabattregel «${regel.name}» ist nicht gültig.`);
@@ -266,7 +279,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           } else throw new Verkaufsfehler('Ungültige Rabattart.');
           rabatt = Math.min(rabatt, Math.max(0, zwischentotalRappen - regelRabattRappen));
           regelRabattRappen += rabatt;
-          angewendeteRabatte.push({ rabattId: regel._id.toString(), name: regel.name, betrag: rabatt / 100 });
+          angewendeteRabatte.push({ rabattId: regel._id.toString(), name: regel.name, betrag: rabatt / 100, ...(regel.einmaligProMitglied ? { einmaligProMitglied: true } : {}) });
         }
       }
       const zusatzRappen = geld(eingabe.zusaetzlicherRabatt);
@@ -376,6 +389,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         bemerkung: eingabe.bemerkung,
         positionen: aufgeteiltePositionen.map(({ kategorieId, positionsbetrag, ...p }) => ({ ...p, positionsbetrag: positionsbetrag / 100 })),
         rabatte: angewendeteRabatte,
+        ...(erstbezugsIds.length ? { erstbezugsIds } : {}),
         zusaetzlicherRabatt: eingabe.zusaetzlicherRabatt,
         zwischentotal: zwischentotalRappen / 100,
         rabattTotal: (regelRabattRappen + zusatzRappen) / 100,
