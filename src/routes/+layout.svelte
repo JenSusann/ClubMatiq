@@ -123,13 +123,13 @@
 </div>
 {#if warnung}
   <div class="session-overlay">
-    <section class="session-dialog" role="alertdialog" aria-modal="true" aria-labelledby="session-titel">
+    <div class="session-dialog" role="alertdialog" aria-modal="true" aria-labelledby="session-titel">
       <h2 id="session-titel">Deine Sitzung läuft bald ab</h2>
       <p>{absolutEndet ? 'Die maximale Sitzungsdauer von zwei Stunden ist bald erreicht. Bitte speichere deine Änderungen.' : 'Du warst längere Zeit inaktiv. Aus Sicherheitsgründen wirst du automatisch abgemeldet.'}</p>
       <div class="session-countdown">{Math.floor(Math.ceil(rest / 1000) / 60)}:{String(Math.ceil(rest / 1000) % 60).padStart(2, '0')}</div>
       {#if sessionFehler}<p role="alert">{sessionFehler}</p>{/if}
       <div class="session-aktionen"><button onclick={abmelden}>Abmelden</button>{#if !absolutEndet}<button class="session-weiter" onclick={() => sessionPruefen(true)}>Angemeldet bleiben</button>{/if}</div>
-    </section>
+    </div>
   </div>
 {/if}
 <style>
