@@ -328,6 +328,21 @@ describe('Issue #34 – Erstbezug über mehrere Verkaufsvorgänge', () => {
     };
     collection('rabattregeln').find.mockReturnValue({ toArray: async () => [regel(RAB)] });
   });
+  it('speichert den Erstbezugsrabatt bei mehreren Stücken eindeutig auf der Position', async () => {
+    const response = await sell({ positionen: [{ artikelId: ART, groesseId: null, menge: 2 }] });
+    expect(response.status).toBe(201);
+    const doc = collection('vereinskleider_verkaeufe').insertOne.mock.calls[0][0];
+    expect(doc.erstbezugsPositionen).toEqual([{ anspruch: ART, rabattId: RAB, positionsIndex: 0, rabattBetrag: 20 }]);
+    expect(doc.endbetrag).toBe(20);
+  });
+  it('ordnet den Erstbezug bei automatischer Aufteilung dem direkten Stück zu', async () => {
+    const response = await sell({ verkaufsart: 'automatisch', positionen: [{ artikelId: ART, groesseId: null, menge: 10 }] });
+    expect(response.status).toBe(201);
+    const doc = collection('vereinskleider_verkaeufe').insertOne.mock.calls[0][0];
+    expect(doc.positionen[0].verkaufsart).toBe('direkt');
+    expect(doc.positionen[1].verkaufsart).toBe('bestellung');
+    expect(doc.erstbezugsPositionen).toEqual([{ anspruch: ART, rabattId: RAB, positionsIndex: 0, rabattBetrag: 20 }]);
+  });
   it.each([false, true])('erlaubt erneuten Erstbezug nach vollständiger Stornierung (Anspruchsgruppe: %s)', async (mitGruppe) => {
     const anspruch = mitGruppe ? 'gruppe:juko-tshirt' : ART;
     if (mitGruppe) collection('rabattregeln').find.mockReturnValue({ toArray: async () => [{ ...regel(RAB), anspruchsgruppe: 'juko-tshirt' }] });
