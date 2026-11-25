@@ -113,7 +113,7 @@
   <section class="karte" aria-labelledby="import-titel">
     <h2 id="import-titel">ClubDesk-CSV importieren</h2>
     <p>Exportiere deine Mitglieder in ClubDesk als CSV-Datei. Importiert werden Anrede, Nachname, Vorname, Adresse, Ort, PLZ, ID und Status. Das Feld «aktiv» wird beim Import auf «Ja» gesetzt.</p>
-    <p class="hinweis">Bestehende Mitglieder mit derselben ClubDesk-ID werden aktualisiert. Mitglieder, die in der CSV fehlen, bleiben gespeichert. Gruppen werden nicht übernommen.</p>
+    <p class="hinweis">Bestehende Mitglieder mit derselben ClubDesk-ID werden aktualisiert. Mitglieder, die in der CSV fehlen, bleiben gespeichert. ClubDesk-Gruppen und Funktionen werden übernommen. Mehrfache Einträge mit derselben ID und demselben Namen werden zusammengeführt.</p>
     <form onsubmit={(ereignis) => { ereignis.preventDefault(); void csvImportieren(); }}>
       <label for="csv-datei">CSV-Datei auswählen (max. 5 MB)</label>
       <input id="csv-datei" type="file" accept=".csv,text/csv" bind:this={dateiEingabe} onchange={dateiAuswaehlen} />
