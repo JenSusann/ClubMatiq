@@ -386,3 +386,32 @@ describe('Issue #34 – Stornierung von Erstbezügen', () => {
     expect(mocks.updateOne).not.toHaveBeenCalled();
   });
 });
+
+
+describe('Issue #34 – Verrechnung von Erstbezügen', () => {
+  it('verhindert eine Nullrechnung für einen kostenlosen Erstbezug', async () => {
+    mocks.findOne.mockResolvedValue({
+      vereinId, erstbezugsIds: [id], endbetrag: 0, zwischentotal: 25, rabattTotal: 25,
+      bezahltBetrag: 0, zahlungsstatus: 'bezahlt', zahlungen: [],
+      positionen: [{ menge: 1, einzelpreis: 25, positionsbetrag: 25 }]
+    });
+    const response = await route10.POST(event('POST', { verkaufId: id }) as never);
+    expect(response.status).toBe(409);
+    expect((await response.json()).fehler).toContain('Kostenlose Erstbezüge');
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('schliesst kostenlose Erstbezüge aus der Liste unverrechneter Verkäufe aus', async () => {
+    const cursor = {
+      sort: () => cursor, limit: () => cursor, project: () => cursor,
+      toArray: async () => []
+    };
+    mocks.find.mockReturnValue(cursor);
+    const response = await route11.GET(event('GET') as never);
+    expect(response.status).toBe(200);
+    expect(mocks.find).toHaveBeenCalledWith({
+      vereinId, rechnungId: { $exists: false },
+      $nor: [{ endbetrag: 0, preisOffen: { $ne: true }, 'erstbezugsIds.0': { $exists: true } }]
+    });
+  });
+});
