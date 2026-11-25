@@ -101,6 +101,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
               p.groesseId !== position.groesseId) continue;
           const uebergeben = p.uebergebenMenge ?? 0;
           const reserviert = p.reserviertMenge ?? 0;
+          // Vollständig stornierte Positionen ohne Übergabe oder Reserve sind inaktiv.
+          if (p.menge === 0 && uebergeben === 0 && reserviert === 0) continue;
           if (!Number.isSafeInteger(p.menge) || p.menge < 1 ||
               !Number.isSafeInteger(uebergeben) || uebergeben < 0 || uebergeben > p.menge ||
               !Number.isSafeInteger(reserviert) || reserviert < 0 || reserviert > p.menge - uebergeben) {
