@@ -36,6 +36,22 @@ const alleBerechtigungen: Berechtigung[] = [
 ];
 
 describe('ClubMatiq Berechtigungskonzept', () => {
+  const erwarteteRechte: Record<Benutzer['rolle'], Berechtigung[]> = {
+    admin: alleBerechtigungen,
+    materialverantwortlich: alleBerechtigungen.filter(r => r !== 'benutzer:verwalten' && r !== 'mitglieder:verwalten'),
+    leiter: ['inventar:lesen', 'ausleihen:lesen', 'ausleihen:verwalten', 'inventur:lesen', 'inventur:zaehlen'],
+    mitglied: ['inventar:lesen']
+  };
+  it.each(Object.entries(erwarteteRechte).flatMap(([rolle, rechte]) => alleBerechtigungen.map(recht => ({ rolle: rolle as Benutzer['rolle'], recht, erlaubt: rechte.includes(recht) }))))('$rolle / $recht: $erlaubt', ({ rolle, recht, erlaubt }) => {
+    const benutzer = testBenutzer(rolle);
+    expect(hatBerechtigung(benutzer, recht)).toBe(erlaubt);
+    expect(pruefeBerechtigung(benutzer, recht)?.status ?? null).toBe(erlaubt ? null : 403);
+  });
+  it.each(['constructor', '__proto__', 'toString'])('verweigert reservierte Objektschlüssel als Rolle: %s', rolle => {
+    const benutzer = testBenutzer(rolle as Benutzer['rolle']);
+    expect(hatBerechtigung(benutzer, 'inventar:lesen')).toBe(false);
+    expect(pruefeBerechtigung(benutzer, 'inventar:lesen')?.status).toBe(403);
+  });
   it('Administrator hat alle Berechtigungen', () => {
     const benutzer = testBenutzer('admin');
 
