@@ -24,7 +24,6 @@
   type Formular = Omit<Rabattregel, '_id'>;
 
   let aktiveRiegen = $state<string[]>([]);
-  const riegenOptionen = $derived([...new Set([...aktiveRiegen, ...formular.riegen])]);
   const leer: Formular = {
     name: '', rabattart: 'prozent', wert: 0, geltungsbereich: 'warenkorb',
     artikelIds: [], kategorieIds: [], riegen: [], maximaleMenge: null,
@@ -35,6 +34,7 @@
   let artikel = $state<Option[]>([]);
   let kategorien = $state<Option[]>([]);
   let formular = $state<Formular>({ ...leer });
+  const riegenOptionen = $derived([...new Set([...aktiveRiegen, ...formular.riegen])]);
   let bearbeiteteId = $state<string | null>(null);
   let laden = $state(true);
   let speichern = $state(false);
