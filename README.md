@@ -148,42 +148,41 @@ Das Projekt folgt dem phasenorientierten Prototyping-Prozess. Die nachfolgenden 
 
 #### 3.4.2. Umsetzung (Technik)
 
-- **Technologie-Stack:** SvelteKit 3, Svelte 5, TypeScript, Vite 8, MongoDB (Node.js-Treiber 7), `argon2`, `qrcode`, `pdf-lib`, `cloudinary`, `dotenv`. Als Adapter sind `@sveltejs/adapter-auto` und `@sveltejs/adapter-netlify` in den Abhängigkeiten vorhanden. Grundlage: [`package.json`](https://github.com/JenSusann/ClubMatiq/blob/main/package.json).
-- **Tooling:** Visual Studio Code, Git/GitHub, Node.js/npm, MongoDB Atlas und ChatGPT als Entwicklungsunterstützung. Das Repository enthält npm-Skripte für Entwicklung, Build, Vorschau und TypeScript-/Svelte-Prüfung.
-- **Vorgehen bei der Implementierung:** Zuerst wurden Projektstruktur, Datenbankanbindung und Stammdaten aufgebaut. Darauf folgten Inventar und Ausleihen, anschliessend zusätzliche Module und die Erweiterung der Vereinskleiderprozesse. Funktionen wurden iterativ entwickelt, lokal auf Fehler geprüft und über Git-Commits dokumentiert. Details zum KI-Einsatz stehen in Kapitel 6.
-- **Struktur & Komponenten:**
+**Technologiewahl:** Für die Umsetzung wurde SvelteKit mit Svelte 5 und TypeScript gewählt. Dadurch lassen sich Benutzeroberfläche und serverseitige API innerhalb eines gemeinsamen Projekts entwickeln. MongoDB ermöglicht die flexible Speicherung von Artikeln, Grössenvarianten und vereinsbezogenen Geschäftsdaten. Als Entwicklungswerkzeuge dienen Visual Studio Code, Node.js/npm, GitHub und ChatGPT. Die Webanwendung wird über Netlify bereitgestellt.
 
-  | Bereich | Technische Umsetzung |
-  |---|---|
-  | Seiten und Navigation | [`src/routes`](https://github.com/JenSusann/ClubMatiq/tree/main/src/routes), [`+layout.svelte`](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/%2Blayout.svelte) |
-  | API-Endpunkte | [`src/routes/api`](https://github.com/JenSusann/ClubMatiq/tree/main/src/routes/api) |
-  | Datenbankzugriff | [`src/lib/server/mongodb.ts`](https://github.com/JenSusann/ClubMatiq/blob/main/src/lib/server/mongodb.ts) |
-  | Berechtigungen | [`src/lib/server/berechtigungen.ts`](https://github.com/JenSusann/ClubMatiq/blob/main/src/lib/server/berechtigungen.ts), [`src/hooks.server.ts`](https://github.com/JenSusann/ClubMatiq/blob/main/src/hooks.server.ts) |
-  | Gemeinsame Komponenten und Typen | [`src/lib`](https://github.com/JenSusann/ClubMatiq/tree/main/src/lib) |
-  | Migration | [`scripts/migration-verein.mjs`](https://github.com/JenSusann/ClubMatiq/blob/main/scripts/migration-verein.mjs) |
+**Vorgehen bei der Implementierung:** Der Prototyp wurde schrittweise aufgebaut und anhand der fachlichen Anforderungen erweitert.
 
-- **Daten & Schnittstellen:** MongoDB speichert die Anwendungsdaten. SvelteKit-Serverrouten übernehmen den Zugriff über HTTP-Endpunkte. Die API-Struktur umfasst Artikel, Kategorien, Lagerorte, Grössen, Ausleihen, Inventuren, Benutzer, Mitglieder, Lieferanten, Rabatte, Meldungen und Vereinskleiderprozesse. Authentifizierungs- und Berechtigungslogik befindet sich serverseitig. Die Cloudinary-Abhängigkeit und ein Upload-Endpunkt sind vorhanden; die konkrete Konfiguration ist für den Zielbetrieb separat zu prüfen.
+1. Aufbau der Projektstruktur, Datenbankanbindung und Stammdatenverwaltung.
+2. Umsetzung der Inventarverwaltung sowie der Ausleih- und Rückgabeprozesse.
+3. Erweiterung um Inventuren, Inventarbewertung und nachvollziehbare Bestandsbewegungen.
+4. Ausbau der Vereinskleiderverwaltung um Verkäufe, Bestellungen, Beschaffung, Übergaben, Verrechnung und Retouren.
+5. Weiterentwicklung der Benutzerverwaltung, Berechtigungen, Session-Verwaltung und externen Integrationen.
+6. Laufende Qualitätssicherung, Fehlerkorrekturen und Erweiterung der automatisierten und manuellen Testfälle.
 
-**Benutzerverwaltung und E-Mail-Einladungen:** ClubMatiq unterstützt die vereinsbezogene Benutzerverwaltung mit rollenbasierten Berechtigungen. Administratoren können neue Benutzer per E-Mail einladen. Der Versand erfolgt über den externen E-Mail-Dienst Resend. Eingeladene Personen erhalten einen zeitlich begrenzten Einladungslink und können damit ihr Benutzerkonto durch Vergabe eines Passworts aktivieren. Einladungen können erneut versendet werden. Die Authentifizierung erfolgt über serverseitig verwaltete Sessions. Nach erfolgreicher Anmeldung werden Benutzer automatisch auf das Dashboard weitergeleitet. 
+Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderungen werden konkretisiert, KI-gestützt in technische Lösungen übersetzt und anschliessend lokal integriert und geprüft. Erkenntnisse aus den Prüfungen fliessen in die nächste Entwicklungsiteration ein. Der Ablauf und die Abgrenzung der Eigenleistung sind in [Kapitel 6](#6-ki-deklaration) dokumentiert.
 
-- **Deployment:** Link siehe «Aktuelle App» in der [Projektübersicht](#projektübersicht--zugänge).
-- **Besondere Entscheidungen:** MongoDB unterstützt flexible Artikeldaten und Grössenvarianten. Die Trennung zwischen Benutzeroberfläche, API und Datenbanklogik erleichtert Erweiterungen. Für Verrechnung und Sammelbestellungen wurden eigene Prozesse eingeführt, statt sie direkt mit dem allgemeinen Inventarformular zu vermischen.
+**Projektstruktur:** Die Anwendung trennt Benutzeroberfläche, serverseitige Schnittstellen und gemeinsam verwendete Geschäftslogik.
 
-**Lokale Ausführung (Entwicklungsumgebung):**
+| Bereich | Ablage |
+|---|---|
+| Benutzeroberfläche und Navigation | [src/routes](src/routes) |
+| Serverseitige API | [src/routes/api](src/routes/api) |
+| Gemeinsame Komponenten und Logik | [src/lib](src/lib) |
+| Datenbankzugriff und serverseitige Geschäftslogik | [src/lib/server](src/lib/server) |
+| Automatisierte Tests | [tests](tests) |
+| Projektartefakte und Testdokumentation | [docs](docs) |
 
-```bash
-npm install
-npm run dev
-npm run check
-npm run build
-```
+**Zentrale technische Herausforderungen:** Besondere Aufmerksamkeit erforderte die konsistente Bestandsführung über mehrere Module hinweg. Ausleihen, Verkäufe, Wareneingänge, Retouren und Inventuren greifen auf gemeinsame Bestände zu. Weitere Herausforderungen waren die korrekte Zuordnung von Grössenvarianten, Teilrechnungen und Stornierungen sowie die Trennung der Vereinsdaten und rollenbezogenen Zugriffsrechte. Zur Unterstützung dieser Anforderungen wurden unter anderem serverseitige Validierungen, Transaktionen, Versionskontrollen und Historien in den dafür vorgesehenen Prozessen eingesetzt.
 
-MONGODB_URI=...
-RESEND_API_KEY=...
-RESEND_FROM_EMAIL="ClubMatiq <onboarding@resend.dev>"
-PUBLIC_APP_URL=http://localhost:5173
+**Ergebnis der Umsetzung:** Aus dem ursprünglichen Entwurf entstand ein funktionsübergreifender Webprototyp, der die Material- und Vereinskleiderverwaltung auf einer gemeinsamen Datenbasis verbindet. Die Anwendung wird weiterhin anhand der definierten Anforderungen und Testergebnisse verbessert.
 
-Für die Datenbankanbindung wird eine lokale `.env` mit `MONGODB_URI` benötigt. Zusätzliche Umgebungsvariablen für aktivierte externe Dienste sind anhand des Codes und der Deployment-Konfiguration zu prüfen. Geheimnisse dürfen nicht committed werden.
+**Weiterführende technische Dokumentation:**
+
+- [Kapitel 4.2.3 – Datenmodell](#423-datenmodell)
+- [Kapitel 6 – KI-Deklaration](#6-ki-deklaration)
+- [Kapitel 9 – Lokale Installation und Tests](#9-lokale-installation-und-tests)
+- [Kapitel 10 – Technische Architektur, Integrationen und Entwicklungsstand](#10-technische-architektur-integrationen-und-entwicklungsstand)
+- [Aktuelle Webanwendung](https://clubmatiq.netlify.app)
 
 ### 3.5 Validate
 
