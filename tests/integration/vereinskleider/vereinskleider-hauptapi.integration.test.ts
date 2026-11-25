@@ -521,3 +521,55 @@ describe('Issue #34 – vollständige Erstbezugsstornierung mit Rechnung', () =>
     expect(collection('clubdesk_mitglieder').updateOne).not.toHaveBeenCalled();
   });
 });
+
+
+describe('Issue #34 – unverrechnete positionsbezogene Teilstornierung', () => {
+  const MIT = 'eeeeeeeeeeeeeeeeeeeeeeee';
+  const VID = new ObjectId();
+  const anspruch = 'gruppe:juko-tshirt';
+  let verkauf: any;
+  const stornieren = (positionsIndex: number, menge: number) => stornierungPOST({
+    request: req({ verkaufId: String(VID), positionsIndex, menge, grund: 'Teststornierung' }),
+    locals: { benutzer: { vereinId: 'verein-1', id: MIT } }
+  } as never);
+  beforeEach(() => {
+    const p = { artikelId: ART, groesseId: null, verkaufsart: 'bestellung', menge: 2, einzelpreis: 20, positionsbetrag: 40, uebergebenMenge: 0, reserviertMenge: 1 };
+    verkauf = { _id: VID, vereinId: 'verein-1', status: 'offen', positionen: [p, { ...p, artikelId: GRO, menge: 1, einzelpreis: 80, positionsbetrag: 80, reserviertMenge: 0 }],
+      endbetrag: 100, zwischentotal: 120, rabattTotal: 20, mitgliedId: MIT, erstbezugsIds: [anspruch],
+      erstbezugsPositionen: [{ anspruch, rabattId: RAB, positionsIndex: 0, rabattBetrag: 20 }],
+      rabatte: [{ rabattId: RAB, betrag: 20, einmaligProMitglied: true }], bezahltBetrag: 0, aktualisiertAm: new Date() };
+    collection('vereinskleider_verkaeufe').findOne = vi.fn(async () => verkauf);
+    collection('vereinskleider_verkaeufe').updateOne = vi.fn(async (_filter: any, update: any) => {
+      verkauf = { ...verkauf, ...update.$set }; return { modifiedCount: 1 };
+    });
+    mock.collections.clubdesk_mitglieder = { updateOne: vi.fn(async () => ({ modifiedCount: 1 })) };
+  });
+  it('storniert reguläres Stück zuerst und gibt Anspruch erst beim letzten Stück frei', async () => {
+    expect((await stornieren(0, 1)).status).toBe(200);
+    expect(verkauf).toMatchObject({ endbetrag: 80, rabattTotal: 20, erstbezugsIds: [anspruch] });
+    expect(verkauf.positionen[0]).toMatchObject({ menge: 1, reserviertMenge: 0 });
+    expect(collection('clubdesk_mitglieder').updateOne).not.toHaveBeenCalled();
+    expect((await stornieren(0, 1)).status).toBe(200);
+    expect(verkauf).toMatchObject({ endbetrag: 80, rabattTotal: 0, erstbezugsIds: [], erstbezugsPositionen: [], status: 'offen' });
+    expect(collection('clubdesk_mitglieder').updateOne).toHaveBeenCalledWith(expect.objectContaining({ vereinId: 'verein-1' }), { $pullAll: { erstbezugsRabattIds: [anspruch] } }, expect.anything());
+  });
+  it('storniert andere Position ohne Freigabe des Erstbezugs', async () => {
+    expect((await stornieren(1, 1)).status).toBe(200);
+    expect(verkauf).toMatchObject({ endbetrag: 20, rabattTotal: 20, erstbezugsIds: [anspruch] });
+    expect(collection('clubdesk_mitglieder').updateOne).not.toHaveBeenCalled();
+  });
+  it('behält Anspruch bei bereits übergebenem rabattiertem Stück', async () => {
+    verkauf.positionen[0].uebergebenMenge = 1;
+    expect((await stornieren(0, 1)).status).toBe(200);
+    expect(verkauf.erstbezugsIds).toEqual([anspruch]);
+    expect((await stornieren(0, 1)).status).toBe(409);
+    expect(collection('clubdesk_mitglieder').updateOne).not.toHaveBeenCalled();
+  });
+  it.each(['zuordnung', 'zusatzrabatt', 'konflikt'])('verweigert unsichere Stornierung: %s', async fall => {
+    if (fall === 'zuordnung') verkauf.erstbezugsPositionen[0].positionsIndex = 99;
+    if (fall === 'zusatzrabatt') verkauf.zusaetzlicherRabatt = 5;
+    if (fall === 'konflikt') collection('vereinskleider_verkaeufe').updateOne.mockResolvedValue({ modifiedCount: 0 });
+    expect((await stornieren(0, 1)).status).toBe(409);
+    expect(collection('clubdesk_mitglieder').updateOne).not.toHaveBeenCalled();
+  });
+});
