@@ -3,6 +3,64 @@ vi.mock('../../../src/lib/server/mongodb', () => ({
   db: { collection: () => { throw new Error('UNERWARTETER_DATENBANKZUGRIFF'); } },
   client: { startSession: () => { throw new Error('UNERWARTETE_TRANSAKTION'); } }
 }));
+import * as suite0_route0 from '../../../src/routes/api/artikel/+server';
+import * as suite0_route1 from '../../../src/routes/api/ausleihen/+server';
+import * as suite0_route2 from '../../../src/routes/api/vereinskleider/bestellungen/uebergabe/+server';
+import * as suite0_route3 from '../../../src/routes/api/inventuren/+server';
+import * as suite0_route4 from '../../../src/routes/api/meldungen/+server';
+import * as suite0_route5 from '../../../src/routes/api/vereinskleider/stornierungen/+server';
+import * as suite0_route6 from '../../../src/routes/api/vereinskleider/verrechnung/+server';
+import * as suite0_route7 from '../../../src/routes/api/vereinskleider/verrechnung/[id]/+server';
+import * as suite0_route8 from '../../../src/routes/api/vereinskleider/stornierungen/+server';
+import * as suite0_route9 from '../../../src/routes/api/vereinskleider/bestellungen/uebergabe/+server';
+import * as suite0_route10 from '../../../src/routes/api/vereinskleider/verrechnung/[id]/+server';
+import * as suite0_route11 from '../../../src/routes/api/ausleihen/+server';
+import * as suite0_route12 from '../../../src/routes/api/inventuren/[id]/abschliessen/+server';
+import * as suite0_route13 from '../../../src/routes/api/inventuren/+server';
+import * as suite0_route14 from '../../../src/routes/api/inventuren/[id]/korrekturhistorie/+server';
+import * as suite0_route15 from '../../../src/routes/api/inventuren/+server';
+import * as suite0_route16 from '../../../src/routes/api/inventuren/[id]/zuruecksetzen/+server';
+import * as suite0_route17 from '../../../src/routes/api/benutzer/einladen/+server';
+import * as suite0_route18 from '../../../src/routes/api/benutzer/+server';
+import * as suite0_route19 from '../../../src/routes/api/mitglieder/+server';
+import * as suite0_route20 from '../../../src/routes/api/meldungen/[id]/+server';
+import * as suite0_route21 from '../../../src/routes/api/vereine/+server';
+import * as suite0_route22 from '../../../src/routes/api/lieferanten/+server';
+import * as suite0_route23 from '../../../src/routes/api/vereinskleider/preise/+server';
+import * as suite0_route24 from '../../../src/routes/api/vereinskleider/preise/+server';
+import * as suite0_route25 from '../../../src/routes/api/rabatte/+server';
+import * as suite0_route26 from '../../../src/routes/api/rabatte/+server';
+import * as suite0_route27 from '../../../src/routes/api/vereinskleider/sammelbestellungen/+server';
+
+describe('api-validierung-mehrere-module', () => {
+const route0 = suite0_route0;
+const route1 = suite0_route1;
+const route2 = suite0_route2;
+const route3 = suite0_route3;
+const route4 = suite0_route4;
+const route5 = suite0_route5;
+const route6 = suite0_route6;
+const route7 = suite0_route7;
+const route8 = suite0_route8;
+const route9 = suite0_route9;
+const route10 = suite0_route10;
+const route11 = suite0_route11;
+const route12 = suite0_route12;
+const route13 = suite0_route13;
+const route14 = suite0_route14;
+const route15 = suite0_route15;
+const route16 = suite0_route16;
+const route17 = suite0_route17;
+const route18 = suite0_route18;
+const route19 = suite0_route19;
+const route20 = suite0_route20;
+const route21 = suite0_route21;
+const route22 = suite0_route22;
+const route23 = suite0_route23;
+const route24 = suite0_route24;
+const route25 = suite0_route25;
+const route26 = suite0_route26;
+const route27 = suite0_route27;
 const basis = { id: '507f1f77bcf86cd799439011', vereinId: '507f1f77bcf86cd799439011', rolle: 'admin', vorname: 'Test', nachname: 'Admin' };
 function ereignis(methode: string, daten: unknown, rolle: string | null, id?: string | null) {
   const benutzer = rolle === null ? null : { ...basis, rolle };
@@ -12,7 +70,7 @@ function ereignis(methode: string, daten: unknown, rolle: string | null, id?: st
   });
   return { request, locals: { benutzer }, params: { id }, url: new URL(request.url) } as any;
 }
-import * as route0 from '../../../src/routes/api/artikel/+server';
+
 
 // Ursprüngliche Datei: paket13-artikel-validierung.integration.test.ts
 describe('Paket 13: artikel-validierung', () => {
@@ -34,7 +92,7 @@ describe('Paket 13: artikel-validierung', () => {
   });
 });
 
-import * as route1 from '../../../src/routes/api/ausleihen/+server';
+
 
 // Ursprüngliche Datei: paket13-ausleihe-validierung.integration.test.ts
 describe('Paket 13: ausleihe-validierung', () => {
@@ -56,7 +114,7 @@ describe('Paket 13: ausleihe-validierung', () => {
   });
 });
 
-import * as route2 from '../../../src/routes/api/vereinskleider/bestellungen/uebergabe/+server';
+
 
 // Ursprüngliche Datei: paket13-bestellungen-uebergabe.integration.test.ts
 describe('Paket 13: bestellungen-uebergabe', () => {
@@ -74,7 +132,7 @@ describe('Paket 13: bestellungen-uebergabe', () => {
   });
 });
 
-import * as route3 from '../../../src/routes/api/inventuren/+server';
+
 
 // Ursprüngliche Datei: paket13-inventur-validierung.integration.test.ts
 describe('Paket 13: inventur-validierung', () => {
@@ -92,7 +150,7 @@ describe('Paket 13: inventur-validierung', () => {
   });
 });
 
-import * as route4 from '../../../src/routes/api/meldungen/+server';
+
 
 // Ursprüngliche Datei: paket13-meldungen-validierung.integration.test.ts
 describe('Paket 13: meldungen-validierung', () => {
@@ -114,7 +172,7 @@ describe('Paket 13: meldungen-validierung', () => {
   });
 });
 
-import * as route5 from '../../../src/routes/api/vereinskleider/stornierungen/+server';
+
 
 // Ursprüngliche Datei: paket14-gutschriften-rechte.integration.test.ts
 describe('Paket 14: gutschriften-rechte', () => {
@@ -128,7 +186,7 @@ describe('Paket 14: gutschriften-rechte', () => {
   });
 });
 
-import * as route6 from '../../../src/routes/api/vereinskleider/verrechnung/+server';
+
 
 // Ursprüngliche Datei: paket14-rechnung-erstellen.integration.test.ts
 describe('Paket 14: rechnung-erstellen', () => {
@@ -146,7 +204,7 @@ describe('Paket 14: rechnung-erstellen', () => {
   });
 });
 
-import * as route7 from '../../../src/routes/api/vereinskleider/verrechnung/[id]/+server';
+
 
 // Ursprüngliche Datei: paket14-rechnung-zahlungsvalidierung.integration.test.ts
 describe('Paket 14: rechnung-zahlungsvalidierung', () => {
@@ -172,7 +230,7 @@ describe('Paket 14: rechnung-zahlungsvalidierung', () => {
   });
 });
 
-import * as route8 from '../../../src/routes/api/vereinskleider/stornierungen/+server';
+
 
 // Ursprüngliche Datei: paket14-stornierung-validierung.integration.test.ts
 describe('Paket 14: stornierung-validierung', () => {
@@ -194,7 +252,7 @@ describe('Paket 14: stornierung-validierung', () => {
   });
 });
 
-import * as route9 from '../../../src/routes/api/vereinskleider/bestellungen/uebergabe/+server';
+
 
 // Ursprüngliche Datei: paket14-uebergabe-rechte.integration.test.ts
 describe('Paket 14: uebergabe-rechte', () => {
@@ -208,7 +266,7 @@ describe('Paket 14: uebergabe-rechte', () => {
   });
 });
 
-import * as route10 from '../../../src/routes/api/vereinskleider/verrechnung/[id]/+server';
+
 
 // Ursprüngliche Datei: paket14-zahlung-rechte.integration.test.ts
 describe('Paket 14: zahlung-rechte', () => {
@@ -222,7 +280,7 @@ describe('Paket 14: zahlung-rechte', () => {
   });
 });
 
-import * as route11 from '../../../src/routes/api/ausleihen/+server';
+
 
 // Ursprüngliche Datei: paket15-ausleihe-rechte.integration.test.ts
 describe('Paket 15: ausleihe-rechte', () => {
@@ -240,7 +298,7 @@ describe('Paket 15: ausleihe-rechte', () => {
   });
 });
 
-import * as route12 from '../../../src/routes/api/inventuren/[id]/abschliessen/+server';
+
 
 // Ursprüngliche Datei: paket15-inventur-abschluss-rechte.integration.test.ts
 describe('Paket 15: inventur-abschluss-rechte', () => {
@@ -258,7 +316,7 @@ describe('Paket 15: inventur-abschluss-rechte', () => {
   });
 });
 
-import * as route13 from '../../../src/routes/api/inventuren/+server';
+
 
 // Ursprüngliche Datei: paket15-inventur-erstellen-rechte.integration.test.ts
 describe('Paket 15: inventur-erstellen-rechte', () => {
@@ -276,7 +334,7 @@ describe('Paket 15: inventur-erstellen-rechte', () => {
   });
 });
 
-import * as route14 from '../../../src/routes/api/inventuren/[id]/korrekturhistorie/+server';
+
 
 // Ursprüngliche Datei: paket15-inventur-korrekturverlauf.integration.test.ts
 describe('Paket 15: inventur-korrekturverlauf', () => {
@@ -294,7 +352,7 @@ describe('Paket 15: inventur-korrekturverlauf', () => {
   });
 });
 
-import * as route15 from '../../../src/routes/api/inventuren/+server';
+
 
 // Ursprüngliche Datei: paket15-inventur-listenrechte.integration.test.ts
 describe('Paket 15: inventur-listenrechte', () => {
@@ -308,7 +366,7 @@ describe('Paket 15: inventur-listenrechte', () => {
   });
 });
 
-import * as route16 from '../../../src/routes/api/inventuren/[id]/zuruecksetzen/+server';
+
 
 // Ursprüngliche Datei: paket15-inventur-reset-rechte.integration.test.ts
 describe('Paket 15: inventur-reset-rechte', () => {
@@ -326,7 +384,7 @@ describe('Paket 15: inventur-reset-rechte', () => {
   });
 });
 
-import * as route17 from '../../../src/routes/api/benutzer/einladen/+server';
+
 
 // Ursprüngliche Datei: paket16-benutzereinladungen.integration.test.ts
 describe('Paket 16: benutzereinladungen', () => {
@@ -348,7 +406,7 @@ describe('Paket 16: benutzereinladungen', () => {
   });
 });
 
-import * as route18 from '../../../src/routes/api/benutzer/+server';
+
 
 // Ursprüngliche Datei: paket16-benutzerverwaltung-rechte.integration.test.ts
 describe('Paket 16: benutzerverwaltung-rechte', () => {
@@ -362,7 +420,7 @@ describe('Paket 16: benutzerverwaltung-rechte', () => {
   });
 });
 
-import * as route19 from '../../../src/routes/api/mitglieder/+server';
+
 
 // Ursprüngliche Datei: paket16-mitglieder-rechte.integration.test.ts
 describe('Paket 16: mitglieder-rechte', () => {
@@ -384,7 +442,7 @@ describe('Paket 16: mitglieder-rechte', () => {
   });
 });
 
-import * as route20 from '../../../src/routes/api/meldungen/[id]/+server';
+
 
 // Ursprüngliche Datei: paket16-schadensmeldung-status.integration.test.ts
 describe('Paket 16: schadensmeldung-status', () => {
@@ -406,7 +464,7 @@ describe('Paket 16: schadensmeldung-status', () => {
   });
 });
 
-import * as route21 from '../../../src/routes/api/vereine/+server';
+
 
 // Ursprüngliche Datei: paket16-vereinsdaten-rechte.integration.test.ts
 describe('Paket 16: vereinsdaten-rechte', () => {
@@ -420,7 +478,7 @@ describe('Paket 16: vereinsdaten-rechte', () => {
   });
 });
 
-import * as route22 from '../../../src/routes/api/lieferanten/+server';
+
 
 // Ursprüngliche Datei: paket17-lieferanten-rechte.integration.test.ts
 describe('Paket 17: lieferanten-rechte', () => {
@@ -442,7 +500,7 @@ describe('Paket 17: lieferanten-rechte', () => {
   });
 });
 
-import * as route23 from '../../../src/routes/api/vereinskleider/preise/+server';
+
 
 // Ursprüngliche Datei: paket17-preis-randfaelle.integration.test.ts
 describe('Paket 17: preis-randfaelle', () => {
@@ -460,7 +518,7 @@ describe('Paket 17: preis-randfaelle', () => {
   });
 });
 
-import * as route24 from '../../../src/routes/api/vereinskleider/preise/+server';
+
 
 // Ursprüngliche Datei: paket17-preisrechte.integration.test.ts
 describe('Paket 17: preisrechte', () => {
@@ -478,7 +536,7 @@ describe('Paket 17: preisrechte', () => {
   });
 });
 
-import * as route25 from '../../../src/routes/api/rabatte/+server';
+
 
 // Ursprüngliche Datei: paket17-rabatt-randfaelle.integration.test.ts
 describe('Paket 17: rabatt-randfaelle', () => {
@@ -496,7 +554,7 @@ describe('Paket 17: rabatt-randfaelle', () => {
   });
 });
 
-import * as route26 from '../../../src/routes/api/rabatte/+server';
+
 
 // Ursprüngliche Datei: paket17-rabatt-rechte.integration.test.ts
 describe('Paket 17: rabatt-rechte', () => {
@@ -514,7 +572,7 @@ describe('Paket 17: rabatt-rechte', () => {
   });
 });
 
-import * as route27 from '../../../src/routes/api/vereinskleider/sammelbestellungen/+server';
+
 
 // Ursprüngliche Datei: paket17-sammelbestellung-rechte.integration.test.ts
 describe('Paket 17: sammelbestellung-rechte', () => {
@@ -532,3 +590,367 @@ describe('Paket 17: sammelbestellung-rechte', () => {
   });
 });
 
+
+});
+import * as suite1_route0 from '../../../src/routes/api/inventuren/[id]/korrekturhistorie/+server';
+import * as suite1_route1 from '../../../src/routes/api/vereinskleider/sammelbestellungen/[id]/+server';
+import * as suite1_route2 from '../../../src/routes/api/vereinskleider/sammelbestellungen/[id]/pdf/+server';
+import * as suite1_route3 from '../../../src/routes/api/vereinskleider/sammelbestellungen/pdf/+server';
+import * as suite1_route4 from '../../../src/routes/api/meldungen/[id]/+server';
+import * as suite1_route5 from '../../../src/routes/api/meldungen/+server';
+import * as suite1_route6 from '../../../src/routes/api/vereinskleider/export/+server';
+
+describe('api-validierungen', () => {
+const route0 = suite1_route0;
+const route1 = suite1_route1;
+const route2 = suite1_route2;
+const route3 = suite1_route3;
+const route4 = suite1_route4;
+const route5 = suite1_route5;
+const route6 = suite1_route6;
+const admin = { id: '507f1f77bcf86cd799439011', vereinId: '507f1f77bcf86cd799439012', rolle: 'admin', aktiv: true };
+const mitglied = { ...admin, rolle: 'mitglied' };
+const oid = '507f1f77bcf86cd799439013';
+function ereignis(methode: string, pfad: string, daten: unknown, benutzer: unknown = admin, id = oid) {
+  const url = new URL('http://localhost' + pfad);
+  return { params: { id }, locals: { benutzer }, url,
+    request: new Request(url, { method: methode, headers: { 'content-type': 'application/json' },
+      ...(methode !== 'GET' ? { body: JSON.stringify(daten) } : {}) }) } as any;
+}
+
+
+// Ursprüngliche Datei: inventur-korrekturhistorie-validierung.integration.test.ts
+describe('inventur-korrekturhistorie-validierung', () => {
+  it('Mitglied darf Historie nicht lesen', async () => {
+    const antwort = await route0.GET(ereignis('GET', '/api/inventuren/' + oid + '/korrekturhistorie', null, mitglied));
+    expect(antwort.status).toBe(403);
+  });
+  it('ungueltige Inventur-ID', async () => {
+    const antwort = await route0.GET(ereignis('GET', '/api/inventuren/falsch/korrekturhistorie', null, admin, 'falsch'));
+    expect(antwort.status).toBe(400);
+  });
+});
+
+
+
+// Ursprüngliche Datei: sammelbestellung-aendern-validierung.integration.test.ts
+describe('sammelbestellung-aendern-validierung', () => {
+  it('kein Zugriff fuer Mitglied', async () => {
+    const antwort = await route1.PATCH(ereignis('PATCH', '/api/vereinskleider/sammelbestellungen/' + oid, { aktion: 'bestellen' }, mitglied));
+    expect(antwort.status).toBe(403);
+  });
+  it('ungueltige ID', async () => {
+    const antwort = await route1.PATCH(ereignis('PATCH', '/api/vereinskleider/sammelbestellungen/falsch', { aktion: 'bestellen' }, admin, 'falsch'));
+    expect(antwort.status).toBe(400);
+  });
+  it('ungueltiger Body', async () => {
+    const antwort = await route1.PATCH(ereignis('PATCH', '/api/vereinskleider/sammelbestellungen/' + oid, []));
+    expect(antwort.status).toBe(400);
+  });
+  it('ungueltige Aktion', async () => {
+    const antwort = await route1.PATCH(ereignis('PATCH', '/api/vereinskleider/sammelbestellungen/' + oid, { aktion: 'loeschen' }));
+    expect(antwort.status).toBe(400);
+  });
+  it('Wareneingang ohne Positionen', async () => {
+    const antwort = await route1.PATCH(ereignis('PATCH', '/api/vereinskleider/sammelbestellungen/' + oid, { aktion: 'wareneingang', positionen: [] }));
+    expect(antwort.status).toBe(400);
+  });
+  it('Wareneingang mit falscher Artikel-ID', async () => {
+    const antwort = await route1.PATCH(ereignis('PATCH', '/api/vereinskleider/sammelbestellungen/' + oid, { aktion: 'wareneingang', positionen: [{ artikelId: 'falsch', groesseId: null, menge: 1 }] }));
+    expect(antwort.status).toBe(400);
+  });
+  it('Wareneingang mit negativer Menge', async () => {
+    const antwort = await route1.PATCH(ereignis('PATCH', '/api/vereinskleider/sammelbestellungen/' + oid, { aktion: 'wareneingang', positionen: [{ artikelId: oid, groesseId: null, menge: -1 }] }));
+    expect(antwort.status).toBe(400);
+  });
+});
+
+
+
+// Ursprüngliche Datei: sammelbestellung-einzelpdf-validierung.integration.test.ts
+describe('sammelbestellung-einzelpdf-validierung', () => {
+  it('Mitglied darf kein PDF erstellen', async () => {
+    const antwort = await route2.GET(ereignis('GET', '/api/vereinskleider/sammelbestellungen/' + oid + '/pdf', null, mitglied));
+    expect(antwort.status).toBe(403);
+  });
+  it('ungueltige ID wird abgelehnt', async () => {
+    await expect(route2.GET(ereignis('GET', '/api/vereinskleider/sammelbestellungen/falsch/pdf', null, admin, 'falsch'))).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+
+
+// Ursprüngliche Datei: sammelbestellung-sammelpdf-validierung.integration.test.ts
+describe('sammelbestellung-sammelpdf-validierung', () => {
+  it('Mitglied darf nicht exportieren', async () => {
+    const antwort = await route3.POST(ereignis('POST', '/api/vereinskleider/sammelbestellungen/pdf', { bestellungIds: [oid] }, mitglied));
+    expect(antwort.status).toBe(403);
+  });
+  it('ungueltige Daten werden abgelehnt', async () => {
+    await expect(route3.POST(ereignis('POST', '/api/vereinskleider/sammelbestellungen/pdf', []))).rejects.toMatchObject({ status: 400 });
+  });
+  it('keine IDs', async () => {
+    await expect(route3.POST(ereignis('POST', '/api/vereinskleider/sammelbestellungen/pdf', { bestellungIds: [] }))).rejects.toMatchObject({ status: 400 });
+  });
+  it('ungueltige IDs', async () => {
+    await expect(route3.POST(ereignis('POST', '/api/vereinskleider/sammelbestellungen/pdf', { bestellungIds: ['falsch'] }))).rejects.toMatchObject({ status: 400 });
+  });
+  it('doppelte IDs', async () => {
+    await expect(route3.POST(ereignis('POST', '/api/vereinskleider/sammelbestellungen/pdf', { bestellungIds: [oid, oid] }))).rejects.toMatchObject({ status: 400 });
+  });
+  it('maximal 50 IDs', async () => {
+    await expect(route3.POST(ereignis('POST', '/api/vereinskleider/sammelbestellungen/pdf', { bestellungIds: Array.from({length: 51}, (_,i) => i.toString(16).padStart(24,'0')) }))).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+
+
+// Ursprüngliche Datei: schadensmeldungen-status.integration.test.ts
+describe('schadensmeldungen-status', () => {
+  it('nicht angemeldet', async () => {
+    const antwort = await route4.PATCH(ereignis('PATCH', '/api/meldungen/' + oid, {}, null));
+    expect(antwort.status).toBe(401);
+  });
+  it('Mitglied darf nicht bearbeiten', async () => {
+    const antwort = await route4.PATCH(ereignis('PATCH', '/api/meldungen/' + oid, {}, mitglied));
+    expect(antwort.status).toBe(403);
+  });
+  it('ungueltige Meldungs-ID', async () => {
+    const antwort = await route4.PATCH(ereignis('PATCH', '/api/meldungen/falsch', {}, admin, 'falsch'));
+    expect(antwort.status).toBe(400);
+  });
+  it('ungueltige Nutzdaten', async () => {
+    const antwort = await route4.PATCH(ereignis('PATCH', '/api/meldungen/' + oid, []));
+    expect(antwort.status).toBe(400);
+  });
+  it('ungueltiger Status', async () => {
+    const antwort = await route4.PATCH(ereignis('PATCH', '/api/meldungen/' + oid, { status: 'geloescht', bearbeitungsnotiz: '' }));
+    expect(antwort.status).toBe(400);
+  });
+  it('Notiz muss String sein', async () => {
+    const antwort = await route4.PATCH(ereignis('PATCH', '/api/meldungen/' + oid, { status: 'offen', bearbeitungsnotiz: null }));
+    expect(antwort.status).toBe(400);
+  });
+  it('Notiz zu lang', async () => {
+    const antwort = await route4.PATCH(ereignis('PATCH', '/api/meldungen/' + oid, { status: 'erledigt', bearbeitungsnotiz: 'x'.repeat(2001) }));
+    expect(antwort.status).toBe(400);
+  });
+});
+
+
+
+// Ursprüngliche Datei: schadensmeldungen-validierung.integration.test.ts
+describe('schadensmeldungen-validierung', () => {
+  it('Anmeldung erforderlich', async () => {
+    const antwort = await route5.POST(ereignis('POST', '/api/meldungen', {}, null));
+    expect(antwort.status).toBe(401);
+  });
+  it('ungueltige Nutzdaten', async () => {
+    const antwort = await route5.POST(ereignis('POST', '/api/meldungen', []));
+    expect(antwort.status).toBe(400);
+  });
+  it('Artikel-ID erforderlich', async () => {
+    const antwort = await route5.POST(ereignis('POST', '/api/meldungen', { artikelId: 'falsch', beschreibung: 'Defekt' }));
+    expect(antwort.status).toBe(400);
+  });
+  it('Beschreibung erforderlich', async () => {
+    const antwort = await route5.POST(ereignis('POST', '/api/meldungen', { artikelId: oid, beschreibung: '   ' }));
+    expect(antwort.status).toBe(400);
+  });
+  it('Beschreibung maximal 2000 Zeichen', async () => {
+    const antwort = await route5.POST(ereignis('POST', '/api/meldungen', { artikelId: oid, beschreibung: 'x'.repeat(2001) }));
+    expect(antwort.status).toBe(400);
+  });
+  it('hoechstens drei Fotos', async () => {
+    const antwort = await route5.POST(ereignis('POST', '/api/meldungen', { artikelId: oid, beschreibung: 'Defekt', fotos: [1,2,3,4] }));
+    expect(antwort.status).toBe(400);
+  });
+  it('keine fremden Cloudinary-Ordner', async () => {
+    const antwort = await route5.POST(ereignis('POST', '/api/meldungen', { artikelId: oid, beschreibung: 'Defekt', fotos: [{ url: 'https://res.cloudinary.com/test/a.jpg', publicId: 'andererverein/schadensmeldungen/bild' }] }));
+    expect(antwort.status).toBe(400);
+  });
+  it('keine doppelten Fotos', async () => {
+    const antwort = await route5.POST(ereignis('POST', '/api/meldungen', { artikelId: oid, beschreibung: 'Defekt', fotos: Array(2).fill({ url: 'https://res.cloudinary.com/demo/image/upload/x', publicId: `clubmatiq/${admin.vereinId}/schadensmeldungen/bild` }) }));
+    expect(antwort.status).toBe(400);
+  });
+});
+
+
+
+// Ursprüngliche Datei: vereinskleider-export-berechtigung.integration.test.ts
+describe('vereinskleider-export-berechtigung', () => {
+  it('Mitglied darf Export nicht ausfuehren', async () => {
+    const antwort = await route6.GET(ereignis('GET', '/api/vereinskleider/export', null, mitglied));
+    expect(antwort.status).toBe(403);
+  });
+});
+
+
+});
+import * as suite2_route0 from '../../../src/routes/api/benutzer/+server.ts';
+import * as suite2_route1 from '../../../src/routes/api/lieferanten/+server.ts';
+import * as suite2_route2 from '../../../src/routes/api/vereinskleider/preise/+server.ts';
+import * as suite2_route3 from '../../../src/routes/api/rabatte/+server.ts';
+import * as suite2_route4 from '../../../src/routes/api/registrieren/+server.ts';
+import * as suite2_route5 from '../../../src/routes/api/vereine/+server.ts';
+
+describe('benutzer-2', () => {
+const route0 = suite2_route0;
+const route1 = suite2_route1;
+const route2 = suite2_route2;
+const route3 = suite2_route3;
+const route4 = suite2_route4;
+const route5 = suite2_route5;
+const admin = { id: 'test', vereinId: '507f1f77bcf86cd799439011', rolle: 'admin', vorname: 'Test', nachname: 'Admin' };
+const mitglied = { ...admin, rolle: 'mitglied' };
+const leiter = { ...admin, rolle: 'leiter' };
+function event(method: string, body: unknown, benutzer: unknown = admin, id?: string) {
+  return {
+    request: new Request('http://localhost/api/test', {
+      method, ...(method === 'GET' ? {} : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    }),
+    locals: { benutzer }, params: { id }
+  } as any;
+}
+
+
+// Ursprüngliche Datei: paket11-benutzer-liste.integration.test.ts
+describe('Paket 11 – Benutzerliste', () => {
+  it('ohne Anmeldung 401', async () => {
+    const response = await route0.GET(event('GET', null, null));
+    expect(response.status).toBe(401);
+  });
+  it('Mitglied ohne Rechte 403', async () => {
+    const response = await route0.GET(event('GET', null, mitglied));
+    expect(response.status).toBe(403);
+  });
+  it('Leiter ohne Rechte 403', async () => {
+    const response = await route0.GET(event('GET', null, leiter));
+    expect(response.status).toBe(403);
+  });
+});
+
+
+
+// Ursprüngliche Datei: paket11-lieferanten.integration.test.ts
+describe('Paket 11 – Lieferanten', () => {
+  it('Mitglied darf nicht lesen 403', async () => {
+    const response = await route1.GET(event('GET', null, mitglied));
+    expect(response.status).toBe(403);
+  });
+  it('Name fehlt 400', async () => {
+    const response = await route1.POST(event('POST', { name: '' }));
+    expect(response.status).toBe(400);
+  });
+  it('ungueltige Mail 400', async () => {
+    const response = await route1.POST(event('POST', { name: 'Test', email: 'keine-mail' }));
+    expect(response.status).toBe(400);
+  });
+  it('ungueltige ID 400', async () => {
+    const response = await route1.PATCH(event('PATCH', { id: 'falsch', name: 'Test' }));
+    expect(response.status).toBe(400);
+  });
+  it('ungueltige ID 400', async () => {
+    const response = await route1.DELETE(event('DELETE', { id: 'falsch' }));
+    expect(response.status).toBe(400);
+  });
+});
+
+
+
+// Ursprüngliche Datei: paket11-preise.integration.test.ts
+describe('Paket 11 – Vereinskleiderpreise', () => {
+  it('ohne Anmeldung 401', async () => {
+    const response = await route2.GET(event('GET', null, null));
+    expect(response.status).toBe(401);
+  });
+  it('Mitglied darf keine Preise aendern 403', async () => {
+    const response = await route2.PUT(event('PUT', {}, mitglied));
+    expect(response.status).toBe(403);
+  });
+  it('ungueltige Artikel-ID 400', async () => {
+    const response = await route2.PUT(event('PUT', { artikelId: 'falsch' }));
+    expect(response.status).toBe(400);
+  });
+  it('ungueltiger Preistyp 400', async () => {
+    const response = await route2.PUT(event('PUT', { artikelId: '507f1f77bcf86cd799439012', preistyp: 'gratis', druckkosten: 0, verkaufspreis: 1 }));
+    expect(response.status).toBe(400);
+  });
+  it('negative Druckkosten 400', async () => {
+    const response = await route2.PUT(event('PUT', { artikelId: '507f1f77bcf86cd799439012', preistyp: 'fix', druckkosten: -1, verkaufspreis: 1 }));
+    expect(response.status).toBe(400);
+  });
+  it('Fixpreis ohne Verkaufspreis 400', async () => {
+    const response = await route2.PUT(event('PUT', { artikelId: '507f1f77bcf86cd799439012', preistyp: 'fix', druckkosten: 0, verkaufspreis: null }));
+    expect(response.status).toBe(400);
+  });
+});
+
+
+
+// Ursprüngliche Datei: paket11-rabatte.integration.test.ts
+describe('Paket 11 – Rabattregeln', () => {
+  it('Mitglied darf nicht lesen 403', async () => {
+    const response = await route3.GET(event('GET', null, mitglied));
+    expect(response.status).toBe(403);
+  });
+  it('Rabattname fehlt 400', async () => {
+    const response = await route3.POST(event('POST', { rabattart: 'prozent', geltungsbereich: 'warenkorb', wert: 10 }));
+    expect(response.status).toBe(400);
+  });
+  it('Prozentrabatt ueber 100 400', async () => {
+    const response = await route3.POST(event('POST', { name: 'Test', rabattart: 'prozent', geltungsbereich: 'warenkorb', wert: 101 }));
+    expect(response.status).toBe(400);
+  });
+  it('ungueltiger Rabattwert 400', async () => {
+    const response = await route3.POST(event('POST', { name: 'Test', rabattart: 'betrag', geltungsbereich: 'warenkorb', wert: -2 }));
+    expect(response.status).toBe(400);
+  });
+  it('Artikelrabatt ohne Artikel 400', async () => {
+    const response = await route3.POST(event('POST', { name: 'Test', rabattart: 'betrag', geltungsbereich: 'artikel', wert: 5, artikelIds: [] }));
+    expect(response.status).toBe(400);
+  });
+});
+
+
+
+// Ursprüngliche Datei: paket11-registrierung.integration.test.ts
+describe('Paket 11 – Registrierung', () => {
+  it('Pflichtfelder fehlen 400', async () => {
+    const response = await route4.POST(event('POST', {}));
+    expect(response.status).toBe(400);
+  });
+  it('ungueltige E-Mail 400', async () => {
+    const response = await route4.POST(event('POST', { vereinsname: 'Verein', vorname: 'A', nachname: 'B', email: 'falsch', passwort: '123456789012' }));
+    expect(response.status).toBe(400);
+  });
+  it('Passwort zu kurz 400', async () => {
+    const response = await route4.POST(event('POST', { vereinsname: 'Verein', vorname: 'A', nachname: 'B', email: 'a@b.ch', passwort: 'kurz' }));
+    expect(response.status).toBe(400);
+  });
+});
+
+
+
+// Ursprüngliche Datei: paket11-vereine.integration.test.ts
+describe('Paket 11 – Vereinsverwaltung', () => {
+  it('ohne Anmeldung 401', async () => {
+    const response = await route5.GET(event('GET', null, null));
+    expect(response.status).toBe(401);
+  });
+  it('mit ungueltiger Vereins-ID 400', async () => {
+    const response = await route5.GET(event('GET', null, { ...admin, vereinId: 'falsch' }));
+    expect(response.status).toBe(400);
+  });
+  it('ohne Anmeldung 401', async () => {
+    const response = await route5.POST(event('POST', {}, null));
+    expect(response.status).toBe(401);
+  });
+  it('direkte Vereinserstellung verweigert 403', async () => {
+    const response = await route5.POST(event('POST', {}));
+    expect(response.status).toBe(403);
+  });
+});
+
+
+});
