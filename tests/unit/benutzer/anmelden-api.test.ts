@@ -26,6 +26,7 @@ import { GET as GETEinladung, POST as POSTEinladung } from '../../../src/routes/
 const run=(data:unknown)=>POST({request:request(data),cookies} as any);
 describe('Anmeldung',()=>{
   it.each([{}, {email:'a@b.ch'}, {passwort:'abc'}, {email:4,passwort:4}])('weist fehlende Zugangsdaten ab: %j',async d=>{expect((await run(d)).status).toBe(400)});
+  it.each([null, [], 42, 'text'])('weist ungültigen JSON-Datentyp ab: %j', async d => { expect((await run(d)).status).toBe(400); expect(m.findOne).not.toHaveBeenCalled(); });
   it('normalisiert E-Mail-Adressen',async()=>{await run({email:'  TEST@EXAMPLE.CH  ',passwort:'pass'});expect(m.findOne).toHaveBeenCalledWith({email:'test@example.ch'})});
   it('weist unbekannte Benutzer ab',async()=>{expect((await run({email:'a@b.ch',passwort:'pass'})).status).toBe(401)});
   it('weist Benutzer ohne Passwort-Hash ab',async()=>{m.findOne.mockResolvedValue({passwortHash:null});expect((await run({email:'a@b.ch',passwort:'pass'})).status).toBe(401)});
@@ -46,7 +47,7 @@ describe('Anmeldung',()=>{
     expect((await r.json()).fehler).toBe('E-Mail-Adresse oder Passwort ist falsch.');
   });
   it('legt Session an und setzt Cookie',async()=>{m.findOne.mockResolvedValue({_id:{toString:()=>id},vereinId:id2,passwortHash:'hash',email:'a@b.ch',vorname:'Ada',nachname:'Test',rolle:'admin'});const r=await run({email:'a@b.ch',passwort:'pass'});expect(r.status).toBe(200);expect((await r.json()).erfolg).toBe(true);expect(m.insertOne).toHaveBeenCalledWith(expect.objectContaining({vereinId:id2,tokenHash:expect.stringMatching(/^[a-f0-9]{64}$/)}));expect(m.set).toHaveBeenCalledWith('clubmatiq_session',expect.stringMatching(/^[a-f0-9]{64}$/),expect.objectContaining({httpOnly:true,path:'/',sameSite:'lax'}))});
-  it('behandelt ungültiges JSON',async()=>{const r=await POST({request:new Request('http://localhost',{method:'POST',body:'{'}),cookies} as any);expect(r.status).toBe(500)});
+  it('behandelt ungültiges JSON',async()=>{const r=await POST({request:new Request('http://localhost',{method:'POST',body:'{'}),cookies} as any);expect(r.status).toBe(400);expect(m.findOne).not.toHaveBeenCalled()});
   it('behandelt Datenbankfehler',async()=>{m.findOne.mockRejectedValue(new Error('db'));expect((await run({email:'a@b.ch',passwort:'pass'})).status).toBe(500)});
   it('behandelt Fehler beim Passwortvergleich',async()=>{m.findOne.mockResolvedValue({passwortHash:'hash'});m.verify.mockRejectedValue(new Error('argon'));expect((await run({email:'a@b.ch',passwort:'pass'})).status).toBe(500)});
 });
