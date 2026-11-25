@@ -36,7 +36,7 @@ type Verkauf = Document & {
   aktualisiertAm?: Date;
   rabatte?: { betrag: number }[];
   zusaetzlicherRabatt?: number;
-  stornierungen?: { positionsIndex: number; menge: number; grund: string; storniertAm: Date; storniertVon?: string; storniertVonName?: string }[];
+  stornierungen?: { positionsIndex: number; menge: number; grund: string; storniertAm: Date; storniertVon?: string; storniertVonName?: string; erstbezugsFreigaben?: { anspruch: string; rabattId: string; positionsIndex: number; rabattBetrag: number }[]; rabattKorrektur?: number }[];
 };
 type Rechnung = Document & {
   vereinId: string;
