@@ -47,7 +47,7 @@ jobs:
 
       - name: Coverage-Bericht speichern
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: unit-test-coverage
           path: coverage/unit/
@@ -105,7 +105,7 @@ jobs:
 
       - name: Integration-Coverage speichern
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: integration-test-coverage
           path: coverage/integration/
