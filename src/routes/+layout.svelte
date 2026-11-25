@@ -40,7 +40,11 @@
   let abgelaufen = false;
   const warnung = $derived(!!data.benutzer && !!fristen && rest <= 300000);
   const absolutEndet = $derived(!!fristen && fristen.absolut <= fristen.inaktiv);
-  $effect(() => { fristen = data.sessionFristen; if (fristen) rest = Math.max(0, Math.min(fristen.absolut, fristen.inaktiv) - Date.now()); });
+  $effect(() => {
+    const initial = data.sessionFristen;
+    fristen = initial ? { absolut: initial.absolut, inaktiv: initial.inaktiv } : undefined;
+    rest = initial ? Math.max(0, Math.min(initial.absolut, initial.inaktiv) - Date.now()) : 0;
+  });
   function zurAnmeldung() {
     if (abgelaufen) return;
     abgelaufen = true;
