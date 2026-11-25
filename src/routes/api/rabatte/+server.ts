@@ -17,6 +17,7 @@ type RabattEingabe = {
   maximaleMenge: number | null;
   gueltigAb: string | null;
   gueltigBis: string | null;
+  einmaligProMitglied: boolean;
   kombinierbar: boolean;
   aktiv: boolean;
 };
@@ -65,6 +66,8 @@ function parseRabatt(daten: unknown): { wert?: RabattEingabe; fehler?: string } 
   if (maximaleMenge !== null && (!Number.isSafeInteger(maximaleMenge) || (maximaleMenge as number) < 1)) {
     return { fehler: 'Die maximale Menge muss eine positive ganze Zahl sein.' };
   }
+  if (d.einmaligProMitglied !== undefined && typeof d.einmaligProMitglied !== 'boolean') return { fehler: 'Ungültige Erstbezugsregel.' };
+  if (d.einmaligProMitglied === true && (d.rabattart !== 'fixpreis' || d.geltungsbereich === 'warenkorb' || maximaleMenge !== 1)) return { fehler: 'Ein Erstbezug benötigt einen Fixpreis für Artikel oder Kategorien und maximal ein Stück.' };
   function datum(feld: unknown): string | null | undefined {
     if (feld === null || feld === undefined || feld === '') return null;
     if (typeof feld !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(feld)) return undefined;
@@ -91,6 +94,7 @@ function parseRabatt(daten: unknown): { wert?: RabattEingabe; fehler?: string } 
       maximaleMenge: maximaleMenge as number | null,
       gueltigAb,
       gueltigBis,
+      einmaligProMitglied: d.einmaligProMitglied === true,
       kombinierbar: (d.kombinierbar as boolean | undefined) ?? false,
       aktiv: (d.aktiv as boolean | undefined) ?? true
     }
@@ -110,6 +114,7 @@ function ausgabe(eintrag: Record<string, any>) {
     maximaleMenge: eintrag.maximaleMenge ?? null,
     gueltigAb: eintrag.gueltigAb ?? null,
     gueltigBis: eintrag.gueltigBis ?? null,
+    einmaligProMitglied: eintrag.einmaligProMitglied === true,
     kombinierbar: eintrag.kombinierbar ?? false,
     aktiv: eintrag.aktiv ?? true
   };
