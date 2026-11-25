@@ -32,7 +32,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       ? await db.collection('groessen').find({ vereinId, _id: { $in: groessenIds.map(id => new ObjectId(id)) } }).project({ bezeichnung: 1 }).toArray()
       : [];
     const groessenNamen = new Map<string, string>(groessen.map(g => [g._id.toString(), String(g.bezeichnung ?? '').trim()]));
-    const artikelBezeichnung = (p: { artikelName?: unknown; groesseId?: unknown }) => {
+    const artikelBezeichnung = (p: Record<string, unknown>) => {
       const artikel = String(p.artikelName ?? 'Unbekannter Artikel');
       if (!p.groesseId) return artikel;
       return artikel + '  |  Grösse: ' + (groessenNamen.get(String(p.groesseId)) || 'Unbekannte Grösse');
