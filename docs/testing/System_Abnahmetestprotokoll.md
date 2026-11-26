@@ -48,7 +48,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #46 | Lieferantenverwaltung und Sammelbestellungen | 16/16 | Einzelbestätigung 26.11.2026 |
 | #47 | Bestell-PDF inkl. #116/#117 | 20/20 | Nachprüfung 26.11.2026 |
 | #48 | Stornierungen und Gutschriften inkl. #118 | 20/20 | Nachprüfung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 244/244 | Dokumentierte Durchläufe |
+| #49 | Verkaufshistorie inkl. #119 | 38/38 | Nachprüfung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 282/282 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -491,9 +492,31 @@ Testdatum: 26.11.2026. Manuelle Browser-Abnahme, alle 16 Fälle einzeln durch di
 
 20/20 nach Korrektur. Fünf Unit-Regressionstests (c54f8cf) und npm run check gemäss Rückmeldung ohne Fehler. Keine neue Gesamtcoverage oder vollständiger Integrationslauf bestätigt.
 
+### Issue #49 – Verkaufshistorie inkl. #119
+
+26.11.2026: 18/20 initial bestanden; ST-49-14 und ST-49-15 (Rechnungs- und Gutschriften-PDF) nach Korrektur bestanden. ST-49-21 bis 25 (Belegverknüpfungen, Teilrechnungen, Zuordnung und fehlende Belege) gemäss Sammelbestätigung bestanden. Originaldetails der übrigen initialen Fälle hier nicht einzeln rekonstruiert.
+
+| ID | Nachprüfung | Ergebnis |
+|---|---|---|
+| ST-49-26 | Einzelrechnung | Bestanden |
+| ST-49-27 | Mehrere Teilrechnungen | Bestanden |
+| ST-49-28 | Gutschriften auf verschiedenen Teilrechnungen | Bestanden |
+| ST-49-29 | Offene Forderungen und Rückerstattungen getrennt | Bestanden |
+| ST-49-30 | Verkauf ohne Rechnung | Bestanden |
+| ST-49-31 | PDF-Verknüpfungen | Bestanden |
+| ST-49-32 | Bezahlt-Filter bei offener Teilrechnung | Bestanden |
+| ST-49-33 | Offen-Filter | Bestanden |
+| ST-49-34 | Gutschrift auf zweiter Teilrechnung | Bestanden |
+| ST-49-35 | Excel: Rechnungsnummern | Bestanden |
+| ST-49-36 | Excel: Finanzbeträge | Bestanden |
+| ST-49-37 | Excel: Forderungen und Rückerstattungen | Bestanden |
+| ST-49-38 | Excel: Filterübernahme | Bestanden |
+
+38/38 nach Korrekturen. Belegverknüpfungen: c4bc3a8, 81d2cc7, 5d103c2; Finanzberechnung: be5e287; Filter: 2c8d536; Export: 69095d6. Drei Beleg-Regressionstests (17f465d) bestanden. Vollständiger Integrationslauf: 2594/2599 bestanden; fünf veraltete Abfrageerwartungen korrigiert (9c7b4b8, 96fbde9, 20badc0), anschliessender gezielter Nachtest und npm run check gemäss Rückmeldung ohne Fehler. Vollständiger erneuter CI-Lauf noch nicht bestätigt.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 244 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 282 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
