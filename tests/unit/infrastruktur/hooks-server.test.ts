@@ -41,6 +41,19 @@ describe('Server-Hook – Authentifizierung und Routing', () => {
     findOne.mockImplementation(async () => collection.mock.calls.at(-1)?.[0] === 'sessions' ? session : user);
     const x = run('/anmelden', 'token'); await expect(x.response).rejects.toMatchObject({ status: 303, location: '/dashboard' });
   });
+  it.each(['/materialsuche', '/materialsuche/', '/materialsuche?suche=Ball'])('leitet alte Materialsuche %s um', async path => {
+    findOne.mockResolvedValueOnce(session).mockResolvedValueOnce(user);
+    const x = run(path, 'token');
+    await expect(x.response).rejects.toMatchObject({ status: 308, location: '/inventar' + new URL('http://localhost' + path).search });
+    expect(x.resolve).not.toHaveBeenCalled();
+  });
+  it('schützt alte Materialsuche ohne Anmeldung', async () => {
+    await expect(run('/materialsuche').response).rejects.toMatchObject({ status: 303, location: '/anmelden?redirect=%2Fmaterialsuche' });
+  });
+  it('erzwingt Passwortwechsel auch bei alter Materialsuche', async () => {
+    findOne.mockResolvedValueOnce(session).mockResolvedValueOnce({ ...user, passwortwechselErforderlich: true });
+    await expect(run('/materialsuche', 'token').response).rejects.toMatchObject({ status: 303, location: '/passwort-aendern' });
+  });
   it('entfernt ungültige Session, wenn kein Datenbankeintrag existiert', async () => {
     const x = run('/'); expect((await x.response).status).toBe(200); // kein Token
     const y = run('/', 'abgelaufen'); expect((await y.response).status).toBe(200);
