@@ -85,7 +85,8 @@ function setup(status = 'abgeschlossen', position: Record<string,unknown> = {}) 
   const update = vi.fn(async () => ({ matchedCount: 1, modifiedCount: 1 }));
   mocks.collections.inventuren = { findOne: vi.fn(async () => ({ status, version: 0 })), updateOne: update };
   mocks.collections.inventurpositionen = { findOne: vi.fn(async () => ({ istBestand: 5, artikelId: AID, groesseId: null, ...position })), updateOne: vi.fn(async () => ({ matchedCount: 1 })) };
-  mocks.collections.artikel = { updateOne: vi.fn(async () => ({ matchedCount: 1 })) };
+  mocks.collections.artikel = { updateOne: vi.fn(async () => ({ matchedCount: 1 })), findOne: vi.fn(async () => ({ name: 'Testartikel' })) };
+  mocks.collections.groessen = { findOne: vi.fn(async () => ({ bezeichnung: 'M' })) };
   mocks.collections.artikelvarianten = { updateOne: vi.fn(async () => ({ matchedCount: 1 })) };
   mocks.collections.lagerbewegungen = { insertOne: vi.fn(async () => ({ insertedId: new ObjectId() })) };
   mocks.collections.inventurprotokoll = { insertOne: vi.fn(async () => ({ insertedId: new ObjectId() })) };
