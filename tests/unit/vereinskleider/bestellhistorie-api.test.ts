@@ -179,3 +179,21 @@ describe('GET /api/vereinskleider/bestellungen/historie', () => {
     }
   });
 });
+
+import { GET as StornoGET } from '../../../src/routes/api/vereinskleider/bestellungen/stornierungen/historie/+server';
+describe('Stornierungshistorie – Randfälle (#38)',()=>{
+ const call=()=>StornoGET({locals:{benutzer}} as never);
+ const eintrag={positionsIndex:0,menge:1,storniertAm:'2026-11-26'};
+ const v=(patch:Record<string,unknown>={})=>vorgang({positionen:[{verkaufsart:'bestellung'}],stornierungen:[eintrag],...patch});
+ it('verweigert fehlendes Recht',async()=>{mocks.pruefeBerechtigung.mockReturnValue(new Response(null,{status:403}));expect((await call()).status).toBe(403);expect(mocks.find).not.toHaveBeenCalled();});
+ it.each([{positionsIndex:-1},{positionsIndex:1.5},{positionsIndex:9},{menge:0},{menge:1.5},{storniertAm:null},{storniertAm:'bad'}])('ignoriert ungültigen Eintrag %j',async patch=>{mocks.toArray.mockResolvedValue([v({stornierungen:[{...eintrag,...patch}]})]);expect(await (await call()).json()).toEqual({historie:[]});});
+ it.each([{positionen:null},{positionen:[{verkaufsart:'direkt'}]},{stornierungen:null}])('ignoriert inkonsistente Vorgänge %j',async patch=>{mocks.toArray.mockResolvedValue([v(patch)]);expect(await (await call()).json()).toEqual({historie:[]});});
+ it('liefert Fallbacks und sortiert absteigend',async()=>{
+ mocks.toArray.mockResolvedValue([v({kaeufer:null,riegen:null,stornierungen:[eintrag,{...eintrag,storniertAm:'2026-11-27',storniertVon:'u1',storniertVonName:'Ada',grund:'Test'}]})]);
+ const data=await (await call()).json();expect(data.historie).toHaveLength(2);
+ expect(data.historie[0]).toMatchObject({id:vorgangId.toString()+':1',storniertVon:'u1',storniertVonName:'Ada',grund:'Test'});
+ expect(data.historie[1]).toMatchObject({kaeufer:'Unbekannt',riegen:[],artikelId:'',artikelname:'Unbekannter Artikel',groesseId:null,grund:'',storniertVon:null,storniertVonName:null});
+ expect(mocks.find).toHaveBeenCalledWith({vereinId,'stornierungen.0':{$exists:true}});
+ });
+ it('meldet Datenbankfehler',async()=>{mocks.toArray.mockRejectedValue(Error('DB'));expect((await call()).status).toBe(500);});
+});
