@@ -156,3 +156,41 @@ describe('Retouren-API – Validierung und Finanzkonsistenz (#38)',()=>{
  it.each([1,2,3,4])('verhindert konkurrierende Änderung bei Update %s',async n=>{m.findOne.mockResolvedValue({...sale,positionen:[{...p,groesseId:id}]});for(let i=1;i<n;i++)m.updateOne.mockResolvedValueOnce({modifiedCount:1});m.updateOne.mockResolvedValueOnce({modifiedCount:0});expect((await RetourenPOST(event({...input,wiederverkaufbar:true}))).status).toBe(409);expect(m.insertOne).not.toHaveBeenCalled();expect(m.endSession).toHaveBeenCalled();});
  it('meldet Transaktionsfehler',async()=>{m.withTransaction.mockRejectedValue(Error('DB'));expect((await RetourenPOST(event())).status).toBe(500);expect(m.endSession).toHaveBeenCalled();});
 });
+
+
+describe('Retourenprüfung – zusätzliche Grenzwerte', () => {
+  it.each([{ index: -1, menge: 1 }, { index: 0.5, menge: 1 }, { index: 0, menge: 0.5 }, { index: 0, menge: 10001 }])('verweigert ungültige Eingabe %j', ({ index, menge }) => {
+    expect(() => pruefeRetourenmenge(basis(), index, menge)).toThrow(/Ungültige/);
+  });
+  it('verweigert fehlende Positionen', () => {
+    expect(() => pruefeRetourenmenge({}, 0, 1)).toThrow(/nicht gefunden/);
+  });
+  it.each([undefined, 0, -1, 0.5])('verweigert inkonsistente Übergabemenge %s', menge => {
+    const v = basis(); v.uebergaben = [{ positionsIndex: 0, menge }];
+    expect(() => pruefeRetourenmenge(v, 0, 1)).toThrow(/Übergabedaten inkonsistent/);
+  });
+  it.each([undefined, 0, -1, 0.5])('verweigert inkonsistente Retourenmenge %s', menge => {
+    const v = basis(); v.retouren = [{ positionsIndex: 0, menge }];
+    expect(() => pruefeRetourenmenge(v, 0, 1)).toThrow(/Retourendaten inkonsistent/);
+  });
+  it.each([{ menge: undefined }, { menge: -1 }, { menge: 0.5 }, { menge: 2 }, { storniertMenge: -1 }, { storniertMenge: 0.5 }])('verweigert inkonsistente Verkaufsposition %j', patch => {
+    const v = basis(); Object.assign(v.positionen![0], patch);
+    expect(() => pruefeRetourenmenge(v, 0, 1)).toThrow(/Verkaufs- oder Retourenmengen inkonsistent/);
+  });
+  it('verweigert überhöhte historische Retourenmenge', () => {
+    const v = basis(); v.retouren = [{ positionsIndex: 0, menge: 4 }];
+    expect(() => pruefeRetourenmenge(v, 0, 1)).toThrow(/Verkaufs- oder Retourenmengen inkonsistent/);
+  });
+  it.each([undefined, null, NaN, Infinity, -1, 0.001, Number.MAX_SAFE_INTEGER])('verweigert nicht eindeutig berechenbaren Preis %s', einzelpreis => {
+    const v = basis(); v.positionen![0].einzelpreis = einzelpreis;
+    expect(() => pruefeRetourenmenge(v, 0, 1)).toThrow(/nicht eindeutig/);
+  });
+  it.each([{ rabatte: [{}] }, { zusaetzlicherRabatt: 1 }])('verweigert weitere Rabattarten %j', patch => {
+    expect(() => pruefeRetourenmenge({ ...basis(), ...patch }, 0, 1)).toThrow(/nicht eindeutig/);
+  });
+  it('berücksichtigt nur die ausgewählte Position und erlaubt kostenlose Retouren', () => {
+    const v = basis(); v.positionen![0].einzelpreis = 0; v.positionen![0].uebergebenMenge = undefined;
+    v.uebergaben!.push({ positionsIndex: 1, menge: 99 }); v.retouren = [{ positionsIndex: 1, menge: 99 }];
+    expect(pruefeRetourenmenge(v, 0, 3)).toEqual({ maximal: 3, einzelpreisRappen: 0 });
+  });
+});
