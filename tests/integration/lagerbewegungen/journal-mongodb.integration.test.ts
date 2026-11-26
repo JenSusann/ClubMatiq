@@ -177,3 +177,38 @@ describe('Issue #51 – atomare Bestandsbewegung', () => {
     }
   });
 });
+
+describe('Issue #51 – historische Journalnamen', () => {
+  it('behält Namen nach Umbenennung und Löschung in Vorschau und Excel', async () => {
+    const { protokolliereLagerbewegung } = await import('../../../src/lib/server/lagerbewegungen');
+    const id = new ObjectId(), groesseId = new ObjectId(), personId = new ObjectId();
+    const referenzId = prefix + '-snapshot';
+    const session = client.startSession();
+    try {
+      await db.collection('artikel').insertOne({ _id: id, vereinId, name: 'Historisches Shirt', menge: 2 });
+      await db.collection('groessen').insertOne({ _id: groesseId, vereinId, bezeichnung: 'Historische Grösse' });
+      await db.collection('benutzer').insertOne({ _id: personId, vereinId, vorname: 'Historische', nachname: 'Person' });
+      await session.withTransaction(async () => {
+        await db.collection('artikel').updateOne({ _id: id, vereinId }, { $inc: { menge: -1 } }, { session });
+        await protokolliereLagerbewegung({ vereinId, artikelId: id.toString(), groesseId: groesseId.toString(), art: 'verkauf', mengeDelta: -1, benutzerId: personId.toString(), referenzId, referenzTyp: 'test' }, session);
+      });
+      await db.collection('artikel').deleteOne({ _id: id, vereinId });
+      await db.collection('groessen').updateOne({ _id: groesseId, vereinId }, { $set: { bezeichnung: 'Neu' } });
+      await db.collection('benutzer').deleteOne({ _id: personId, vereinId });
+      const query = '?suche=' + encodeURIComponent(referenzId);
+      const res = await journalGET(event('/api/lagerbewegungen/gesamt' + query));
+      expect(res.status).toBe(200);
+      expect((await res.json()).bewegungen).toEqual([expect.objectContaining({ artikel: 'Historisches Shirt', groesse: 'Historische Grösse', benutzer: 'Historische Person' })]);
+      const sheet = await workbook(await exportGET(event('/api/export/lagerbewegungen' + query)));
+      expect(sheet.getRow(5).getCell(2).value).toBe('Historisches Shirt');
+      expect(sheet.getRow(5).getCell(4).value).toBe('Historische Grösse');
+      expect(sheet.getRow(5).getCell(7).value).toBe('Historische Person');
+    } finally {
+      await session.endSession();
+      await db.collection('artikel').deleteOne({ _id: id, vereinId });
+      await db.collection('groessen').deleteOne({ _id: groesseId, vereinId });
+      await db.collection('benutzer').deleteOne({ _id: personId, vereinId });
+      await db.collection('lagerbewegungen').deleteMany({ vereinId, referenzId });
+    }
+  });
+});
