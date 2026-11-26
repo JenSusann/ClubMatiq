@@ -108,8 +108,8 @@
       <h2>Versandmethode des Vereins</h2>
       <p class="beschreibung">Nur Administratoren können die Versandmethode konfigurieren.</p>
     </div>
-    {#if mailFehler}<div class="meldung fehler" >{mailFehler}</div>{/if}
-    {#if mailErfolg}<div class="meldung erfolg" >{mailErfolg}</div>{/if}
+    
+    
     <form onsubmit={speichereMailEinstellungen}>
       <div class="formular-raster">
         <label>Versandmethode
@@ -284,13 +284,6 @@
   button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-  }
-
-  .meldung {
-    padding: 14px 18px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    font-size: 14px;
   }
 
   .meldung.fehler {
