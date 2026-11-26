@@ -8,6 +8,27 @@ Manuelle funktionale Systemtests ergänzen die automatisierten Unit- und Integra
 
 Test-ID: ST-[Issue]-[Nummer]. Status: Offen, Bestanden, Fehler, Blockiert, Erneut bestanden. Sammelbestätigungen werden von einzeln belegten Ergebnissen und rekonstruierten Testfällen unterschieden.
 
+## Automatisierter Testnachweis – Issue #38 (26.11.2026)
+
+Separater Nachweis, nicht Bestandteil der manuellen Abnahmequote.
+
+[Erfolgreicher CI-Lauf 45735645776](https://github.com/JenSusann/ClubMatiq/actions/runs/45735645776), [Commit 2767612](https://github.com/JenSusann/ClubMatiq/commit/27676128d882fe431967ece1eca8dd3aa92d143b), Version 0.9.0.
+
+| Testart | Dateien | Bestanden | Fehlgeschlagen |
+|---|---:|---:|---:|
+| Unit | 59 | 2'423 | 0 |
+| Integration | 100 | 2'590 | 0 |
+| Gesamt | 159 | 5'013 | 0 |
+
+| Kombinierte Coverage | Ergebnis | Ziel |
+|---|---:|---:|
+| Statements | 98,22 % | ≥ 95 % |
+| Branches | 95,05 % | ≥ 95 % |
+| Functions | 96,42 % | ≥ 95 % |
+| Lines | 98,94 % | ≥ 95 % |
+
+Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Workflow-Status. Ausführung lokal mit `npm run test:all`; kombinierter Bericht unter `coverage/combined/`. Details und Messumfang: [README, Kapitel 9.4](../../README.md#94-code-coverage-und-qualitätsziel). Keine zusätzliche manuelle Abnahme oder vollständige UI-Abdeckung daraus ableitbar.
+
 ## 2. Bisherige Abnahmen
 
 | Issue | Bereich | Bestanden | Nachweis |
