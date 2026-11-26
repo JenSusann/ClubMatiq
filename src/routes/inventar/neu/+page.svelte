@@ -748,11 +748,6 @@
     color: #991b1b;
   }
 
-  .erfolg {
-    background: #dcfce7;
-    color: #166534;
-  }
-
   @media (max-width: 700px) {
     .zweispaltig {
       grid-template-columns: 1fr;
