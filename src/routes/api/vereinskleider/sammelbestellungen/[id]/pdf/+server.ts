@@ -125,7 +125,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       String(a.groesseId ?? '').localeCompare(String(b.groesseId ?? '')));
     function tabellenKopf(): void {
       seite.drawText('Artikel', { x: rand, y, size: 9, font: fett, color: grau });
-      seite.drawText('Groesse', { x: 365, y, size: 9, font: fett, color: grau });
+      seite.drawText('Grösse', { x: 365, y, size: 9, font: fett, color: grau });
       seite.drawText('Menge', { x: 495, y, size: 9, font: fett, color: grau });
       y -= 11;
       seite.drawLine({ start: { x: rand, y }, end: { x: breite - rand, y }, thickness: 1, color: linie });
@@ -146,9 +146,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       groessenZeilen.forEach((t, i) => seite.drawText(t, { x: 365, y: y - i * 15, size: 10, font: normal, color: blau }));
       seite.drawText(String(menge), { x: 495, y, size: 10, font: fett, color: blau });
       y -= hoeheZeile;
-      seite.drawLine({ start: { x: rand, y: y + 7 }, end: { x: breite - rand, y: y + 7 }, thickness: 0.5, color: linie });
+      seite.drawLine({ start: { x: rand, y: y + 16 }, end: { x: breite - rand, y: y + 16 }, thickness: 0.5, color: linie });
     }
     if (y < 110) neueSeite();
+    y -= 8;
     zeile(`Total: ${gesamt} Stück`, { bold: true, size: 12 });
     if (bestellung.bemerkung?.trim()) {
       y -= 10;
