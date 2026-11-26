@@ -783,7 +783,7 @@
                           </tr>
                         {/if}
 
-                        {#if meldungen[schluessel]}
+                        {#if meldungen[schluessel] && fehlerMeldungen[schluessel]}
                           <tr>
                             <td colspan="11">
                               <p
@@ -969,7 +969,7 @@
                   </div>
                 {/if}
 
-                {#if meldungen[schluessel]}
+                {#if meldungen[schluessel] && fehlerMeldungen[schluessel]}
                   <p
                     class:fehlermeldung={fehlerMeldungen[schluessel]}
                     class:erfolgsmeldung={!fehlerMeldungen[schluessel]}
