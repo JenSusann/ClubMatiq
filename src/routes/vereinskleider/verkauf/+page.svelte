@@ -687,12 +687,8 @@
         {:else if !warenkorbGueltig}
           <p class="warnung" role="alert">Mindestens eine Warenkorbposition überschreitet den verfügbaren Bestand inklusive Anprobierreserve. Bitte Menge reduzieren oder «Automatisch» wählen.</p>
         {/if}
-        {#if speichernErfolg}
-          <p class="erfolg" >{speichernErfolg}</p>
-        {/if}
-        {#if speichernFehler}
-          <p class="warnung" >{speichernFehler}</p>
-        {/if}
+        
+        
         {#if !speichernLaeuft && (!bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart === 'direkt' || rabattId !== '' || rabattZahl !== 0)))}
           <p class="warnung" role="status">
             Speichern gesperrt:
@@ -763,7 +759,7 @@
   .gesamt { font-size: 18px; border-bottom: 0; }
   .warnung { color: #92400e; background: #fffbeb; padding: 12px; border-radius: 8px; font-size: 14px; }
   .fehler { color: #b91c1c; background: #fef2f2; }
-  .erfolg { color: #166534; background: #f0fdf4; padding: 12px; border-radius: 8px; font-size: 14px; }
+
   .hinweis { font-size: 13px; line-height: 1.5; }
   button.hinzufuegen, button.speichern { width: 100%; background: #2563eb; color: white; border: 0; border-radius: 8px; padding: 12px; font: inherit; font-weight: 600; cursor: pointer; }
   button.speichern { margin-top: 18px; }
