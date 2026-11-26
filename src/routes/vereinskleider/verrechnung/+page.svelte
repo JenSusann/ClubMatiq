@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
   import { onMount, tick } from 'svelte';
 
   type ClubDeskVerbuchung = { datum: string; referenz: string; erfasstVonName: string; erfasstAm: string };
@@ -409,6 +410,8 @@
   onMount(() => { void neuLaden(); });
 </script>
 
+<Aktionsmeldung fehler={fehler} erfolg={erfolg} fehlerSchliessen={() => fehler = ''} erfolgSchliessen={() => erfolg = ''} />
+
 <svelte:head>
   <title>Verrechnung – ClubMatiq</title>
 </svelte:head>
@@ -459,8 +462,8 @@
     <div class="karte kennzahl"><span>Rückerstattungen offen</span><strong>{chf(rueckerstattungenSumme)}</strong></div>
   </div>
 
-  {#if fehler}<p class="meldung fehler" role="alert">{fehler}</p>{/if}
-  {#if erfolg}<p class="meldung erfolg" role="status">{erfolg}</p>{/if}
+  {#if fehler}<p class="meldung fehler" >{fehler}</p>{/if}
+  {#if erfolg}<p class="meldung erfolg" >{erfolg}</p>{/if}
   {#if begrenzt}<p class="meldung hinweis">Es werden maximal 1000 Vorgänge beziehungsweise Rechnungen geladen.</p>{/if}
   {#if gutschriftenBegrenzt}<p class="meldung hinweis">Es werden maximal 1000 Gutschriften angezeigt.</p>{/if}
 
