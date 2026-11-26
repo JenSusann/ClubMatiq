@@ -42,7 +42,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #34 | Vereinskleider und Erstbezüge | 20/20 | Einzelbestätigung 25.11.2026 |
 | #35 | Inventarbewertung (Teilabnahme) | 27/27 | Einzelbestätigung, Stichtagsfilter und Netlify-Funktionstest |
 | #36 | Schadensmeldungen und Bearbeitungshistorie | 8/8 | Manuelle Sammelbestätigung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 133/133 | Dokumentierte Durchläufe |
+| #37 | Materialsuche, Filter und Weiterleitung | 11/11 | Manuelle Sammelbestätigung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 144/144 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -315,9 +316,29 @@ Testdatum: 26.11.2026. Manuelle Abnahme gemäss Sammelbestätigung der Entwickle
 
 **Manuelle Abnahme:** 8/8 bestanden. Unit- und Integrationstests für Schadensmeldungen gemäss Bestätigung der Entwicklerin am 26.11.2026 ohne Fehler. TypeScript-Check und alle 13 Integrationstests der erweiterten Testdatei mit echter MongoDB gemäss Bestätigung der Entwicklerin erfolgreich (Commit 1fad565). Die zwei zusätzlichen Tests prüfen Historienpersistenz, Vereinsisolation, Berechtigungen und parallele Änderungen ohne verlorene Einträge. Funktionale Abnahme abgeschlossen. Bereits überschriebene historische Schritte können nicht rekonstruiert werden.
 
+### Issue #37 – Materialsuche mit Filtern und Lagerorten
+
+Testdatum: 26.11.2026. Manuelle Sammelbestätigung der Entwicklerin. Implementierungscommits: e72bc6f, 9f78592.
+
+| ID | Testfall | Erwartung | Ergebnis |
+|---|---|---|---|
+| ST-37-01 | Artikelsuche | Name, Kategorie, Lagerort und Lieferant durchsuchbar | Bestanden |
+| ST-37-02 | Kategorienfilter | Nur passende Kategorie | Bestanden |
+| ST-37-03 | Lagerortfilter | Nur passender Lagerort | Bestanden |
+| ST-37-04 | Kombinierte Filter | Suchtext, Kategorie und Lagerort gemeinsam wirksam | Bestanden |
+| ST-37-05 | Keine Treffer | Verständliche Leermeldung | Bestanden |
+| ST-37-06 | Artikeldetails | Details aufklappbar und korrekt | Bestanden |
+| ST-37-07 | Kennzahlen | Anzahl, Bestand und Wert entsprechen Filterung | Bestanden |
+| ST-37-08 | Navigation | Kein doppelter Materialsuche-Eintrag | Bestanden |
+| ST-37-09 | Weiterleitung | /materialsuche führt zu /inventar | Bestanden |
+| ST-37-10 | Berechtigungen | Mitglied kann suchen, nicht unberechtigt bearbeiten | Bestanden |
+| ST-37-11 | Mobile Ansicht | Filter bleiben bedienbar | Bestanden |
+
+**Manuelle Abnahme:** 11/11 bestanden. TypeScript-Check und Ausführung der fünf zusätzlichen Unit-Tests zur Weiterleitung und Authentifizierung noch nicht bestätigt.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 133 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 144 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
