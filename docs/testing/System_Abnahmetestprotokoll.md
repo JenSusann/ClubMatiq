@@ -50,7 +50,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #48 | Stornierungen und Gutschriften inkl. #118 | 20/20 | Nachprüfung 26.11.2026 |
 | #49 | Verkaufshistorie inkl. #119 | 38/38 | Nachprüfung 26.11.2026 |
 | #32 | Admin-Dashboard | 10/10 | Sammelbestätigung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 292/292 | Dokumentierte Durchläufe |
+| #62 | Manuelle Benutzeranlage | 15/15 | Sammelbestätigung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 307/307 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -536,9 +537,33 @@ Ergänzung #49: Mobile Darstellung und Benutzerberechtigungen ebenfalls erfolgre
 
 Keine Codeänderung erforderlich. Automatisierter Nachweis: bestehender erfolgreicher CI-Lauf 45816880404; keine neue isolierte Ausführung.
 
+### Issue #62 – Manuelle Benutzeranlage
+
+26.11.2026: 15/15 gemäss Sammelbestätigung bestanden.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-62-01 | Manuelle Anlage | Bestanden |
+| ST-62-02 | Pflichtfelder | Bestanden |
+| ST-62-03 | Startpasswort | Bestanden |
+| ST-62-04 | Doppelte E-Mail | Bestanden |
+| ST-62-05 | Vereinsübergreifendes Duplikat | Bestanden |
+| ST-62-06 | Erster Login | Bestanden |
+| ST-62-07 | Geschützte Seiten | Bestanden |
+| ST-62-08 | Falsches bisheriges Passwort | Bestanden |
+| ST-62-09 | Identisches Passwort | Bestanden |
+| ST-62-10 | Passwortbestätigung | Bestanden |
+| ST-62-11 | Erfolgreicher Passwortwechsel | Bestanden |
+| ST-62-12 | Erneuter Login | Bestanden |
+| ST-62-13 | Altes Passwort | Bestanden |
+| ST-62-14 | Deaktivierung und Reaktivierung | Bestanden |
+| ST-62-15 | Berechtigungsschutz | Bestanden |
+
+Automatisierte Tests für manuelle Anlage, Duplicate Key und Passwortwechsel-Sperren in Hooks vorhanden. Vollständiger CI-Lauf 45816880404 erfolgreich; spezifische Coverage und Sitzungswiderruf nach Passwortwechsel noch zu prüfen.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 292 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 307 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
