@@ -189,13 +189,9 @@
     </form>
   </section>
 
-  {#if fehlermeldung}
-    <p class="meldung fehler" >{fehlermeldung}</p>
-  {/if}
+  
 
-  {#if erfolgsmeldung}
-    <p class="meldung erfolg" >{erfolgsmeldung}</p>
-  {/if}
+  
 
   <section class="bereich">
     <h2>Vorhandene Lagerorte</h2>
