@@ -386,8 +386,7 @@
   .bestandswarnung { display:block; color:#b45309; font-size:12px; font-weight:700; margin-top:5px; }
   td small { display:block; color:#64748b; }
   .leer { text-align:center; padding:30px; color:#64748b; }
-  .meldung { padding:12px; border-radius:8px; margin-bottom:20px; }
-  .fehler { background:#fee2e2; color:#991b1b; }
+
   @media (max-width:900px) { .filter { grid-template-columns:1fr 1fr; } .filter .feld:first-child { grid-column:1/-1; } }
   @media (max-width:750px) {
     .kopf { flex-direction:column; align-items:flex-start; }
