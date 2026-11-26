@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
   import { onMount } from 'svelte';
 
   type Status = 'offen' | 'teilweise' | 'abgeschlossen' | 'storniert';
@@ -391,6 +392,8 @@
   onMount(() => { void datenLaden(); });
 </script>
 
+<Aktionsmeldung fehler={fehler} erfolg={erfolgsmeldung} fehlerSchliessen={() => fehler = ''} erfolgSchliessen={() => erfolgsmeldung = ''} />
+
 <svelte:head>
   <title>Bestellungen – ClubMatiq</title>
 </svelte:head>
@@ -407,9 +410,9 @@
     </button>
   </header>
 
-  {#if erfolgsmeldung}<p class="erfolg" role="status">{erfolgsmeldung}</p>{/if}
+  {#if erfolgsmeldung}<p class="erfolg" >{erfolgsmeldung}</p>{/if}
   {#if fehler}
-    <p class="warnung" role="alert">{fehler}</p>
+    <p class="warnung" >{fehler}</p>
   {/if}
   {#if begrenzt}
     <p class="warnung" role="status">Es wurden maximal 1000 Verkaufsvorgänge geladen. Ältere Bestellungen sind möglicherweise nicht enthalten.</p>
