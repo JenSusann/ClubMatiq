@@ -55,8 +55,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #68 | Offene Preise und gemischte Teilzahlungen | 25/25 | Einzelbestätigung 26.11.2026 |
 | #70 | Gutschriften und Rückerstattungen inkl. #121 | 30/30 | Einzelbestätigung 26.11.2026 |
 | #50 | Dashboard | 17/17 | Sammelbestätigung 26.11.2026 |
-| #51 | Lagerbewegungsjournal | 17/17 | Sammelbestätigung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 416/416 | Dokumentierte Durchläufe |
+| #51 | Lagerbewegungsjournal | 21/21 | Sammelbestätigung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 420/420 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -791,3 +791,14 @@ CI [45829003597](https://github.com/JenSusann/ClubMatiq/actions/runs/45829003597
 | ST-51-17 | Chronologische Reihenfolge | Bestanden |
 
 17/17 gemäss Sammelbestätigung der Entwicklerin. CI [45869328662](https://github.com/JenSusann/ClubMatiq/actions/runs/45869328662) erfolgreich. Zuletzt gemeldete kombinierte Coverage: 98.48 / 95.53 / 96.39 / 99.09 %. Vollständiger Rollback- und Indexnachweis noch offen.
+
+### Nachprüfung #51 – 26.11.2026
+
+| ID | Prüfung | Ergebnis |
+|---|---|---|
+| ST-51-18 | Nachträgliche Inventurkorrektur | Bestanden |
+| ST-51-19 | Abgeschlossene Inventur stornieren | Bestanden |
+| ST-51-20 | Offene Inventur ohne Journalbewegung stornieren | Bestanden |
+| ST-51-21 | Grössenvarianten ohne doppelte Rückbuchungsprotokollierung | Bestanden |
+
+21/21 gemäss Sammelbestätigung. CI [45904070874](https://github.com/JenSusann/ClubMatiq/actions/runs/45904070874) erfolgreich. Echter MongoDB-Rollback-Test d67b3e6 erfolgreich (CI 45898570106). Produktive Indizes, historische Artikelbezeichnungen nach Löschung und vollständiger Nachweis sämtlicher Schreibpfade bleiben offen.
