@@ -403,7 +403,7 @@ Testdatum: 26.11.2026. Manuelle Sammelbestätigung der Entwicklerin nach Korrekt
 | ST-39-25 | Erfolgsmeldung nur einmal | Bestanden gemäss Sammelbestätigung |
 | ST-39-26 | Fehlermeldung nur einmal | Bestanden gemäss Sammelbestätigung |
 
-**Abnahme:** 26/26 gemäss Sammelbestätigung; ursprüngliche Löschfälle nicht als bestanden gezählt. Systemweite Vollständigkeit der Entfernung redundanter Meldungen bleibt offen.
+**Abnahme:** 26/26 gemäss Sammelbestätigung; ursprüngliche Löschfälle nicht als bestanden gezählt. Nach der Abnahme wurden die restlichen identifizierten redundanten allgemeinen Meldungsboxen bereinigt (u.a. 8184e23, 837f219). Abschliessender npm run check gemäss Entwicklerin ohne Fehler. Keine erneute vollständige Browser- oder Coverage-Prüfung nach der letzten Bereinigung belegt.
 
 ## 3. Geplanter Regressionstestkatalog
 
