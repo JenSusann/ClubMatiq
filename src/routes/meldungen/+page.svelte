@@ -369,17 +369,9 @@
     </a>
   </div>
 
-  {#if fehlermeldung}
-    <p class="meldung fehler" >
-      {fehlermeldung}
-    </p>
-  {/if}
+  
 
-  {#if erfolgsmeldung}
-    <p class="meldung erfolg" >
-      {erfolgsmeldung}
-    </p>
-  {/if}
+  
 
   {#if wirdGeladen}
     <p>Schadensmeldungen werden geladen ...</p>
