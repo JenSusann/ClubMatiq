@@ -94,6 +94,24 @@ beforeEach(() => {
 
 describe('ClubMatiq Inventarverwaltung', () => {
 
+  it('legt Nullbestand ohne Journalbuchung an', async () => {
+    expect((await POST(kontext(admin, { ...gueltigerArtikel(), menge: 0 }))).status).toBe(201);
+    expect(mocks.journal).not.toHaveBeenCalled();
+  });
+  it('verhindert Überlauf der Variantensumme', async () => {
+    const zweiteGroesse = new ObjectId().toString();
+    const response = await POST(kontext(admin, { ...gueltigerArtikel(), hatGroessen: true,
+      varianten: [groesseId, zweiteGroesse].map(groesseId => ({ groesseId, menge: Number.MAX_SAFE_INTEGER, einzelwert: 1, mindestbestand: 0 })) }));
+    expect(response.status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('meldet Journalfehler und beendet die Session', async () => {
+    mocks.journal.mockRejectedValueOnce(new Error('Journalfehler'));
+    expect((await POST(kontext(admin, gueltigerArtikel()))).status).toBe(500);
+    expect(mocks.endSession).toHaveBeenCalledOnce();
+  });
+
+
   it('verweigert nicht angemeldeten Benutzern das Lesen', async () => {
     const response = await GET(kontext(null));
     expect(response.status).toBe(401);
