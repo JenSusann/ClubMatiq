@@ -43,3 +43,33 @@ describe('Issue #68 – Rechnungen in Tranchen', () => {
     expect(() => tranche([{ positionsIndex: 0, menge: 1, einzelpreis: null, preisOffen: false }], [])).toThrow();
   });
 });
+
+
+describe('Rechnungstranchen – Grenzwerte und Datenintegrität', () => {
+  const pos = { positionsIndex: 0, menge: 2, einzelpreis: 25 };
+  it.each([-1, NaN, Infinity, 0.001, Number.MAX_SAFE_INTEGER])('verweigert ungültigen Preis %s', einzelpreis => {
+    expect(() => tranche([{ ...pos, einzelpreis }], [])).toThrow('Ungültiger Rechnungsbetrag.');
+  });
+  it.each([{ positionsIndex: -1, menge: 1 }, { positionsIndex: 0.5, menge: 1 }, { positionsIndex: 0, menge: 0 }, { positionsIndex: 0, menge: 0.5 }])('verweigert ungültige Abrechnung %j', entry => {
+    expect(() => tranche([pos], [entry])).toThrow('Ungültige bereits abgerechnete Menge.');
+  });
+  it.each([{ positionsIndex: -1 }, { positionsIndex: 0.5 }, { menge: 0 }, { menge: 0.5 }, { storniertMenge: -1 }, { storniertMenge: 0.5 }, { storniertMenge: 3 }])('verweigert inkonsistente Position %j', patch => {
+    expect(() => tranche([{ ...pos, ...patch }], [])).toThrow('Ungültige Bestellposition.');
+  });
+  it('verweigert doppelte Positionsindices', () => {
+    expect(() => tranche([pos, pos], [])).toThrow('Ungültige Bestellposition.');
+  });
+  it('verweigert offenen Preis mit festem Betrag', () => {
+    expect(() => tranche([{ ...pos, preisOffen: true }], [])).toThrow('Widersprüchlicher Preisstatus.');
+  });
+  it('verweigert Überlauf eines Positionsbetrags', () => {
+    expect(() => tranche([{ ...pos, menge: Number.MAX_SAFE_INTEGER }], [])).toThrow('Rechnungsbetrag zu gross.');
+  });
+  it('verweigert Überlauf der Gesamtsumme', () => {
+    const p = { ...pos, menge: Number.MAX_SAFE_INTEGER, einzelpreis: 0.01 };
+    expect(() => tranche([p, { ...p, positionsIndex: 1 }], [])).toThrow('Rechnungsbetrag zu gross.');
+  });
+  it('summiert mehrere frühere Abrechnungen derselben Position', () => {
+    expect(tranche([{ ...pos, menge: 3 }], [{ positionsIndex: 0, menge: 1 }, { positionsIndex: 0, menge: 1 }])).toEqual({ positionen: [{ positionsIndex: 0, menge: 1, einzelpreis: 25, betrag: 25 }], gesamtbetrag: 25, offenePreispositionen: 0 });
+  });
+});
