@@ -44,7 +44,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #36 | Schadensmeldungen und Bearbeitungshistorie | 8/8 | Manuelle Sammelbestätigung 26.11.2026 |
 | #37 | Materialsuche, Filter und Weiterleitung | 11/11 | Manuelle Sammelbestätigung 26.11.2026 |
 | #44 | Materialausleihe und Rückgabe | 18/18 | Nach Korrektur ffbed03 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 162/162 | Dokumentierte Durchläufe |
+| #39 | Benutzerfeedback und Datenaktualisierung | 26/26 | Sammelbestätigung nach Korrektur |
+| Gesamt | Quantifizierte manuelle Prüfungen | 188/188 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -369,9 +370,44 @@ Erstprüfung: 13/14 bestanden. ST-44-07: Validierung wirksam, Fehlermeldung jedo
 
 **Manuelle Abnahme:** 18/18 nach Korrektur bestanden. Unit- und Integrationstests nach der UI-Korrektur gemäss Bestätigung der Entwicklerin ohne Fehler. TypeScript-Check nicht separat bestätigt. Übergreifende UX-Beobachtungen werden in Issue #39 weiterverfolgt.
 
+### Issue #39 – Fehlerbehandlung und Benutzerfeedback
+
+Testdatum: 26.11.2026. Manuelle Sammelbestätigung der Entwicklerin nach Korrektur: alle OK. Ursprüngliche Löschtests wurden durch Archivierung und Reaktivierung ersetzt, da Löschen im getesteten Ablauf nicht möglich ist. Screenshot zeigte doppelte Erfolgsmeldung; redundante Seitenmeldungen wurden in zehn Dateien entfernt (u.a. ed41620). Die übrigen Seiten wurden nicht vollständig auf doppelte Meldungen geprüft; die Sammelbestätigung ist kein unabhängiger Nachweis für jede Seite. Automatisierte Prüfungen vor der letzten Korrektur gemäss Rückmeldung ohne Fehler; erneuter Check nach Korrektur nicht separat belegt.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-39-01 | Artikel erstellen | Bestanden gemäss Sammelbestätigung |
+| ST-39-02 | Artikel bearbeiten | Bestanden gemäss Sammelbestätigung |
+| ST-39-03 | Archivierung abbrechen | Bestanden gemäss Sammelbestätigung |
+| ST-39-04 | Archivierung bestätigen | Bestanden gemäss Sammelbestätigung |
+| ST-39-05 | Artikel reaktivieren | Bestanden gemäss Sammelbestätigung |
+| ST-39-06 | Stammdaten bearbeiten | Bestanden gemäss Sammelbestätigung |
+| ST-39-07 | Material ausleihen | Bestanden gemäss Sammelbestätigung |
+| ST-39-08 | Material zurückgeben | Bestanden gemäss Sammelbestätigung |
+| ST-39-09 | Ungültige Rückgabemenge | Bestanden gemäss Sammelbestätigung |
+| ST-39-10 | Vereinskleider verkaufen | Bestanden gemäss Sammelbestätigung |
+| ST-39-11 | Bestellung bearbeiten | Bestanden gemäss Sammelbestätigung |
+| ST-39-12 | Zahlung erfassen | Bestanden gemäss Sammelbestätigung |
+| ST-39-13 | Retoure erfassen | Bestanden gemäss Sammelbestätigung |
+| ST-39-14 | Verkaufspreis ändern | Bestanden gemäss Sammelbestätigung |
+| ST-39-15 | Ungültiger Preis | Bestanden gemäss Sammelbestätigung |
+| ST-39-16 | Inventurposition speichern | Bestanden gemäss Sammelbestätigung |
+| ST-39-17 | Bewertungsaufnahme erstellen | Bestanden gemäss Sammelbestätigung |
+| ST-39-18 | Schadensmeldung bearbeiten | Bestanden gemäss Sammelbestätigung |
+| ST-39-19 | Benutzerverwaltung | Bestanden gemäss Sammelbestätigung |
+| ST-39-20 | Mail-Einstellungen | Bestanden gemäss Sammelbestätigung |
+| ST-39-21 | Doppelklick beim Speichern | Bestanden gemäss Sammelbestätigung |
+| ST-39-22 | Meldung schliessen | Bestanden gemäss Sammelbestätigung |
+| ST-39-23 | Mobile Ansicht | Bestanden gemäss Sammelbestätigung |
+| ST-39-24 | Lange Seite mit Filtern | Bestanden gemäss Sammelbestätigung |
+| ST-39-25 | Erfolgsmeldung nur einmal | Bestanden gemäss Sammelbestätigung |
+| ST-39-26 | Fehlermeldung nur einmal | Bestanden gemäss Sammelbestätigung |
+
+**Abnahme:** 26/26 gemäss Sammelbestätigung; ursprüngliche Löschfälle nicht als bestanden gezählt. Systemweite Vollständigkeit der Entfernung redundanter Meldungen bleibt offen.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 144 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 188 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
