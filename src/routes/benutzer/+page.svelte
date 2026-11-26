@@ -398,17 +398,9 @@
   </header>
 
   <!-- Formularmeldungen -->
-  {#if fehlermeldung}
-    <div class="meldung fehler" >
-      {fehlermeldung}
-    </div>
-  {/if}
+  
 
-  {#if erfolgsmeldung}
-    <div class="meldung erfolg" >
-      {erfolgsmeldung}
-    </div>
-  {/if}
+  
 
   <!-- Neue Einladung -->
   <section class="karte">
