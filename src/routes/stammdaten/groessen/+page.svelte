@@ -1,5 +1,7 @@
 
 <script lang="ts">
+  import { verwendeBestaetigung } from '../../../lib/bestaetigung';
+  const bestaetigen = verwendeBestaetigung();
   type Groesse = {
     _id: string;
     bezeichnung: string;
@@ -127,8 +129,8 @@
 
   // Grösse löschen
   async function groesseLoeschen(groesse: Groesse) {
-    const bestaetigt = confirm(
-      `Möchtest du die Grösse "${groesse.bezeichnung}" wirklich löschen?`
+    const bestaetigt = await bestaetigen(
+      `Möchtest du die Grösse "${groesse.bezeichnung}" wirklich löschen?`, 'Löschen', true
     );
 
     if (!bestaetigt) return;
