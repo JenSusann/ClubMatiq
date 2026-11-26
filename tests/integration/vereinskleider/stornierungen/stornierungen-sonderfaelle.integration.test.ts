@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 const mocks = vi.hoisted(() => ({
   findOne: vi.fn(), find: vi.fn(), insertOne: vi.fn(), updateOne: vi.fn(),
   updateMany: vi.fn(), deleteOne: vi.fn(), countDocuments: vi.fn(), aggregate: vi.fn(),
-  collection: vi.fn(), startSession: vi.fn()
+  collection: vi.fn(), startSession: vi.fn(), journal: vi.fn()
 }));
 vi.mock('../../../../src/lib/server/mongodb', () => ({
   db: { collection: mocks.collection },
@@ -22,7 +22,7 @@ const event = (method: string, body?: unknown, role: string | null = 'admin') =>
 });
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.collection.mockImplementation(() => mocks);
+  mocks.collection.mockImplementation((name: string) => name === 'lagerbewegungen' ? { insertOne: mocks.journal } : mocks);
   mocks.findOne.mockResolvedValue(null);
   mocks.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
   mocks.updateOne.mockResolvedValue({ modifiedCount: 1, matchedCount: 1 });
