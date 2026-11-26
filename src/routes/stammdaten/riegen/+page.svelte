@@ -86,5 +86,5 @@
   button { background: #172b4d; color: white; cursor: pointer; }
   button:disabled { opacity: .5; cursor: default; }
   .eintrag { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid #e2e8f0; }
-  .fehler { color: #b91c1c; }
+
 </style>
