@@ -92,6 +92,8 @@
   async function bearbeitungSpeichern(meldung: Schadensmeldung) {
     if (!darfBearbeiten || wirdAktualisiert !== null) return;
     const entwurf = entwurfFuer(meldung);
+    fehlermeldung = '';
+    erfolgsmeldung = '';
     bearbeitungFehler = { ...bearbeitungFehler, [meldung._id]: '' };
     bearbeitungErfolg = { ...bearbeitungErfolg, [meldung._id]: '' };
     wirdAktualisiert = meldung._id;
@@ -111,11 +113,13 @@
       const { [meldung._id]: entfernt, ...rest } = entwuerfe;
       entwuerfe = rest;
       bearbeitungErfolg = { ...bearbeitungErfolg, [meldung._id]: 'Änderungen gespeichert.' };
+      erfolgsmeldung = 'Schadensmeldung aktualisiert.';
     } catch (error) {
       bearbeitungFehler = {
         ...bearbeitungFehler,
         [meldung._id]: error instanceof Error ? error.message : 'Speichern fehlgeschlagen.'
       };
+      fehlermeldung = bearbeitungFehler[meldung._id];
     } finally {
       wirdAktualisiert = null;
     }
