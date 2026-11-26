@@ -149,6 +149,7 @@
       ausgewaehlteBestellungen = ausgewaehlteBestellungen.filter((id) => id !== s._id);
       return;
     }
+    if (s.status === 'geliefert') { fehler = 'Gelieferte Bestellungen können nicht gemeinsam exportiert werden.'; return; }
     if (!s.lieferantId) { fehler = 'Diese Bestellung hat keinen gültigen Lieferanten und kann nicht gemeinsam exportiert werden.'; return; }
     if (auswahlLieferant && auswahlLieferant !== s.lieferantId) {
       fehler = 'Für den gemeinsamen PDF-Export dürfen nur Bestellungen desselben Lieferanten ausgewählt werden.';
@@ -158,14 +159,14 @@
     ausgewaehlteBestellungen = [...new Set([...ausgewaehlteBestellungen, s._id])];
   }
   function gruppeWaehlen(gruppe: { bestellungen: Sammelbestellung[] }): void {
-    const moeglich = gruppe.bestellungen.filter((s) => s.lieferantId && (!auswahlLieferant || s.lieferantId === auswahlLieferant));
+    const moeglich = gruppe.bestellungen.filter((s) => s.status !== 'geliefert' && s.lieferantId && (!auswahlLieferant || s.lieferantId === auswahlLieferant));
     if (!moeglich.length) { fehler = 'Bitte nur Bestellungen desselben Lieferanten auswählen.'; return; }
     ausgewaehlteBestellungen = [...new Set([...ausgewaehlteBestellungen, ...moeglich.map((s) => s._id)])];
   }
   async function gesamtPdfHerunterladen(): Promise<void> {
     if (pdfExportLaeuft || ausgewaehlteBestellungen.length === 0) return;
     if (!auswahlLieferant || ausgewaehlteObjekte.length !== ausgewaehlteBestellungen.length ||
-        ausgewaehlteObjekte.some((s) => s.lieferantId !== auswahlLieferant)) {
+        ausgewaehlteObjekte.some((s) => s.status === 'geliefert' || s.lieferantId !== auswahlLieferant)) {
       fehler = 'Bitte ausschliesslich Bestellungen eines Lieferanten auswählen.';
       return;
     }
@@ -230,7 +231,7 @@
       const daten = await antwort.json() as Uebersicht;
       bedarf = Array.isArray(daten.bedarf) ? daten.bedarf : [];
       sammelbestellungen = Array.isArray(daten.sammelbestellungen) ? daten.sammelbestellungen : [];
-      ausgewaehlteBestellungen = ausgewaehlteBestellungen.filter((id) => sammelbestellungen.some((s) => s._id === id));
+      ausgewaehlteBestellungen = ausgewaehlteBestellungen.filter((id) => sammelbestellungen.some((s) => s._id === id && s.status !== 'geliefert'));
       if (groessenAntwort.ok) {
         groessen = await groessenAntwort.json() as Groesse[];
       } else {
@@ -517,13 +518,13 @@
           {#each bestellGruppen as gruppe (gruppe.id)}
             <div class="bestellgruppe">
               <div class="bestellgruppe-kopf"><div><h3>{gruppe.name}</h3><small>{gruppe.bestellungen.length} Bestellungen · {gruppe.bestellungen.reduce((summe, s) => summe + s.positionen.reduce((a, p) => a + p.menge, 0), 0)} Stück</small></div>
-                <button class="sekundaer" type="button" onclick={() => gruppeWaehlen(gruppe)}>Gruppe auswählen</button>
+                <button class="sekundaer" type="button" onclick={() => gruppeWaehlen(gruppe)} disabled={!gruppe.bestellungen.some((s) => s.status !== 'geliefert' && s.lieferantId && (!auswahlLieferant || s.lieferantId === auswahlLieferant))}>Gruppe auswählen</button>
               </div>
               <div class="bestellliste">
                 {#each gruppe.bestellungen as s (s._id)}
 <div class="bestellkarte">
               <div class="bestellkopf">
-                <label class="auswahl-checkbox"><input type="checkbox" checked={ausgewaehlteBestellungen.includes(s._id)} disabled={!s.lieferantId || (auswahlLieferant !== null && auswahlLieferant !== s.lieferantId && !ausgewaehlteBestellungen.includes(s._id))} onchange={(e) => bestellungWaehlen(s, e.currentTarget.checked)} /><span class="nur-screenreader">Bestellung #{s._id.slice(-8)} auswählen</span></label>
+                <label class="auswahl-checkbox"><input type="checkbox" checked={ausgewaehlteBestellungen.includes(s._id)} disabled={s.status === 'geliefert' || !s.lieferantId || (auswahlLieferant !== null && auswahlLieferant !== s.lieferantId && !ausgewaehlteBestellungen.includes(s._id))} onchange={(e) => bestellungWaehlen(s, e.currentTarget.checked)} /><span class="nur-screenreader">Bestellung #{s._id.slice(-8)} auswählen</span></label>
                 <div><strong>#{s._id.slice(-8)}</strong><small>{s.lieferantName || (s.lieferantId ? 'Lieferant nicht mehr verfügbar' : 'Alte Bestellung ohne Lieferant')}</small><small>Erstellt: {formatDatum(s.erstelltAm)}</small><small>{bestellartName(s)}</small></div>
                 <span class:entwurf={s.status === 'entwurf'} class:bestellt={s.status === 'bestellt'} class:geliefert={s.status === 'geliefert'} class="status">{statusName(s.status)}</span>
                 <strong>{s.positionen.reduce((summe, p) => summe + p.menge, 0)} Stück</strong>
