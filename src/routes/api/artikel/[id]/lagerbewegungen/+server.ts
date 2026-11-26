@@ -36,7 +36,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
       person._id.toString(),
       [person.vorname, person.nachname].filter(Boolean).join(' ').trim()
     ]));
-    return json({ bewegungen: bewegungen.map(({ _id, ...bewegung }) => ({ ...bewegung, id: _id.toString(), benutzerName: namen.get(bewegung.benutzerId) || null })), hinweis: 'Bewegungen vor Einführung des Journals sind nicht rückwirkend erfasst. Es werden maximal 200 Einträge angezeigt.' });
+    return json({ bewegungen: bewegungen.map(({ _id, ...bewegung }) => ({ ...bewegung, id: _id.toString(), benutzerName: bewegung.benutzerName || namen.get(bewegung.benutzerId) || null })), hinweis: 'Bewegungen vor Einführung des Journals sind nicht rückwirkend erfasst. Es werden maximal 200 Einträge angezeigt.' });
   } catch (error) {
     console.error('Lagerbewegungen laden:', error instanceof Error ? error.name : 'Unbekannter Fehler');
     return json({ fehler: 'Lagerbewegungen konnten nicht geladen werden.' }, { status: 500 });
