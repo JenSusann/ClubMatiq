@@ -90,7 +90,7 @@ describe('Server-Hook – Authentifizierung und Routing', () => {
 describe.each([['GET session', GET], ['POST aktivitaet', POST]] as const)('%s', (_name, handler) => {
   const benutzer = { id: '507f1f77bcf86cd799439011', vereinId: 'verein-1' };
   const sessionFristen = { idleExpiresAt: 123456, absoluteExpiresAt: 234567 };
-  const call = (locals: object) => handler({ locals } as Parameters<typeof handler>[0]);
+  const call = (locals: object) => handler({ locals } as Parameters<typeof GET>[0] & Parameters<typeof POST>[0]);
 
   it('verweigert Zugriff ohne Benutzer', async () => {
     const response = await call({ sessionFristen });
