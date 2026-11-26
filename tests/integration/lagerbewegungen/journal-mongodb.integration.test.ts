@@ -155,3 +155,25 @@ describe('Issue #66 – Lagerjournal mit echter MongoDB', () => {
     }
   }, 60000);
 });
+
+describe('Issue #51 – atomare Bestandsbewegung', () => {
+  it('rollt Bestand und Journal gemeinsam zurück', async () => {
+    const { protokolliereLagerbewegung } = await import('../../../src/lib/server/lagerbewegungen');
+    const id=new ObjectId(), referenzId=prefix+'-rollback';
+    const session=client.startSession();
+    try {
+      await db.collection('artikel').insertOne({_id:id,vereinId,menge:5});
+      await expect(session.withTransaction(async()=>{
+        await db.collection('artikel').updateOne({_id:id,vereinId},{$inc:{menge:-2}},{session});
+        await protokolliereLagerbewegung({vereinId,artikelId:id.toString(),groesseId:null,art:'ausleihe',mengeDelta:-2,benutzerId:admin.id,referenzId,referenzTyp:'test'},session);
+        throw new Error('Erzwungener Rollback');
+      })).rejects.toThrow('Erzwungener Rollback');
+      expect((await db.collection('artikel').findOne({_id:id,vereinId}))?.menge).toBe(5);
+      expect(await db.collection('lagerbewegungen').countDocuments({vereinId,referenzId})).toBe(0);
+    } finally {
+      await session.endSession();
+      await db.collection('artikel').deleteOne({_id:id,vereinId});
+      await db.collection('lagerbewegungen').deleteMany({vereinId,referenzId});
+    }
+  });
+});
