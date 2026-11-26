@@ -52,7 +52,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #32 | Admin-Dashboard | 10/10 | Sammelbestätigung 26.11.2026 |
 | #62 | Manuelle Benutzeranlage | 20/20 | Sammelbestätigung 26.11.2026 |
 | #64 | Benutzerlöschung und Einladungswiderruf | 15/15 | Einzelbestätigung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 327/327 | Dokumentierte Durchläufe |
+| #68 | Offene Preise und gemischte Teilzahlungen | 25/25 | Einzelbestätigung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 352/352 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -600,9 +601,43 @@ Gezielter Integrationstest (5c7cef3) und npm run check gemäss Rückmeldung erfo
 
 Technische Nachabsicherung: Benutzer- und Session-Löschung in gemeinsamer Transaktion (2aef97bf), sieben zusätzliche Unit-Tests (f6c54ac), drei MongoDB-Integrationstests (2fed46d), zwei bestehende Unit-Mocks korrigiert (305d4e8). Gezielte Tests und vollständiger Unit-Lauf gemäss Entwicklerin erfolgreich. [CI-Lauf 45824480865](https://github.com/JenSusann/ClubMatiq/actions/runs/45824480865) erfolgreich; kombinierte Coverage 98,19 % Statements, 95,04 % Branches, 96,20 % Functions, 98,90 % Lines. Quality Gate bestanden. Manuelle Abnahme vor Transaktionsänderung; parallele neu entstehende Referenzen und erzwungener Rollback nicht vollständig abgesichert.
 
+### Issue #68 – Offene Preise und gemischte Teilzahlungen
+
+26.11.2026: Alle 25 Fälle gemäss Einzelbestätigung der Entwicklerin bestanden.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-68-01 | Preis-offen-Checkbox speichern | Bestanden |
+| ST-68-02 | Offener Preis nicht CHF 0 | Bestanden |
+| ST-68-03 | Gemischter Warenkorb | Bestanden |
+| ST-68-04 | Bekannter Teilbetrag CHF 55 | Bestanden |
+| ST-68-05 | TWINT nur CHF 55 | Bestanden |
+| ST-68-06 | Gemeinsame Bestell-ID | Bestanden |
+| ST-68-07 | Preisfestlegung CHF 48 | Bestanden |
+| ST-68-08 | Bezahlte Positionen unverändert | Bestanden |
+| ST-68-09 | Restforderung CHF 48 | Bestanden |
+| ST-68-10 | Rechnung und PDF CHF 48 | Bestanden |
+| ST-68-11 | Teilzahlung CHF 20 | Bestanden |
+| ST-68-12 | Restzahlung CHF 28 | Bestanden |
+| ST-68-13 | Doppelverrechnung und Überzahlung blockiert | Bestanden |
+| ST-68-14 | Verrechneten Preis schützen | Bestanden |
+| ST-68-15 | Gemischter Barverkauf | Bestanden |
+| ST-68-16 | Nur offene Preise ohne Zahlung | Bestanden |
+| ST-68-17 | Storno offener Preis ohne Gutschrift | Bestanden |
+| ST-68-18 | Storno bezahlter Position mit Gutschrift | Bestanden |
+| ST-68-19 | Rabattkombination | Bestanden |
+| ST-68-20 | Sammelbestellung | Bestanden |
+| ST-68-21 | Wareneingang und Übergabe | Bestanden |
+| ST-68-22 | Historie und Belege | Bestanden |
+| ST-68-23 | Excel und PDF | Bestanden |
+| ST-68-24 | Bestehende Verkäufe | Bestanden |
+| ST-68-25 | Berechtigungen | Bestanden |
+
+Keine Fehler gemeldet; keine Codeänderung für diese Abnahme erforderlich. Bestehender CI-Lauf 45824480865 erfolgreich; spezifische automatisierte Testzuordnung noch zu prüfen.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 327 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 352 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
