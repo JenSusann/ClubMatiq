@@ -285,13 +285,9 @@
   <h1>Neuen Inventarartikel erfassen</h1>
   <p>Erfasse Vereinsmaterial und Vereinskleider zentral über die Stammdaten.</p>
 
-  {#if fehlermeldung}
-    <p class="meldung fehler" >{fehlermeldung}</p>
-  {/if}
+  
 
-  {#if erfolgsmeldung}
-    <p class="meldung erfolg" >{erfolgsmeldung}</p>
-  {/if}
+  
 
   {#if wirdGeladen}
     <p>Stammdaten werden geladen ...</p>
