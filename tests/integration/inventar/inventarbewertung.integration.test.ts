@@ -289,4 +289,20 @@ describe('ClubMatiq – Inventarbewertung mit MongoDB', () => {
       await db.collection('artikel').deleteMany({ vereinId: id });
     }
   });
+
+  it('bewertet historische Artikel mit fehlenden Stammdaten und überspringt leere Varianten (#38)', async () => {
+    const id=new ObjectId().toString(), a=new ObjectId();
+    try {
+      await db.collection('artikel').insertMany([{vereinId:id,name:'Alt'},{_id:a,vereinId:id,name:'Kleider',hatGroessen:true},{vereinId:id,name:'Negativer Preis',menge:1,einzelwert:-1},{vereinId:id,name:'Nicht endlicher Preis',menge:1,einzelwert:Infinity}]);
+      await db.collection('artikelvarianten').insertMany([{vereinId:id,artikelId:a.toString(),menge:0},{vereinId:id,artikelId:a.toString(),menge:2,einzelwert:5}]);
+      const r=await bewertungSpeichern(id,'test');
+      const d=await db.collection('inventarbewertung_aufnahmen').findOne({_id:r!._id,vereinId:id});
+      expect(d?.zeilen).toHaveLength(4);
+      expect(d?.zeilen).toContainEqual(expect.objectContaining({artikel:'Alt',menge:0,kategorie:'Unbekannt',lagerort:'Unbekannt',gesamtwert:null}));
+      expect(d?.zeilen).toContainEqual(expect.objectContaining({artikel:'Kleider',groesse:'Unbekannt',gesamtwert:10}));
+      for(const artikel of ['Negativer Preis','Nicht endlicher Preis']) expect(d?.zeilen).toContainEqual(expect.objectContaining({artikel,einzelwert:null,gesamtwert:null}));
+    } finally {
+      for(const name of ['artikel','artikelvarianten','inventarbewertung_aufnahmen']) await db.collection(name).deleteMany({vereinId:id});
+    }
+  });
 });
