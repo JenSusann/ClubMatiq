@@ -2,7 +2,7 @@
 
 [![ClubMatiq CI](https://github.com/JenSusann/ClubMatiq/actions/workflows/check.yml/badge.svg?branch=main)](https://github.com/JenSusann/ClubMatiq/actions/workflows/check.yml)
 
-> **CI-Nachweis (Version 0.9.0, Commit [2a38b2b](https://github.com/JenSusann/ClubMatiq/commit/2a38b2b)):** 1'861 Unit-Tests und 2'590 Integrationstests erfolgreich (159 Testdateien). GitHub Actions führt Svelte-/TypeScript-Prüfung, Unit-Tests mit Coverage, Produktions-Build und Integrationstests mit isoliertem MongoDB-Replica-Set aus. Beide Coverage-Berichte sind als separate Workflow-Artefakte verfügbar. Die Testerfolgsquote ist nicht mit der Code Coverage gleichzusetzen.
+> **CI-Nachweis vom 26.11.2026 (Version 0.9.0, [Commit 2767612](https://github.com/JenSusann/ClubMatiq/commit/27676128d882fe431967ece1eca8dd3aa92d143b), [Workflow-Lauf 45735645776](https://github.com/JenSusann/ClubMatiq/actions/runs/45735645776)):** 2'423 Unit-Tests und 2'590 Integrationstests erfolgreich (5'013 Tests in 159 Dateien, keine Fehler). Kombinierte Coverage: 98,22 % Statements, 95,05 % Branches, 96,42 % Functions, 98,94 % Lines. Das Quality Gate von mindestens 95 % je Kennzahl ist bestanden. GitHub Actions prüft zusätzlich Svelte/TypeScript und den Produktions-Build. Drei Coverage-Artefakte dokumentieren Unit-, Integration- und kombinierte Coverage.
 
 ## Projektübersicht & Zugänge
 
@@ -305,9 +305,9 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 
 - **Abgrenzung zum Mindestumfang:** Über die manuelle Funktionsprüfung des Prototyps hinaus wurde eine automatisierte Testsuite mit messbarer Codeabdeckung aufgebaut. Als zusätzliches Qualitätsziel wurde eine Testabdeckung von mindestens 95 % in allen vier Coverage-Kennzahlen definiert.
 
-- **Umsetzung:** Die Tests wurden schrittweise parallel zur Weiterentwicklung der Anwendung erstellt und im Verzeichnis `tests/unit/` organisiert. Anschliessend wurden die Dateinamen vereinheitlicht und zusammengehörige Tests konsolidiert. Bei der letzten dokumentierten Coverage-Ausführung wurden 1'652 Tests erfolgreich abgeschlossen. Die Abdeckung betrug 98,88 % bei Statements, 95,13 % bei Branches, 95,89 % bei Functions und 99,69 % bei Lines. Damit wurde das definierte Qualitätsziel erreicht. Die automatisierten Tests ergänzen die manuelle Prüfung und ersetzen keine Nutzerevaluation.
+- **Umsetzung:** Unit- und Integrationstests wurden schrittweise erweitert und in bestehenden Testdateien konsolidiert. Der CI-Lauf vom 26.11.2026 bestätigt 5'013 bestandene Tests und das kombinierte 95-%-Quality-Gate. Die automatisierten Tests ergänzen die manuelle Prüfung und ersetzen keine Nutzerevaluation.
 
-- **Nachweise:** [Automatisierte Tests](tests/unit) · [Testkonfiguration](vitest.config.ts) · [GitHub-Issue #38](https://github.com/JenSusann/ClubMatiq/issues/38) · [Testausführung und Coverage](#93-automatisierte-tests-und-code-coverage)
+- **Nachweise:** [Automatisierte Tests](tests/unit) · [Testkonfiguration](vitest.config.ts) · [GitHub-Issue #38](https://github.com/JenSusann/ClubMatiq/issues/38) · [Testausführung und Coverage](#94-code-coverage-und-qualitätsziel)
 
 - **Bezug zur Evaluation:** Nein. Die automatisierten Tests wurden im Rahmen der technischen Qualitätssicherung entwickelt und nicht aus einer durchgeführten Nutzerevaluation abgeleitet.
 
@@ -426,7 +426,7 @@ KI-generierter Code wird anhand statischer Prüfungen, automatisierter Unit- und
 
 Manuelle Tests werden durch die entwickelnde Person ausgeführt. Die Ergebnisse werden erst nach entsprechender Rückmeldung als bestanden dokumentiert. Historisch rekonstruierte Testbeschreibungen werden gekennzeichnet. Die unabhängige Usability-Evaluation ergänzt diese funktionalen Prüfungen.
 
-Zum dokumentierten Zwischenstand vom 25.11.2026 liegen 58 abschliessend bestandene manuelle Testfälle aus fünf Issue-Abnahmen vor. Die finalen automatisierten Testergebnisse und Coverage-Werte werden nach Abschluss der laufenden Entwicklung erhoben.
+Zum dokumentierten Zwischenstand vom 25.11.2026 liegen 58 abschliessend bestandene manuelle Testfälle aus fünf Issue-Abnahmen vor. Der aktuelle automatisierte Nachweis vom 26.11.2026 ist in Kapitel 9.4 dokumentiert.
 
 **Nachweise:** [System- und Abnahmetestprotokoll](docs/testing/System_Abnahmetestprotokoll.md) · [Testdateien](tests) · [Kapitel 9](#9-lokale-installation-und-tests)
 
@@ -564,21 +564,29 @@ ClubMatiq verwendet Vitest mit V8-Coverage. Unit-Tests prüfen isolierte Geschä
 | Unit-Tests | `tests/unit/` | `npm run test` |
 | Unit-Tests mit Coverage | `tests/unit/` | `npm run test:coverage` |
 | Integrationstests mit Coverage | `tests/integration/` | `npm run test:integration` |
+| Kombinierte Coverage und Quality Gate | `coverage/combined/` | `npm run coverage:merge` |
+| Vollständiger Testlauf | Unit, Integration, kombinierte Coverage | `npm run test:all` |
 
 Integrationstests sind mit der vorgesehenen Testdatenbank und Testkonfiguration auszuführen, nicht mit produktiven Vereinsdaten. Die separate Konfiguration befindet sich in `vitest.integration.config.ts`.
 
 ### 9.4 Code Coverage und Qualitätsziel
 
-Die Testabdeckung wird anhand der vier Vitest-Kennzahlen Statements, Branches, Functions und Lines bewertet. Das bisher definierte Qualitätsziel beträgt mindestens 95 % je Kennzahl. Die Erreichung wird erst anhand eines aktuellen, nachvollziehbaren Testlaufs bewertet.
+**CI-Nachweis vom 26.11.2026 (Version 0.9.0, [Commit 2767612](https://github.com/JenSusann/ClubMatiq/commit/27676128d882fe431967ece1eca8dd3aa92d143b), [Workflow-Lauf 45735645776](https://github.com/JenSusann/ClubMatiq/actions/runs/45735645776)):** 2'423 Unit-Tests und 2'590 Integrationstests erfolgreich (5'013 Tests in 159 Dateien, keine Fehler). Kombinierte Coverage: 98,22 % Statements, 95,05 % Branches, 96,42 % Functions, 98,94 % Lines. Das Quality Gate von mindestens 95 % je Kennzahl ist bestanden.
 
-| Kennzahl | Qualitätsziel | Aktueller Stand |
-|---|---:|---|
-| Statements | ≥ 95 % | Nach Abschluss der laufenden Entwicklung ermitteln |
-| Branches | ≥ 95 % | Nach Abschluss der laufenden Entwicklung ermitteln |
-| Functions | ≥ 95 % | Nach Abschluss der laufenden Entwicklung ermitteln |
-| Lines | ≥ 95 % | Nach Abschluss der laufenden Entwicklung ermitteln |
+| Testart | Dateien | Bestanden | Fehlgeschlagen |
+|---|---:|---:|---:|
+| Unit | 59 | 2'423 | 0 |
+| Integration | 100 | 2'590 | 0 |
+| Gesamt | 159 | 5'013 | 0 |
 
-Da ClubMatiq laufend korrigiert und erweitert wird, sind frühere Coverage-Werte und Testanzahlen keine belastbaren Kennzahlen für den aktuellen Entwicklungsstand. Die finalen Ergebnisse werden mit Testdatum, Commit, Testanzahl und Teststatus dokumentiert. Unit- und Integrationstest-Coverage werden getrennt ausgewiesen; eine kombinierte Coverage darf nicht durch Mittelwertbildung abgeleitet werden.
+| Kennzahl | Unit | Kombiniert | Abgedeckt | Ziel |
+|---|---:|---:|---:|---:|
+| Statements | 92,30 % | 98,22 % | 5'413 / 5'511 | ≥ 95 % |
+| Branches | 86,34 % | 95,05 % | 5'137 / 5'404 | ≥ 95 % |
+| Functions | 85,55 % | 96,42 % | 621 / 644 | ≥ 95 % |
+| Lines | 93,35 % | 98,94 % | 4'764 / 4'815 | ≥ 95 % |
+
+Die Istanbul-Coverage-Maps der beiden Testläufe werden durch [merge-coverage.mjs](scripts/merge-coverage.mjs) zusammengeführt, nicht gemittelt. Der Messumfang umfasst TypeScript-Dateien in src/routes/api und src/lib sowie src/hooks.server.ts; die Svelte-Oberflächen sind nicht vollständig Bestandteil dieser Messung. Die Berichte liegen unter coverage/unit, coverage/integration und coverage/combined und werden als separate CI-Artefakte bereitgestellt. Das Quality Gate prüft die exakten Zähler aller vier Kennzahlen und beendet den Lauf bei Unterschreitung mit einem Fehler. Ein Release über den CI-Workflow setzt erfolgreiche Prüfungen voraus. Ein tatsächlicher Release ist damit noch nicht nachgewiesen.
 
 **GitHub-Issue:** [#38 – Automatisierte Tests für zentrale Funktionen implementieren](https://github.com/JenSusann/ClubMatiq/issues/38)
 
@@ -742,7 +750,7 @@ Stand der Dokumentationsüberarbeitung: 25.11.2026. Die Funktionsübersicht basi
 |---|---|
 | Fachliche Module | Oberflächen und API-Routen gemäss Kapitel 10.2 vorhanden |
 | Externe Dienste | Implementierungen gemäss Kapitel 10.3 und 10.4 vorhanden; Live-Nachweise je Dienst separat erforderlich |
-| Automatisierte Tests | Unit- und Integrationstests vorhanden; finale Anzahl und Coverage noch zu erheben |
+| Automatisierte Tests | 5'013/5'013 bestanden; kombiniertes 95-%-Quality-Gate bestanden (26.11.2026, Kapitel 9.4) |
 | Manuelle Abnahmen | 58/58 abschliessend bestanden in fünf dokumentierten Issue-Abnahmen (Zwischenstand 25.11.2026) |
 | Regressionstests | Weitere 56 Fälle geplant; laufende Issue-Abnahmen ergänzen den Katalog |
 | Usability | Unabhängige Evaluation noch durchzuführen bzw. auszuwerten |
