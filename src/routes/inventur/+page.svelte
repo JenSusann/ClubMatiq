@@ -163,13 +163,9 @@
     </button>
   </div>
 
-  {#if fehler}
-    <div class="meldung fehler">{fehler}</div>
-  {/if}
+  
 
-  {#if erfolg}
-    <div class="meldung erfolg">{erfolg}</div>
-  {/if}
+  
 
   {#if formularAnzeigen}
     <section class="karte">
@@ -424,22 +420,6 @@
     color: #475569;
     font-size: 14px;
     margin-bottom: 20px;
-  }
-
-  .meldung {
-    padding: 14px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-  }
-
-  .fehler {
-    background: #fee2e2;
-    color: #991b1b;
-  }
-
-  .erfolg {
-    background: #dcfce7;
-    color: #166534;
   }
 
   .tabelle-container {
