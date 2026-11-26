@@ -105,12 +105,19 @@
     wert ? new Intl.DateTimeFormat('de-CH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(wert)) : '–';
   const artName = (wert: string | undefined) =>
     wert === 'direkt' ? 'Direktverkauf' : wert === 'bestellung' ? 'Bestellung' : wert === 'gemischt' ? 'Gemischt' : (wert || '–');
-  const netto = (v: Verkauf) => Math.max(0, Number(v.rechnung?.gesamtbetrag ?? v.endbetrag ?? 0) - Number(v.rechnung?.gutgeschriebenBetrag ?? 0));
-  const bezahlt = (v: Verkauf) => Number(v.rechnung?.bezahltBetrag ?? v.bezahltBetrag ?? 0);
-  const offenBetrag = (v: Verkauf) => Math.max(0, netto(v) - bezahlt(v));
+  const belege = (v: Verkauf) => v.rechnungen?.length ? v.rechnungen : v.rechnung ? [v.rechnung] : [];
+  const summe = (v: Verkauf, feld: 'gesamtbetrag' | 'bezahltBetrag' | 'gutgeschriebenBetrag' | 'rueckerstattungOffen') =>
+    belege(v).reduce((sum, r) => sum + Math.round(Number(r[feld] ?? 0) * 100), 0) / 100;
+  const netto = (v: Verkauf) => belege(v).length
+    ? Math.round((summe(v, 'gesamtbetrag') - summe(v, 'gutgeschriebenBetrag')) * 100) / 100
+    : Math.max(0, Number(v.endbetrag ?? 0));
+  const bezahlt = (v: Verkauf) => belege(v).length ? summe(v, 'bezahltBetrag') : Number(v.bezahltBetrag ?? 0);
+  const offenBetrag = (v: Verkauf) => belege(v).length
+    ? belege(v).reduce((sum, r) => sum + Math.max(0, Math.round(Number(r.gesamtbetrag ?? 0)*100) - Math.round(Number(r.gutgeschriebenBetrag ?? 0)*100) - Math.round(Number(r.bezahltBetrag ?? 0)*100)), 0) / 100
+    : Math.max(0, netto(v) - bezahlt(v));
   const status = (v: Verkauf) =>
-    Number(v.rechnung?.rueckerstattungOffen ?? 0) > 0 ? 'Rückerstattung offen'
-    : Number(v.rechnung?.gutgeschriebenBetrag ?? 0) > 0 ? 'Gutschrift vorhanden'
+    summe(v, 'rueckerstattungOffen') > 0 ? 'Rückerstattung offen'
+    : summe(v, 'gutgeschriebenBetrag') > 0 ? 'Gutschrift vorhanden'
     : offenBetrag(v) <= 0.005 ? 'Bezahlt' : bezahlt(v) > 0 ? 'Teilweise bezahlt' : 'Offen';
 
   // Die Daten sind bereits vollständig auf dem Server gefiltert.
@@ -344,7 +351,7 @@
                     </div>
                     <div class="belege">
                       <h3>Rechnungen und Gutschriften</h3>
-                      {#each (v.rechnungen ?? (v.rechnung ? [v.rechnung] : [])) as rechnung (rechnung._id)}
+                      {#each belege(v) as rechnung (rechnung._id)}
                         <p><a href={`/api/vereinskleider/verrechnung/${rechnung._id}/pdf`} target="_blank" rel="noopener noreferrer">Rechnung / Quittung {rechnung.rechnungsnummer ?? ''} als PDF</a></p>
                         {#each gutschriftenZu(rechnung._id) as g (g._id)}
                           <p><a href={`/api/vereinskleider/verrechnung/${rechnung._id}/pdf?gutschriftId=${g._id}`} target="_blank" rel="noopener noreferrer">Gutschrift {g.gutschriftnummer} als PDF</a> · {chf(g.betrag)}</p>
@@ -381,13 +388,14 @@
                       <span>Zwischentotal</span><strong>{chf(v.zwischentotal)}</strong>
                       <span>Rabatte</span><strong>− {chf(v.rabattTotal)}</strong>
                       <span>Ursprünglicher Endbetrag</span><strong>{chf(v.endbetrag)}</strong>
-                      {#if v.rechnung}
-                        <span>Gutschriften</span><strong>− {chf(v.rechnung.gutgeschriebenBetrag)}</strong>
+                      {#if belege(v).length}
+                        <span>Verrechneter Bruttobetrag</span><strong>{chf(summe(v, 'gesamtbetrag'))}</strong>
+                        <span>Gutschriften</span><strong>− {chf(summe(v, 'gutgeschriebenBetrag'))}</strong>
                         <span>Aktueller Rechnungsbetrag</span><strong>{chf(netto(v))}</strong>
                         <span>Bezahlt</span><strong>{chf(bezahlt(v))}</strong>
                         <span>Offene Forderung</span><strong>{chf(offenBetrag(v))}</strong>
-                        {#if Number(v.rechnung.rueckerstattungOffen ?? 0) > 0}
-                          <span>Rückerstattung offen</span><strong>{chf(v.rechnung.rueckerstattungOffen)}</strong>
+                        {#if summe(v, 'rueckerstattungOffen') > 0}
+                          <span>Rückerstattung offen</span><strong>{chf(summe(v, 'rueckerstattungOffen'))}</strong>
                         {/if}
                       {/if}
                     </div>
