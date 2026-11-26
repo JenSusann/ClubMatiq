@@ -47,7 +47,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #39 | Benutzerfeedback und Datenaktualisierung | 26/26 | Sammelbestätigung nach Korrektur |
 | #46 | Lieferantenverwaltung und Sammelbestellungen | 16/16 | Einzelbestätigung 26.11.2026 |
 | #47 | Bestell-PDF inkl. #116/#117 | 20/20 | Nachprüfung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 224/224 | Dokumentierte Durchläufe |
+| #48 | Stornierungen und Gutschriften inkl. #118 | 20/20 | Nachprüfung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 244/244 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -461,9 +462,38 @@ Testdatum: 26.11.2026. Manuelle Browser-Abnahme, alle 16 Fälle einzeln durch di
 
 **Ergebnis:** 20/20 nach Korrektur. Drei zusätzliche Unit-Regressionstests (#117, 63bedd3) und npm run check gemäss Rückmeldung ohne Fehler. Keine neue Gesamtsuite oder Coverage-Messung belegt. Teilgelieferte Bestellungen enthalten weiterhin ursprüngliche Mengen.
 
+### Issue #48 – Stornierungen und Gutschriften
+
+26.11.2026: ST-48-01 zunächst fehlerhaft, Bug #118 erfasst und mit 162d361 korrigiert. Alle übrigen Fälle und fünf Nachprüfungen gemäss Entwicklerin bestanden.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-48-01 | Unverrechnete Teilstornierung (nach Korrektur) | Bestanden |
+| ST-48-02 | Vollständige Stornierung | Bestanden |
+| ST-48-03 | Stornierungsbegründung | Bestanden |
+| ST-48-04 | Verrechnete Teilstornierung | Bestanden |
+| ST-48-05 | Offene Rechnung | Bestanden |
+| ST-48-06 | Teilweise bezahlte Rechnung | Bestanden |
+| ST-48-07 | Vollständig bezahlte Rechnung | Bestanden |
+| ST-48-08 | Mehrere Teilrechnungen | Bestanden |
+| ST-48-09 | Mehrfache Stornierungen | Bestanden |
+| ST-48-10 | Ungültige Stornierungsmenge | Bestanden |
+| ST-48-11 | Bereits übergebene Artikel | Bestanden |
+| ST-48-12 | Lagerbestand und Reservierungen | Bestanden |
+| ST-48-13 | Stornierungshistorie | Bestanden |
+| ST-48-14 | Gutschriftenübersicht | Bestanden |
+| ST-48-15 | Gutschrift-PDF | Bestanden |
+| ST-48-01a | Vollstornierung nicht in Verrechnung | Bestanden |
+| ST-48-01b | Rechnung nach Teilstornierung | Bestanden |
+| ST-48-01c | Rechnungsbetrag und PDF | Bestanden |
+| ST-48-01d | Gutschrift nach weiterer Stornierung | Bestanden |
+| ST-48-01e | Historie erhalten | Bestanden |
+
+20/20 nach Korrektur. Fünf Unit-Regressionstests (c54f8cf) und npm run check gemäss Rückmeldung ohne Fehler. Keine neue Gesamtcoverage oder vollständiger Integrationslauf bestätigt.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 224 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 244 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
