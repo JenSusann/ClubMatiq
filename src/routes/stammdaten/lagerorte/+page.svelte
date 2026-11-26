@@ -1,5 +1,7 @@
 
 <script lang="ts">
+  import { verwendeBestaetigung } from '../../../lib/bestaetigung';
+  const bestaetigen = verwendeBestaetigung();
   type Lagerort = {
     _id: string;
     name: string;
@@ -113,8 +115,8 @@
 
   // Lagerort löschen
   async function lagerortLoeschen(lagerort: Lagerort) {
-    const bestaetigt = confirm(
-      `Möchtest du den Lagerort "${lagerort.name}" wirklich löschen?`
+    const bestaetigt = await bestaetigen(
+      `Möchtest du den Lagerort "${lagerort.name}" wirklich löschen?`, 'Löschen', true
     );
 
     if (!bestaetigt) return;
