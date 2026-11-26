@@ -87,6 +87,7 @@ function setup(status = 'abgeschlossen', position: Record<string,unknown> = {}) 
   mocks.collections.inventurpositionen = { findOne: vi.fn(async () => ({ istBestand: 5, artikelId: AID, groesseId: null, ...position })), updateOne: vi.fn(async () => ({ matchedCount: 1 })) };
   mocks.collections.artikel = { updateOne: vi.fn(async () => ({ matchedCount: 1 })) };
   mocks.collections.artikelvarianten = { updateOne: vi.fn(async () => ({ matchedCount: 1 })) };
+  mocks.collections.lagerbewegungen = { insertOne: vi.fn(async () => ({ insertedId: new ObjectId() })) };
   mocks.collections.inventurprotokoll = { insertOne: vi.fn(async () => ({ insertedId: new ObjectId() })) };
 }
 
@@ -113,7 +114,7 @@ describe('Paket 36 – nachträgliche Inventurkorrekturen', () => {
   it('erkennt fehlenden Artikelbestand', async () => { setup(); mocks.collections.artikel.updateOne.mockResolvedValue({matchedCount:0}); expect((await call()).status).toBe(409); });
   it('erkennt konkurrierende Positionsänderung', async () => { setup(); mocks.collections.inventurpositionen.updateOne.mockResolvedValue({matchedCount:0}); expect((await call()).status).toBe(409); });
   it('speichert erfolgreiche Korrektur mit Protokoll', async () => { setup(); const result=await call(); expect(result.status).toBe(200); expect(result.body).toMatchObject({erfolg:true,alterIstBestand:5,neuerIstBestand:7,differenz:2,version:1}); expect(mocks.collections.inventurprotokoll.insertOne).toHaveBeenCalledOnce(); expect(mocks.session.endSession).toHaveBeenCalledOnce(); });
-  it('speichert negative Differenz für Grössenvariante', async () => { setup('abgeschlossen',{groesseId:SID}); const result=await call({...input,neuerIstBestand:3}); expect(result.status).toBe(200); expect(result.body.differenz).toBe(-2); expect(mocks.collections.artikelvarianten.updateOne).toHaveBeenCalledOnce(); });
+  it('speichert negative Differenz für Grössenvariante', async () => { setup('abgeschlossen',{groesseId:SID}); const result=await call({...input,neuerIstBestand:3}); expect(result.status).toBe(200); expect(result.body.differenz).toBe(-2); expect(mocks.collections.lagerbewegungen.insertOne).toHaveBeenCalledWith(expect.objectContaining({art:'korrektur',mengeDelta:-2,groesseId:SID,referenzId:ID}),{session:mocks.session}); expect(mocks.collections.artikelvarianten.updateOne).toHaveBeenCalledOnce(); });
   it('behandelt Datenbankausfall und beendet Session', async () => { setup(); mocks.collections.inventurprotokoll.insertOne.mockRejectedValue(new Error('db down')); expect((await call()).status).toBe(409); expect(mocks.session.endSession).toHaveBeenCalledOnce(); });
 });
 
