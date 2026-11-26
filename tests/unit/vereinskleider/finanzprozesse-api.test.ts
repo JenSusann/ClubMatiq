@@ -274,3 +274,57 @@ describe('Stornierungen', () => {
     expect((await call(postStorno, cancel())).status).toBe(500);
   });
 });
+
+import { POST as postTeilzahlung } from '../../../src/routes/api/vereinskleider/teilzahlung/+server';
+
+describe('Teilzahlungen vor Verrechnung – Randfälle', () => {
+  const eingabe = { verkaufId: ID, betrag: 10, zahlungsart: 'bar' };
+  it('verweigert Zugriff ohne Verkaufsberechtigung', async () => {
+    m.permission.mockReturnValue(denied());
+    expect((await call(postTeilzahlung, eingabe)).status).toBe(403);
+    expect(m.startSession).not.toHaveBeenCalled();
+  });
+  it('verwirft fehlerhaftes JSON', async () => {
+    expect((await postTeilzahlung({ locals, request: { json: async () => { throw new SyntaxError(); } } } as any)).status).toBe(400);
+  });
+  it.each([null, [], {...eingabe, verkaufId: 1}, {...eingabe, verkaufId: 'bad'},
+    ...[0, -1, Infinity, NaN, '10', 1.001].map(betrag => ({...eingabe, betrag})),
+    {...eingabe, zahlungsart: 'rechnung'}])('verwirft ungültige Eingabe %j', async body => {
+    expect((await call(postTeilzahlung, body)).status).toBe(400);
+    expect(m.startSession).not.toHaveBeenCalled();
+  });
+  it.each([
+    { rechnungId: RID }, { trancheRechnungIds: [RID] }, { positionen: null },
+    { positionen: [] }, { zahlungen: 'bad' }, { zahlungen: [null] },
+    ...['10', Infinity, 0, -1].map(betrag => ({ zahlungen: [{ betrag, zahlungsart: 'bar' }] })),
+    { zahlungen: [{ betrag: 5, zahlungsart: 'karte' }] }, { rabattTotal: 1 }
+  ])('verhindert Zahlung bei inkonsistenter Bestellung %j', async overrides => {
+    m.collections.vereinskleider_verkaeufe.findOne.mockResolvedValue(verkauf(overrides));
+    expect((await call(postTeilzahlung, eingabe)).status).toBe(409);
+    expect(m.collections.vereinskleider_verkaeufe.updateOne).not.toHaveBeenCalled();
+    expect(m.session.endSession).toHaveBeenCalled();
+  });
+  it.each(['bar', 'twint', 'rechnung'])('berücksichtigt bestehende Zahlung via %s', async zahlungsart => {
+    m.collections.vereinskleider_verkaeufe.findOne.mockResolvedValue(verkauf({ zahlungen: [{ betrag: 5, zahlungsart }] }));
+    const r = await response(await call(postTeilzahlung, eingabe));
+    expect(r.status).toBe(200);
+    expect(r.body.ergebnis).toMatchObject({ bezahlt: 15, restbetrag: 15, zahlungsstatus: 'teilweise_bezahlt' });
+    expect(m.collections.vereinskleider_verkaeufe.updateOne.mock.calls[0][0]).toMatchObject({ vereinId: 'verein-1' });
+  });
+  it('behält offene Preispositionen bei', async () => {
+    m.collections.vereinskleider_verkaeufe.findOne.mockResolvedValue(verkauf({ positionen: [pos(), pos({ einzelpreis: null, preisOffen: true })] }));
+    const r = await response(await call(postTeilzahlung, {...eingabe, betrag: 30}));
+    expect(r.status).toBe(200);
+    expect(r.body.ergebnis).toMatchObject({ offenePreispositionen: 1, zahlungsstatus: 'teilweise_bezahlt' });
+  });
+  it('verhindert konkurrierende Änderung', async () => {
+    m.collections.vereinskleider_verkaeufe.findOne.mockResolvedValue(verkauf());
+    m.collections.vereinskleider_verkaeufe.updateOne.mockResolvedValue({ modifiedCount: 0 });
+    expect((await call(postTeilzahlung, eingabe)).status).toBe(409);
+  });
+  it.each([[Error('Ungültiger Preis'), 400], [Error('DB'), 500], ['DB', 500]])('behandelt Transaktionsfehler %j', async (error, status) => {
+    m.session.withTransaction.mockRejectedValueOnce(error);
+    expect((await call(postTeilzahlung, eingabe)).status).toBe(status);
+    expect(m.session.endSession).toHaveBeenCalled();
+  });
+});
