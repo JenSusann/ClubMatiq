@@ -417,7 +417,7 @@ describe('ClubMatiq Vereinskleider – Verkaufshistorie', () => {
       $match: { vereinId, verkaufsart: 'gemischt', riegen: 'JUKO' }
     });
     expect(pipeline.some((schritt) => '$facet' in schritt)).toBe(true);
-    expect(pipeline.some((schritt) => '$match' in schritt && JSON.stringify(schritt).includes('nettoFilter'))).toBe(true);
+    expect(pipeline).toContainEqual({ $match: { offenFilter: { $gt: 0.005 } } });
   });
 
   it('sucht nach Käufer und Rechnungsnummer', async () => {
