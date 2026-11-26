@@ -286,15 +286,6 @@
     cursor: not-allowed;
   }
 
-  .meldung.fehler {
-    background: #fee2e2;
-    color: #991b1b;
-  }
-
-  .meldung.erfolg {
-    background: #dcfce7;
-    color: #166534;
-  }
 
   @media (max-width: 650px) {
     .seite {
