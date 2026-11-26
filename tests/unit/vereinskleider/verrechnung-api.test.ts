@@ -126,3 +126,41 @@ describe('Rechnungstranchen API – Konsistenz und Zahlungszuordnung (#38)',()=>
  it('ordnet nur verbleibende Verkaufszahlungen zu',async()=>{previous([{positionen:[{positionsIndex:0,menge:1}],gesamtbetrag:10,bezahltBetrag:10,zahlungen:[{betrag:5,quelle:'verkauf'},{betrag:5,quelle:'rechnung'}]}]);sales().findOne.mockResolvedValue({...base(),bezahltBetrag:15,zahlungen:[{betrag:15,datum:'2026-11-26',zahlungsart:'twint'}]});expect((await call()).status).toBe(201);expect(invoices().insertOne).toHaveBeenCalledWith(expect.objectContaining({gesamtbetrag:10,bezahltBetrag:10,zahlungen:[expect.objectContaining({betrag:10,quelle:'verkauf'})]}),expect.anything());});
  it('meldet Datenbankfehler und beendet Session',async()=>{sales().findOne.mockRejectedValue(Error('DB'));expect((await call()).status).toBe(500);expect(m.session.endSession).toHaveBeenCalled();});
 });
+
+
+describe('Verrechnung nach Stornierung (#48 #118)', () => {
+ const sales = () => m.collection('vereinskleider_verkaeufe');
+ const invoices = () => m.collection('vereinskleider_rechnungen');
+ const cancelled = () => ({...sale().positionen[0], menge:0, positionsbetrag:0, storniertMenge:2});
+ beforeEach(() => {
+   sales().updateOne.mockResolvedValue({modifiedCount:1});
+   m.collection('vereinskleider_rechnungsnummern').findOneAndUpdate.mockResolvedValue({nummer:1});
+ });
+ it('schliesst vollständig stornierte Verkäufe aus der Übersicht aus', async () => {
+   expect((await GET({locals:user} as any)).status).toBe(200);
+   expect(sales().find).toHaveBeenCalledWith(expect.objectContaining({vereinId:'verein-1',status:{$ne:'storniert'}}));
+ });
+ it('sperrt vollständig stornierte Verkäufe auch bei direktem POST', async () => {
+   sales().findOne.mockResolvedValue({...sale(),status:'storniert',positionen:[cancelled()],endbetrag:0,zwischentotal:0});
+   const r=await read(await post({verkaufId:id}));
+   expect(r.status).toBe(409);
+   expect(r.data.fehler).toContain('vollständig storniert');
+   expect(invoices().insertOne).not.toHaveBeenCalled();
+ });
+ it('verrechnet verbleibende Positionen und erhält historische Indizes', async () => {
+   const positionen=[cancelled(),sale().positionen[0]];
+   sales().findOne.mockResolvedValue({...sale(),positionen});
+   expect((await post({verkaufId:id})).status).toBe(201);
+   expect(invoices().insertOne).toHaveBeenCalledWith(expect.objectContaining({positionen,gesamtbetrag:20}),expect.anything());
+ });
+ it('verweigert Nullmengen ohne Stornierungsnachweis', async () => {
+   sales().findOne.mockResolvedValue({...sale(),positionen:[{...cancelled(),storniertMenge:undefined},sale().positionen[0]]});
+   expect((await post({verkaufId:id})).status).toBe(409);
+   expect(invoices().insertOne).not.toHaveBeenCalled();
+ });
+ it('erlaubt aktive kostenlose Positionen ohne Erstbezug', async () => {
+   sales().findOne.mockResolvedValue({...sale(),positionen:[{...sale().positionen[0],einzelpreis:0,positionsbetrag:0}],endbetrag:0,zwischentotal:0});
+   expect((await post({verkaufId:id})).status).toBe(201);
+   expect(invoices().insertOne).toHaveBeenCalledWith(expect.objectContaining({gesamtbetrag:0,status:'bezahlt'}),expect.anything());
+ });
+});
