@@ -143,8 +143,8 @@
   <a href="/vereinskleider" class="zurueck">← Zurück zu Vereinskleider</a>
   <h1>Retouren</h1>
   <p class="untertitel">Übergebene Vereinskleider zurücknehmen, Gutschriften erstellen und Retouren nachvollziehen.</p>
-  {#if fehler}<p class="meldung fehler" >{fehler}</p>{/if}
-  {#if erfolg}<p class="meldung" >{erfolg}</p>{/if}
+  
+  
   <section class="karte">
     <h2>Neue Retoure erfassen</h2>
     <label>Mitglied oder Artikel suchen
