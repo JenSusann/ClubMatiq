@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Aktionsmeldung from '../../lib/Aktionsmeldung.svelte';
   import { onMount } from 'svelte';
   // Vereinseigene E-Mail-Konfiguration (nur Admin-Zugriff auf diese Seite)
   let mailMethode = $state<'resend' | 'smtp' | 'microsoft365'>('resend');
@@ -99,6 +100,7 @@
 
   onMount(() => { void ladeMailEinstellungen(); });
 </script>
+<Aktionsmeldung fehler={mailFehler} erfolg={mailErfolg} fehlerSchliessen={() => mailFehler = ''} erfolgSchliessen={() => mailErfolg = ''} />
 <svelte:head><title>E-Mail-Einstellungen | ClubMatiq</title></svelte:head>
 <div class="seite"><header class="kopf"><div><p class="untertitel">Administration</p><h1>E-Mail-Einstellungen</h1><p>Versandmethode des Vereins konfigurieren und testen – nur für Administratoren.</p></div></header><p style="margin-bottom:20px"><a href="/docs/e-mail-einstellungen">Ausführliche Einrichtungsanleitung →</a></p>
   <section class="karte">
@@ -106,8 +108,8 @@
       <h2>Versandmethode des Vereins</h2>
       <p class="beschreibung">Nur Administratoren können die Versandmethode konfigurieren.</p>
     </div>
-    {#if mailFehler}<div class="meldung fehler" role="alert">{mailFehler}</div>{/if}
-    {#if mailErfolg}<div class="meldung erfolg" role="status">{mailErfolg}</div>{/if}
+    {#if mailFehler}<div class="meldung fehler" >{mailFehler}</div>{/if}
+    {#if mailErfolg}<div class="meldung erfolg" >{mailErfolg}</div>{/if}
     <form onsubmit={speichereMailEinstellungen}>
       <div class="formular-raster">
         <label>Versandmethode
