@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { db, client } from '../../../lib/server/mongodb';
+import { protokolliereLagerbewegung } from '../../../lib/server/lagerbewegungen';
 import { pruefeBerechtigung } from '../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 import { ermittleRiegen, type Gruppenmitglied, type Riegenregel, type Zuordnungsriege } from '../../../lib/server/riegenzuordnung';
@@ -435,6 +436,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         aktualisiertAm: jetzt
       };
       const gespeichert = await db.collection('vereinskleider_verkaeufe').insertOne(dokument, { session });
+      for (const [schluessel, eintrag] of mengen) {
+        const direkt = direkteMengen.get(schluessel) ?? 0;
+        if (direkt === 0) continue;
+        await protokolliereLagerbewegung({
+          vereinId, artikelId: eintrag.artikelId, groesseId: eintrag.groesseId,
+          art: 'verkauf', mengeDelta: -direkt, benutzerId: locals.benutzer!.id,
+          referenzId: gespeichert.insertedId.toString(), referenzTyp: 'verkauf'
+        }, session);
+      }
       return { _id: gespeichert.insertedId.toString(), ...dokument };
     });
     return json({ erfolg: true, verkauf: ergebnis }, { status: 201 });
