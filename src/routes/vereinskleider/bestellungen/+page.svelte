@@ -410,10 +410,8 @@
     </button>
   </header>
 
-  {#if erfolgsmeldung}<p class="erfolg" >{erfolgsmeldung}</p>{/if}
-  {#if fehler}
-    <p class="warnung" >{fehler}</p>
-  {/if}
+  
+  
   {#if begrenzt}
     <p class="warnung" role="status">Es wurden maximal 1000 Verkaufsvorgänge geladen. Ältere Bestellungen sind möglicherweise nicht enthalten.</p>
   {/if}
@@ -790,7 +788,7 @@
   textarea { resize: vertical; }
   .uebergabe-knopf { border: 0; border-radius: 8px; padding: 9px 12px; background: #0f766e; color: white; font-weight: 600; cursor: pointer; white-space: nowrap; }
   .uebergabe-knopf:disabled { opacity: .45; cursor: not-allowed; }
-  .erfolg { background: #ecfdf5; color: #166534; padding: 12px; border-radius: 8px; }
+
   .dialog-hintergrund { position: fixed; inset: 0; z-index: 100; background: #0f172a99; display: flex; justify-content: center; align-items: center; padding: 16px; }
   .dialog { width: min(100%, 480px); max-height: 90vh; overflow-y: auto; margin: 0; box-sizing: border-box; }
   .dialog h2 { margin-top: 0; }
