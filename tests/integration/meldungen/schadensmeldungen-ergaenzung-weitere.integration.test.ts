@@ -74,4 +74,47 @@ describe('Schadensmeldungen – echte MongoDB', () => {
   it('fremder Verein darf Meldung nicht ändern', async () => {
     expect((await bearbeiten(ev(fremd, meldungId, { status: 'offen', bearbeitungsnotiz: '' }) as never)).status).toBe(404);
   });
+
+  it('bewahrt frühere Bearbeitungsschritte und liefert sie dem meldenden Mitglied', async () => {
+    const id = new ObjectId();
+    const col = db.collection('schadensmeldungen');
+    await col.insertOne({ _id: id, vereinId, gemeldetVonId: mitglied.id, status: 'offen', bearbeitungsnotiz: 'Alt' });
+    for (const [status, notiz] of [['in_bearbeitung', 'Prüfung'], ['erledigt', '$status']]) {
+      expect((await bearbeiten(ev(admin, String(id), { status, bearbeitungsnotiz: notiz }) as never)).status).toBe(200);
+    }
+    const doc = await col.findOne({ _id: id, vereinId });
+    expect(doc?.bearbeitungsverlauf).toEqual([
+      expect.objectContaining({ alterStatus: 'offen', neuerStatus: 'in_bearbeitung', alteNotiz: 'Alt', notiz: 'Prüfung', datum: expect.any(Date), bearbeitetVonId: admin.id }),
+      expect.objectContaining({ alterStatus: 'in_bearbeitung', neuerStatus: 'erledigt', alteNotiz: 'Prüfung', notiz: '$status' })
+    ]);
+    expect(doc?.bearbeitungsnotiz).toBe('$status');
+    const rows = await (await liste(ev(mitglied) as never)).json();
+    expect(rows.find((x: { _id: string }) => x._id === String(id))?.bearbeitungsverlauf).toHaveLength(2);
+    const fremdeRows = await (await liste(ev(fremd) as never)).json();
+    expect(fremdeRows.some((x: { _id: string }) => x._id === String(id))).toBe(false);
+    expect((await bearbeiten(ev(fremd, String(id), { status: 'offen', bearbeitungsnotiz: 'Fremd' }) as never)).status).toBe(404);
+    expect((await bearbeiten(ev(mitglied, String(id), { status: 'offen', bearbeitungsnotiz: 'Mitglied' }) as never)).status).toBe(403);
+    expect((await col.findOne({ _id: id }))?.bearbeitungsverlauf).toEqual(doc?.bearbeitungsverlauf);
+  });
+
+  it('speichert parallele Änderungen ohne verlorene Historieneinträge', async () => {
+    const id = new ObjectId();
+    const col = db.collection('schadensmeldungen');
+    await col.insertOne({ _id: id, vereinId, status: 'offen', bearbeitungsnotiz: '' });
+    const responses = await Promise.all([
+      bearbeiten(ev(admin, String(id), { status: 'in_bearbeitung', bearbeitungsnotiz: 'A' }) as never),
+      bearbeiten(ev({ ...admin, rolle: 'materialverantwortlich', id: mitglied.id }, String(id), { status: 'erledigt', bearbeitungsnotiz: 'B' }) as never)
+    ]);
+    expect(responses.map(r => r.status)).toEqual([200, 200]);
+    const doc = await col.findOne({ _id: id, vereinId });
+    const history = doc?.bearbeitungsverlauf;
+    expect(history).toHaveLength(2);
+    expect(history[0].alterStatus).toBe('offen');
+    expect(history[1].alterStatus).toBe(history[0].neuerStatus);
+    expect(history[1].alteNotiz).toBe(history[0].notiz);
+    expect(doc?.status).toBe(history[1].neuerStatus);
+    expect(doc?.bearbeitungsnotiz).toBe(history[1].notiz);
+    expect(history.map((x: { notiz: string }) => x.notiz).sort()).toEqual(['A', 'B']);
+    expect(history.map((x: { bearbeitetVonId: string }) => x.bearbeitetVonId).sort()).toEqual([admin.id, mitglied.id].sort());
+  });
 });
