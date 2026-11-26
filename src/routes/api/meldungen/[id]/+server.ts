@@ -138,17 +138,29 @@ export const PATCH: RequestHandler = async ({
           // Wichtig: Nur Meldungen des eigenen Vereins
           vereinId: benutzer.vereinId
         },
-        {
+        [{
           $set: {
-            status,
-            bearbeitungsnotiz:
-              bearbeitungsnotiz.trim(),
-            aktualisiertAm: new Date(),
-            bearbeitetVonId: benutzer.id,
-            bearbeitetVonName:
-              `${benutzer.vorname} ${benutzer.nachname}`
+            bearbeitungsverlauf: {
+              $concatArrays: [
+                { $ifNull: ['$bearbeitungsverlauf', []] },
+                [{
+                  datum: '$$NOW',
+                  alterStatus: '$status',
+                  alteNotiz: { $ifNull: ['$bearbeitungsnotiz', ''] },
+                  neuerStatus: { $literal: status },
+                  notiz: { $literal: bearbeitungsnotiz.trim() },
+                  bearbeitetVonId: { $literal: benutzer.id },
+                  bearbeitetVonName: { $literal: `${benutzer.vorname} ${benutzer.nachname}` }
+                }]
+              ]
+            },
+            status: { $literal: status },
+            bearbeitungsnotiz: { $literal: bearbeitungsnotiz.trim() },
+            aktualisiertAm: '$$NOW',
+            bearbeitetVonId: { $literal: benutzer.id },
+            bearbeitetVonName: { $literal: `${benutzer.vorname} ${benutzer.nachname}` }
           }
-        }
+        }]
       );
 
     if (ergebnis.matchedCount === 0) {
