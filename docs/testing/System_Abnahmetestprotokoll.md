@@ -54,7 +54,9 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #64 | Benutzerlöschung und Einladungswiderruf | 15/15 | Einzelbestätigung 26.11.2026 |
 | #68 | Offene Preise und gemischte Teilzahlungen | 25/25 | Einzelbestätigung 26.11.2026 |
 | #70 | Gutschriften und Rückerstattungen inkl. #121 | 30/30 | Einzelbestätigung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 382/382 | Dokumentierte Durchläufe |
+| #50 | Dashboard | 17/17 | Sammelbestätigung 26.11.2026 |
+| #51 | Lagerbewegungsjournal | 17/17 | Sammelbestätigung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 416/416 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -764,3 +766,28 @@ CI [45829003597](https://github.com/JenSusann/ClubMatiq/actions/runs/45829003597
 
 ## Technischer Abschluss – 26.11.2026
 17/17 manuelle Tests gemäss Entwicklerin bestanden. Neun zusätzliche Dashboard-Unit-Tests in tests/unit/artikel/inventar-export-api.test.ts (a762908, Typkorrektur 95804d5). CI [45864599244](https://github.com/JenSusann/ClubMatiq/actions/runs/45864599244) erfolgreich; Combined Coverage 98.18 / 95.00 / 96.22 / 98.88 %. Dashboard-Page-Server liegt ausserhalb des bisherigen Coverage-Include; die Tests laufen dennoch. Bestellmenge enthält bereits den Stornoabzug. Fehlerzustand automatisiert mit Mock geprüft, Aktualisierungszustand im UI vorhanden. Abschluss bereit.
+
+
+## Manuelle Abnahme #51 – 26.11.2026
+
+| ID | Prüfung | Ergebnis |
+|---|---|---|
+| ST-51-01 | Artikel mit Anfangsbestand | Bestanden |
+| ST-51-02 | Kleidungsartikel mit mehreren Grössen | Bestanden |
+| ST-51-03 | Bestand erhöhen | Bestanden |
+| ST-51-04 | Bestand reduzieren | Bestanden |
+| ST-51-05 | Speichern ohne Bestandsänderung | Bestanden |
+| ST-51-06 | Material ausleihen | Bestanden |
+| ST-51-07 | Material zurückgeben | Bestanden |
+| ST-51-08 | Inventur mit Differenz | Bestanden |
+| ST-51-09 | Direktverkauf | Bestanden |
+| ST-51-10 | Kundenbestellung ohne Lagerabgang | Bestanden |
+| ST-51-11 | Wareneingang | Bestanden |
+| ST-51-12 | Bestellung übergeben | Bestanden |
+| ST-51-13 | Offene Bestellung stornieren | Bestanden |
+| ST-51-14 | Retoure | Bestanden |
+| ST-51-15 | Journalfilter | Bestanden |
+| ST-51-16 | Benutzer, Datum und Grösse | Bestanden |
+| ST-51-17 | Chronologische Reihenfolge | Bestanden |
+
+17/17 gemäss Sammelbestätigung der Entwicklerin. CI [45869328662](https://github.com/JenSusann/ClubMatiq/actions/runs/45869328662) erfolgreich. Zuletzt gemeldete kombinierte Coverage: 98.48 / 95.53 / 96.39 / 99.09 %. Vollständiger Rollback- und Indexnachweis noch offen.
