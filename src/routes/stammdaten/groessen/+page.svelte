@@ -1,5 +1,6 @@
 
 <script lang="ts">
+  import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
   import { verwendeBestaetigung } from '../../../lib/bestaetigung';
   const bestaetigen = verwendeBestaetigung();
   type Groesse = {
@@ -167,6 +168,7 @@
     groessenLaden();
   });
 </script>
+<Aktionsmeldung fehler={fehlermeldung} erfolg={erfolgsmeldung} fehlerSchliessen={() => fehlermeldung = ''} erfolgSchliessen={() => erfolgsmeldung = ''} />
 
 <svelte:head>
   <title>Kleidergrössen – ClubMatiq</title>
@@ -217,11 +219,11 @@
   </section>
 
   {#if fehlermeldung}
-    <p class="meldung fehler" role="alert">{fehlermeldung}</p>
+    <p class="meldung fehler" >{fehlermeldung}</p>
   {/if}
 
   {#if erfolgsmeldung}
-    <p class="meldung erfolg" role="status">{erfolgsmeldung}</p>
+    <p class="meldung erfolg" >{erfolgsmeldung}</p>
   {/if}
 
   <section class="bereich">
