@@ -575,9 +575,33 @@ Commit 4bdb41f, Nachprüfung gemäss Sammelbestätigung bestanden.
 
 Gezielter Integrationstest (5c7cef3) und npm run check gemäss Rückmeldung erfolgreich. CI-Lauf 45821258149 (3fe6cbc) erfolgreich: 2441 Unit- und 2600 Integrationstests, 5041/5041; kombinierte Coverage 98,18 % Statements, 95,01 % Branches, 96,19 % Functions, 98,88 % Lines. Quality Gate bestanden. 19 veraltete Unit-Test-Fixtures korrigiert, vier zusätzliche Unit-Tests.
 
+### Issue #64 – Benutzer löschen und Einladungen widerrufen
+
+26.11.2026: Alle 15 manuellen Fälle gemäss Einzelbestätigung bestanden; vor technischer Nachabsicherung.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-64-01 | Einladung widerrufen | Bestanden |
+| ST-64-02 | Widerrufener Link ungültig | Bestanden |
+| ST-64-03 | Anzeige widerrufener Einladung | Bestanden |
+| ST-64-04 | Erneute Einladung | Bestanden |
+| ST-64-05 | Angenommene Einladung geschützt | Bestanden |
+| ST-64-06 | Widerruf abbrechen | Bestanden |
+| ST-64-07 | Unreferenzierten Benutzer löschen | Bestanden |
+| ST-64-08 | Anmeldung nach Löschung verweigert | Bestanden |
+| ST-64-09 | Selbstlöschung geschützt | Bestanden |
+| ST-64-10 | Löschung abbrechen | Bestanden |
+| ST-64-11 | Referenzierte Ausleihe schützt Benutzer | Bestanden |
+| ST-64-12 | Deaktivierung erhält Historie | Bestanden |
+| ST-64-13 | Sitzung nach Löschung ungültig | Bestanden |
+| ST-64-14 | Nicht-Admin verweigert | Bestanden |
+| ST-64-15 | Dialoge und Meldungen | Bestanden |
+
+Transaktion und konkurrierende Referenzen noch zu prüfen.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 312 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 327 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
