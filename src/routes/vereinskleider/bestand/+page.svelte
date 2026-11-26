@@ -1,5 +1,12 @@
 
 <script lang="ts">
+  import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
+  let preisFeedback = $state<{ text: string; fehler: boolean }>({ text: '', fehler: false });
+  function preisMeldung(schluessel: string, text: string, istFehler: boolean) {
+    meldungen[schluessel] = text;
+    fehlerMeldungen[schluessel] = istFehler;
+    preisFeedback = { text, fehler: istFehler };
+  }
   import { onMount } from 'svelte';
 
   type Kategorie = {
@@ -208,16 +215,12 @@
       druckkosten === undefined ||
       druckkosten === null
     ) {
-      meldungen[schluessel] =
-        'Bitte gültige Druckkosten eingeben.';
-      fehlerMeldungen[schluessel] = true;
+      preisMeldung(schluessel, 'Bitte gültige Druckkosten eingeben.', true);
       return;
     }
 
     if (verkaufspreis === undefined) {
-      meldungen[schluessel] =
-        'Bitte einen gültigen Verkaufspreis eingeben.';
-      fehlerMeldungen[schluessel] = true;
+      preisMeldung(schluessel, 'Bitte einen gültigen Verkaufspreis eingeben.', true);
       return;
     }
 
@@ -225,9 +228,7 @@
       !formular.preisOffen &&
       verkaufspreis === null
     ) {
-      meldungen[schluessel] =
-        'Bei einem Fixpreis ist der Verkaufspreis erforderlich.';
-      fehlerMeldungen[schluessel] = true;
+      preisMeldung(schluessel, 'Bei einem Fixpreis ist der Verkaufspreis erforderlich.', true);
       return;
     }
 
@@ -277,15 +278,11 @@
         (eintrag) => eintrag !== schluessel
       );
 
-      meldungen[schluessel] =
-        'Preis erfolgreich gespeichert.';
+      preisMeldung(schluessel, 'Preis erfolgreich gespeichert.', false);
     } catch (error) {
-      meldungen[schluessel] =
-        error instanceof Error
+      preisMeldung(schluessel, error instanceof Error
           ? error.message
-          : 'Ein unbekannter Fehler ist aufgetreten.';
-
-      fehlerMeldungen[schluessel] = true;
+          : 'Ein unbekannter Fehler ist aufgetreten.', true);
     } finally {
       speichern[schluessel] = false;
     }
@@ -453,6 +450,7 @@
     }).format(wert) + ' %';
   }
 </script>
+<Aktionsmeldung fehler={preisFeedback.fehler ? preisFeedback.text : ''} erfolg={!preisFeedback.fehler ? preisFeedback.text : ''} fehlerSchliessen={() => preisFeedback = { text: '', fehler: false }} erfolgSchliessen={() => preisFeedback = { text: '', fehler: false }} />
 
 <svelte:head>
   <title>Kleiderbestand – ClubMatiq</title>
