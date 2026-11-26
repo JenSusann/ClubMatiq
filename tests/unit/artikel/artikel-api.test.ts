@@ -7,6 +7,9 @@ const mocks = vi.hoisted(() => ({
   findOne: vi.fn(),
   countDocuments: vi.fn(),
   insertOne: vi.fn(),
+  journal: vi.fn(),
+  withTransaction: vi.fn(),
+  endSession: vi.fn(),
   insertMany: vi.fn(),
   deleteOne: vi.fn(),
   deleteMany: vi.fn()
@@ -18,12 +21,13 @@ vi.mock('../../../src/lib/server/mongodb', () => ({
       find: mocks.find,
       findOne: (...args: unknown[]) => mocks.findOne(name, ...args),
       countDocuments: mocks.countDocuments,
-      insertOne: mocks.insertOne,
+      insertOne: name === 'lagerbewegungen' ? mocks.journal : mocks.insertOne,
       insertMany: mocks.insertMany,
       deleteOne: mocks.deleteOne,
       deleteMany: mocks.deleteMany
     }))
-  }
+  },
+  client: { startSession: () => ({ withTransaction: mocks.withTransaction, endSession: mocks.endSession }) }
 }));
 
 import { GET, POST } from '../../../src/routes/api/artikel/+server';
@@ -75,7 +79,10 @@ function gueltigerArtikel() {
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
+  mocks.withTransaction.mockImplementation(async (fn: () => Promise<unknown>) => fn());
+  mocks.endSession.mockResolvedValue(undefined);
+  mocks.journal.mockResolvedValue({ acknowledged: true });
 
   mocks.findOne.mockResolvedValue({ _id: new ObjectId() });
   mocks.countDocuments.mockResolvedValue(1);
@@ -134,8 +141,9 @@ describe('ClubMatiq Inventarverwaltung', () => {
         menge: 10,
         einzelwert: 25,
         mindestbestand: 2
-      })
+      }), expect.objectContaining({ session: expect.anything() })
     );
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ artikelId, vereinId, art: 'anlage', mengeDelta: 10, groesseId: null }), expect.objectContaining({ session: expect.anything() }));
   });
 
   it('verhindert Artikel ohne Namen', async () => {
@@ -216,7 +224,8 @@ describe('ClubMatiq Inventarverwaltung', () => {
         groesseId,
         menge: 7
       })
-    ]);
+    ], expect.objectContaining({ session: expect.anything() }));
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ artikelId, groesseId, mengeDelta: 7 }), expect.objectContaining({ session: expect.anything() }));
   });
 
   it('verhindert Kategorien aus anderen Vereinen', async () => {
@@ -341,7 +350,7 @@ describe('ClubMatiq Inventarverwaltung', () => {
     expect(mocks.insertOne).not.toHaveBeenCalled();
   });
 
-  it('entfernt unvollständige Artikel bei Fehlern mit Grössenvarianten', async () => {
+  it('bricht die Anlagetransaktion bei Variantenfehlern ab', async () => {
     mocks.insertMany.mockRejectedValue(
       new Error('Varianten konnten nicht gespeichert werden')
     );
@@ -366,15 +375,12 @@ describe('ClubMatiq Inventarverwaltung', () => {
 
       expect(response.status).toBe(500);
 
-      expect(mocks.deleteMany).toHaveBeenCalledWith({
-        artikelId,
-        vereinId
-      });
-
-      expect(mocks.deleteOne).toHaveBeenCalledWith({
-        _id: new ObjectId(artikelId),
-        vereinId
-      });
+      expect(mocks.withTransaction).toHaveBeenCalledOnce();
+      expect(mocks.insertMany).toHaveBeenCalledOnce();
+      expect(mocks.journal).not.toHaveBeenCalled();
+      expect(mocks.deleteMany).not.toHaveBeenCalled();
+      expect(mocks.deleteOne).not.toHaveBeenCalled();
+      expect(mocks.endSession).toHaveBeenCalledOnce();
     } finally {
       spy.mockRestore();
     }
@@ -501,7 +507,7 @@ describe('ClubMatiq Inventarverwaltung', () => {
 
     expect(response.status).toBe(201);
     expect(mocks.insertOne).toHaveBeenCalledWith(
-      expect.objectContaining({ einzelwert: null })
+      expect.objectContaining({ einzelwert: null }), expect.objectContaining({ session: expect.anything() })
     );
   });
 
