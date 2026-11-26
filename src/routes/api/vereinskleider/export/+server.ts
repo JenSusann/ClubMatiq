@@ -37,6 +37,7 @@ type Verkauf = {
   bemerkung?: string;
   positionen?: Position[];
   rechnung?: Rechnung | null;
+  rechnungen?: Rechnung[];
 };
 type HistorieAntwort = {
   verkaeufe?: Verkauf[];
@@ -136,23 +137,28 @@ export const GET: RequestHandler = async ({ locals, url, fetch }) => {
     ]);
 
     for (const v of verkaeufe) {
-      const rechnung = v.rechnung;
-      const urspruenglich = zahl(rechnung?.gesamtbetrag ?? v.endbetrag);
-      const gutschriften = zahl(rechnung?.gutgeschriebenBetrag);
-      const aktuell = Math.max(0, urspruenglich - gutschriften);
-      const bezahlt = zahl(rechnung?.bezahltBetrag ?? v.bezahltBetrag);
-      const offen = Math.max(0, aktuell - bezahlt);
+      const rechnungen = v.rechnungen?.length ? v.rechnungen : v.rechnung ? [v.rechnung] : [];
+      const summe = (feld: 'gesamtbetrag' | 'gutgeschriebenBetrag' | 'bezahltBetrag' | 'rueckerstattungOffen') =>
+        rechnungen.reduce((sum, r) => sum + Math.round(zahl(r[feld]) * 100), 0) / 100;
+      const urspruenglich = rechnungen.length ? summe('gesamtbetrag') : zahl(v.endbetrag);
+      const gutschriften = summe('gutgeschriebenBetrag');
+      const aktuell = Math.max(0, Math.round((urspruenglich - gutschriften) * 100) / 100);
+      const bezahlt = rechnungen.length ? summe('bezahltBetrag') : zahl(v.bezahltBetrag);
+      const offen = rechnungen.length ? rechnungen.reduce((sum, r) => sum + Math.max(0,
+        Math.round(zahl(r.gesamtbetrag)*100) - Math.round(zahl(r.gutgeschriebenBetrag)*100) - Math.round(zahl(r.bezahltBetrag)*100)), 0) / 100 : Math.max(0, aktuell - bezahlt);
+      const nummern = rechnungen.map(r => r.rechnungsnummer).filter(Boolean).join(', ');
+      const rechnungsstatus = rechnungen.map(r => r.status).filter(Boolean).join(', ');
       const verkaufsdatum = datum(v.erstelltAm);
       const riegen = (v.riegen ?? []).join(', ');
       uebersicht.addRow([
         v._id, verkaufsdatum, v.kaeufer ?? '', riegen, v.verkaufsart ?? '', v.status ?? '',
-        v.zahlungsart ?? '', rechnung?.rechnungsnummer ?? '', rechnung?.status ?? '',
+        v.zahlungsart ?? '', nummern, rechnungsstatus,
         zahl(v.zwischentotal), zahl(v.rabattTotal), urspruenglich, gutschriften,
-        aktuell, bezahlt, offen, zahl(rechnung?.rueckerstattungOffen), v.bemerkung ?? ''
+        aktuell, bezahlt, offen, summe('rueckerstattungOffen'), v.bemerkung ?? ''
       ]);
       for (const p of v.positionen ?? []) {
         positionen.addRow([
-          v._id, verkaufsdatum, v.kaeufer ?? '', riegen, rechnung?.rechnungsnummer ?? '',
+          v._id, verkaufsdatum, v.kaeufer ?? '', riegen, nummern,
           p.artikelname ?? p.artikelId ?? '', p.groesseId ? (groessen.get(p.groesseId) ?? 'Unbekannte Grösse') : '–',
           p.verkaufsart ?? '', zahl(p.menge), zahl(p.storniertMenge),
           zahl(p.einzelpreis), zahl(p.positionsbetrag)
