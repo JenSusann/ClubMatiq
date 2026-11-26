@@ -41,7 +41,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #71 | ClubDesk-Gruppenzuordnung und Riegenverwaltung | 20/20 | Screenshot und Einzelbestätigung 25.11.2026 |
 | #34 | Vereinskleider und Erstbezüge | 20/20 | Einzelbestätigung 25.11.2026 |
 | #35 | Inventarbewertung (Teilabnahme) | 27/27 | Einzelbestätigung, Stichtagsfilter und Netlify-Funktionstest |
-| Gesamt | Quantifizierte manuelle Prüfungen | 125/125 | Dokumentierte Durchläufe |
+| #36 | Schadensmeldungen und Bearbeitungshistorie | 8/8 | Manuelle Sammelbestätigung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 133/133 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -297,9 +298,26 @@ Automatisierte Nachweise: lokaler TypeScript-Check und erweiterte Integrationste
 
 **Gesamtergebnis #35:** 27/27 dokumentierte manuelle Testfälle gemäss Bestätigungen bestanden. Historische Auswertung nur für tatsächlich gespeicherte Aufnahmen; keine rückwirkende Rekonstruktion. Jahresendaufnahme geplant um 23:55 Uhr, nicht exakt Mitternacht. Regulärer Zeitlauf noch nicht nachgewiesen.
 
+### Issue #36 – Schadensmeldungen und Materialbedarf
+
+Testdatum: 26.11.2026. Manuelle Abnahme gemäss Sammelbestätigung der Entwicklerin. Implementierungscommits: 0d1447c, 59b5f58, aa12e58.
+
+| ID | Testfall | Erwartung | Ergebnis |
+|---|---|---|---|
+| ST-36-01 | Schadensmeldung erstellen | Status Offen, Beschreibung und meldende Person korrekt | Bestanden |
+| ST-36-02 | Status auf In Bearbeitung ändern und Notiz erfassen | Erster Historieneintrag vorhanden | Bestanden |
+| ST-36-03 | Status auf Erledigt ändern | Zweiter Eintrag, erster bleibt erhalten | Bestanden |
+| ST-36-04 | Nur Bearbeitungsnotiz ändern | Zusätzlicher Historieneintrag | Bestanden |
+| ST-36-05 | Seite neu laden | Vollständige Historie bleibt erhalten | Bestanden |
+| ST-36-06 | Statusfilter prüfen | Nur passende Meldungen erscheinen | Bestanden |
+| ST-36-07 | Als Mitglied eigene Meldung öffnen | Historie sichtbar, Bearbeitung nicht möglich | Bestanden |
+| ST-36-08 | Ältere Meldung ohne Historie bearbeiten | Neuer Historieneintrag wird korrekt angelegt | Bestanden |
+
+**Manuelle Abnahme:** 8/8 bestanden. Automatisierte Prüfungen der neuen Änderungen und gezielter Nachweis der atomaren Speicherung mit echter MongoDB noch nicht bestätigt. Bereits überschriebene historische Schritte können nicht rekonstruiert werden.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 125 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 133 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
