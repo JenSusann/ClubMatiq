@@ -527,25 +527,25 @@ export const GET: RequestHandler = async ({ locals, url }) => {
       } },
       { $set: { rechnung: { $arrayElemAt: ['$rechnungsTreffer', 0] }, rechnungen: '$rechnungsTreffer' } },
       { $set: {
-        nettoFilter: { $max: [0, { $subtract: [
-          { $ifNull: ['$rechnung.gesamtbetrag', '$endbetrag'] },
-          { $ifNull: ['$rechnung.gutgeschriebenBetrag', 0] }
-        ] }] },
-        bezahltFilter: { $ifNull: ['$rechnung.bezahltBetrag', { $ifNull: ['$bezahltBetrag', 0] }] }
+        gutschriftFilter: { $sum: '$rechnungen.gutgeschriebenBetrag' },
+        offenFilter: { $cond: [
+          { $gt: [{ $size: '$rechnungen' }, 0] },
+          { $sum: { $map: { input: '$rechnungen', as: 'r', in: { $max: [0, { $subtract: [
+            { $subtract: [{ $ifNull: ['$$r.gesamtbetrag', 0] }, { $ifNull: ['$$r.gutgeschriebenBetrag', 0] }] },
+            { $ifNull: ['$$r.bezahltBetrag', 0] }
+          ] }] } } } },
+          { $max: [0, { $subtract: [{ $ifNull: ['$endbetrag', 0] }, { $ifNull: ['$bezahltBetrag', 0] }] }] }
+        ] }
       } }
     ];
-    if (zahlung === 'gutschrift') pipeline.push({ $match: { 'rechnung.gutgeschriebenBetrag': { $gt: 0 } } });
-    if (zahlung === 'bezahlt') pipeline.push({ $match: { $expr: { $lte: [
-      { $subtract: ['$nettoFilter', '$bezahltFilter'] }, 0.005
-    ] } } });
-    if (zahlung === 'offen') pipeline.push({ $match: { $expr: { $gt: [
-      { $subtract: ['$nettoFilter', '$bezahltFilter'] }, 0.005
-    ] } } });
+    if (zahlung === 'gutschrift') pipeline.push({ $match: { gutschriftFilter: { $gt: 0 } } });
+    if (zahlung === 'bezahlt') pipeline.push({ $match: { offenFilter: { $lte: 0.005 } } });
+    if (zahlung === 'offen') pipeline.push({ $match: { offenFilter: { $gt: 0.005 } } });
     pipeline.push({ $facet: {
       eintraege: [
         { $sort: { erstelltAm: -1, _id: -1 } },
         { $skip: (seite - 1) * limit }, { $limit: limit },
-        { $project: { rechnungsTreffer: 0, nettoFilter: 0, bezahltFilter: 0 } }
+        { $project: { rechnungsTreffer: 0, gutschriftFilter: 0, offenFilter: 0 } }
       ],
       zaehler: [{ $count: 'anzahl' }]
     } });
