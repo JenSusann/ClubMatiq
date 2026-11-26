@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
   import { onMount } from 'svelte';
 
   type Kategorie = { _id: string; name: string };
@@ -459,6 +460,8 @@
 
 </script>
 
+<Aktionsmeldung fehler={speichernFehler} erfolg={speichernErfolg} fehlerSchliessen={() => speichernFehler = ''} erfolgSchliessen={() => speichernErfolg = ''} />
+
 <svelte:head>
   <title>Vereinskleider verkaufen – ClubMatiq</title>
 </svelte:head>
@@ -685,10 +688,10 @@
           <p class="warnung" role="alert">Mindestens eine Warenkorbposition überschreitet den verfügbaren Bestand inklusive Anprobierreserve. Bitte Menge reduzieren oder «Automatisch» wählen.</p>
         {/if}
         {#if speichernErfolg}
-          <p class="erfolg" role="status">{speichernErfolg}</p>
+          <p class="erfolg" >{speichernErfolg}</p>
         {/if}
         {#if speichernFehler}
-          <p class="warnung" role="alert">{speichernFehler}</p>
+          <p class="warnung" >{speichernFehler}</p>
         {/if}
         {#if !speichernLaeuft && (!bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart === 'direkt' || rabattId !== '' || rabattZahl !== 0)))}
           <p class="warnung" role="status">
