@@ -46,7 +46,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #44 | Materialausleihe und Rückgabe | 18/18 | Nach Korrektur ffbed03 |
 | #39 | Benutzerfeedback und Datenaktualisierung | 26/26 | Sammelbestätigung nach Korrektur |
 | #46 | Lieferantenverwaltung und Sammelbestellungen | 16/16 | Einzelbestätigung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 204/204 | Dokumentierte Durchläufe |
+| #47 | Bestell-PDF inkl. #116/#117 | 20/20 | Nachprüfung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 224/224 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -431,9 +432,38 @@ Testdatum: 26.11.2026. Manuelle Browser-Abnahme, alle 16 Fälle einzeln durch di
 
 **Abnahme:** 16/16 bestanden. Keine Fehler gemeldet. Bestehende automatisierte Nachweise siehe Issue #46; kein neuer isolierter Testlauf bestätigt. Letzter allgemeiner technischer Check gemäss Rückmeldung zu #39 ohne Fehler; Warnungszahl nicht separat angegeben.
 
+### Issue #47 – Bestell-PDF für Sammelbestellungen
+
+26.11.2026, manuelle Rückmeldung der Entwicklerin. ST-47-08 zunächst fehlerhaft (überlagernde Linien), nach Korrektur bestanden. Bugs #116 und #117 nachträglich erfasst.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-47-01 | Einzel-PDF herunterladen | Bestanden |
+| ST-47-02 | Bestellinformationen | Bestanden |
+| ST-47-03 | Artikelpositionen | Bestanden |
+| ST-47-04 | Kundenbedarf und Lagerreserve | Bestanden |
+| ST-47-05 | Gesamt-PDF | Bestanden |
+| ST-47-06 | Unterschiedliche Lieferanten | Bestanden |
+| ST-47-07 | Datenschutz | Bestanden |
+| ST-47-08 | PDF-Layout (nach Korrektur) | Bestanden |
+| ST-47-09 | Mehrseitige Bestellung | Bestanden |
+| ST-47-10 | Vereinsisolation | Bestanden |
+| ST-47-11 | E-Mail-Anhang | Bestanden |
+| ST-47-12 | Gelieferte Bestellung gesperrt | Bestanden |
+| ST-47-13 | Gruppenauswahl überspringt gelieferte | Bestanden |
+| ST-47-14 | Gelieferte Gruppe gesperrt | Bestanden |
+| ST-47-15 | Historisches Einzel-PDF | Bestanden |
+| ST-47-16 | Gesamt-PDF offene Bestellungen | Bestanden |
+| ST-47-08a | Einzel-PDF Linien | Bestanden |
+| ST-47-08b | Gesamt-PDF Linien | Bestanden |
+| ST-47-08c | Total Abstand | Bestanden |
+| ST-47-08d | Umlaute | Bestanden |
+
+**Ergebnis:** 20/20 nach Korrektur. Drei zusätzliche Unit-Regressionstests (#117, 63bedd3) und npm run check gemäss Rückmeldung ohne Fehler. Keine neue Gesamtsuite oder Coverage-Messung belegt. Teilgelieferte Bestellungen enthalten weiterhin ursprüngliche Mengen.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 204 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 224 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
