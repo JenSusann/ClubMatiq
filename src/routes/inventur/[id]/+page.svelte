@@ -665,13 +665,9 @@
       </span>
     </div>
 
-    {#if fehler}
-      <div class="meldung fehler">{fehler}</div>
-    {/if}
+    
 
-    {#if erfolg}
-      <div class="meldung erfolg">{erfolg}</div>
-    {/if}
+    
 
     {#if ungespeicherteAnzahl > 0 && bearbeitbar}
       <div class="meldung hinweis">
@@ -1452,11 +1448,6 @@
     font-size: 12px;
     font-weight: 600;
     color: #b45309;
-  }
-
-  .erfolg {
-    background: #dcfce7;
-    color: #166534;
   }
 
   .leer {
