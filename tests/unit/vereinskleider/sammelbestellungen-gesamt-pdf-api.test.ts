@@ -18,6 +18,21 @@ beforeEach(() => { vi.resetAllMocks(); m.permission.mockReturnValue(null); setup
 describe('Sammelbestellungen Gesamt-PDF', () => {
  it('prüft Berechtigung', async () => { m.permission.mockReturnValue(new Response('', {status:403})); expect((await call() as Response).status).toBe(403); });
  it.each([null, [], [a,a], ['abc'], Array(51).fill(a)])('verweigert ungültige Auswahl', async (ids) => { await expect(call(ids)).rejects.toMatchObject({status:400}); });
+ it('verweigert eine vollständig gelieferte Bestellung (#117)', async () => {
+   setup([{...bestellung(a), status: 'geliefert'}]);
+   await expect(call()).rejects.toMatchObject({status:409, body:{message:'Gelieferte Bestellungen können nicht gemeinsam exportiert werden.'}});
+   expect(m.findOne).not.toHaveBeenCalled();
+ });
+ it('verweigert gemischte Auswahl mit gelieferter Bestellung (#117)', async () => {
+   setup([{...bestellung(a), status:'bestellt'}, {...bestellung(b), status:'geliefert'}]);
+   await expect(call([a,b])).rejects.toMatchObject({status:409, body:{message:'Gelieferte Bestellungen können nicht gemeinsam exportiert werden.'}});
+ });
+ it('erlaubt Entwürfe und bestellte Sammelbestellungen weiterhin (#117)', async () => {
+   setup([{...bestellung(a), status:'entwurf'}, {...bestellung(b), status:'bestellt'}]);
+   const response = await call([a,b]) as Response;
+   expect(response.status).toBe(200);
+   expect(response.headers.get('content-type')).toBe('application/pdf');
+ });
  it('verweigert fehlende Bestellungen', async () => { setup([]); await expect(call()).rejects.toMatchObject({status:404}); });
  it('verweigert unterschiedliche Lieferanten', async () => { setup([bestellung(a), {...bestellung(b), lieferantId:b}]); await expect(call([a,b])).rejects.toMatchObject({status:409}); });
  it('verweigert fehlenden Lieferanten', async () => { m.findOne.mockResolvedValue(null); await expect(call()).rejects.toMatchObject({status:409}); });
