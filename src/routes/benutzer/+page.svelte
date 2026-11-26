@@ -970,11 +970,6 @@
     color: #991b1b;
   }
 
-  .meldung.erfolg {
-    background: #dcfce7;
-    color: #166534;
-  }
-
   .platzhalter {
     color: #64748b;
     padding: 16px 0;
