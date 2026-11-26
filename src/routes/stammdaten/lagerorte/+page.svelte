@@ -336,22 +336,6 @@
     font-weight: 500;
   }
 
-  .meldung {
-    padding: 12px;
-    border-radius: 8px;
-    margin-top: 15px;
-  }
-
-  .fehler {
-    background: #fee2e2;
-    color: #991b1b;
-  }
-
-  .erfolg {
-    background: #dcfce7;
-    color: #166534;
-  }
-
   @media (max-width: 650px) {
     form, .lagerort {
       flex-wrap: wrap;
