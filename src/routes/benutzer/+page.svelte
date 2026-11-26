@@ -1,5 +1,6 @@
 
 <script lang="ts">
+  import Aktionsmeldung from '../../lib/Aktionsmeldung.svelte';
   import { onMount } from 'svelte';
 
   type Benutzerrolle =
@@ -374,6 +375,7 @@
     void ladeEinladungen();
   });
 </script>
+<Aktionsmeldung fehler={fehlermeldung} erfolg={erfolgsmeldung} fehlerSchliessen={() => fehlermeldung = ''} erfolgSchliessen={() => erfolgsmeldung = ''} />
 
 <svelte:head>
   <title>Benutzerverwaltung | ClubMatiq</title>
@@ -397,13 +399,13 @@
 
   <!-- Formularmeldungen -->
   {#if fehlermeldung}
-    <div class="meldung fehler" role="alert">
+    <div class="meldung fehler" >
       {fehlermeldung}
     </div>
   {/if}
 
   {#if erfolgsmeldung}
-    <div class="meldung erfolg" role="status">
+    <div class="meldung erfolg" >
       {erfolgsmeldung}
     </div>
   {/if}
