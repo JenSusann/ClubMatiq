@@ -51,7 +51,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #49 | Verkaufshistorie inkl. #119 | 38/38 | Nachprüfung 26.11.2026 |
 | #32 | Admin-Dashboard | 10/10 | Sammelbestätigung 26.11.2026 |
 | #62 | Manuelle Benutzeranlage | 20/20 | Sammelbestätigung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 312/312 | Dokumentierte Durchläufe |
+| #64 | Benutzerlöschung und Einladungswiderruf | 15/15 | Einzelbestätigung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 327/327 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -597,7 +598,7 @@ Gezielter Integrationstest (5c7cef3) und npm run check gemäss Rückmeldung erfo
 | ST-64-14 | Nicht-Admin verweigert | Bestanden |
 | ST-64-15 | Dialoge und Meldungen | Bestanden |
 
-Transaktion und konkurrierende Referenzen noch zu prüfen.
+Technische Nachabsicherung: Benutzer- und Session-Löschung in gemeinsamer Transaktion (2aef97bf), sieben zusätzliche Unit-Tests (f6c54ac), drei MongoDB-Integrationstests (2fed46d), zwei bestehende Unit-Mocks korrigiert (305d4e8). Gezielte Tests und vollständiger Unit-Lauf gemäss Entwicklerin erfolgreich. [CI-Lauf 45824480865](https://github.com/JenSusann/ClubMatiq/actions/runs/45824480865) erfolgreich; kombinierte Coverage 98,19 % Statements, 95,04 % Branches, 96,20 % Functions, 98,90 % Lines. Quality Gate bestanden. Manuelle Abnahme vor Transaktionsänderung; parallele neu entstehende Referenzen und erzwungener Rollback nicht vollständig abgesichert.
 
 ## 3. Geplanter Regressionstestkatalog
 
