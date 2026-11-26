@@ -42,7 +42,7 @@
 
   let wirdGeladen = $state(true);
   let wirdGespeichert = $state(false);
-  let uebersicht: AusleihenUebersicht;
+  let uebersicht = $state<AusleihenUebersicht>();
   let fehlermeldung = $state('');
   let erfolgsmeldung = $state('');
 
