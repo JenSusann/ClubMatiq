@@ -730,3 +730,8 @@ Technische Abschlussprüfung (Export-Coverage, Vereinsisolation, Parallelität) 
 | ST-70-19e | Mehrere Gutschriften: keine Doppelzählung | Bestanden |
 
 5/5 Nachprüfungen, TypeScript-Check und gezielte Integrationstests gemäss Entwicklerin erfolgreich. Korrektur e02dd3c, Tests 32f0a81. Vollständiger CI-Nachweis und echte MongoDB-Parallelitätsprüfung für #70 noch offen.
+
+
+### Technischer Abschluss #70 / #121 – 26.11.2026
+
+CI [45829003597](https://github.com/JenSusann/ClubMatiq/actions/runs/45829003597), Commit ced5c68: erfolgreich. Kombinierte Coverage: Statements 98.18 %, Branches 95.00 % (5190/5463), Functions 96.22 %, Lines 98.88 %. Quality Gate bestanden. 12 Status-Integrationstests inklusive drei echter MongoDB-Tests (parallele vollständige Rückerstattung derselben bzw. zweier Gutschriften und fremder Verein); 20 Export-Integrationstests inklusive 16 neuer Regressionstests. Manuelle Abnahme 30/30 inklusive #121. Rollenprüfung in den neuen MongoDB-Tests gemockt; identische Teilrückerstattungen bei ausreichend verbleibendem Anspruch nicht als idempotent nachgewiesen. Keine automatische Auszahlung.
