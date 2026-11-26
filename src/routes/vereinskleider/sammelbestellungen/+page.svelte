@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { verwendeBestaetigung } from '../../../lib/bestaetigung';
+  const bestaetigen = verwendeBestaetigung();
   import { onMount } from 'svelte';
 
   type Bedarf = {
@@ -319,7 +321,7 @@
 
   async function alsBestelltMarkieren(s: Sammelbestellung): Promise<void> {
     if (bearbeitungId || speichern || aktualisieren || s.status !== 'entwurf') return;
-    if (!confirm(`Sammelbestellung #${s._id.slice(-8)} als beim Lieferanten bestellt markieren?`)) return;
+    if (!(await bestaetigen(`Sammelbestellung #${s._id.slice(-8)} als beim Lieferanten bestellt markieren?`, 'Als bestellt markieren'))) return;
     bearbeitungId = s._id;
     fehler = '';
     erfolg = '';
@@ -355,7 +357,7 @@
       fehler = 'Bitte mindestens eine gelieferte Menge eingeben.';
       return;
     }
-    if (!confirm(`${geliefert.reduce((summe, p) => summe + p.menge, 0)} Stück verbindlich ins Lager buchen?`)) return;
+    if (!(await bestaetigen(`${geliefert.reduce((summe, p) => summe + p.menge, 0)} Stück verbindlich ins Lager buchen?`, 'Wareneingang buchen'))) return;
     bearbeitungId = s._id;
     fehler = '';
     erfolg = '';
