@@ -31,6 +31,7 @@ beforeEach(() => {
   mock.session.withTransaction.mockImplementation(async (fn: () => Promise<unknown>) => fn());
   const artikel = { _id: new ObjectId(ART), name: 'Vereinsshirt', kategorieId: 'kat-1', istVereinskleidung: true, hatGroessen: false, menge: 10 };
   const cols: Record<string, any> = {
+    groessen: { findOne: vi.fn(async () => ({ bezeichnung: 'M' })) },
     lagerbewegungen: { insertOne: vi.fn(async () => ({ insertedId: id() })) },
     artikel: { findOne: vi.fn(async () => artikel), updateOne: vi.fn(async () => ({ modifiedCount: 1 })) },
     artikelvarianten: { findOne: vi.fn(async () => ({ menge: 10 })), updateOne: vi.fn(async () => ({ modifiedCount: 1 })) },
