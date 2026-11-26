@@ -129,3 +129,86 @@ describe('Registrierung',()=>{
     expect(m.insertOne).not.toHaveBeenCalled();
   });
 });
+
+import { POST as POSTPasswort } from '../../../src/routes/api/passwort-aendern/+server';
+import { ObjectId } from 'mongodb';
+
+describe('Passwort ändern', () => {
+  const benutzer = { id, vereinId: id2 };
+  const daten = { bisher: 'AltesPasswort123!', neu: 'NeuesPasswort456!' };
+  const runPasswort = (data: unknown = daten, locals: object = { benutzer }) =>
+    POSTPasswort({ request: request(data), locals } as any);
+
+  beforeEach(() => {
+    m.findOne.mockResolvedValue({ passwortHash: 'alter-hash' });
+    m.updateOne.mockResolvedValue({ matchedCount: 1, modifiedCount: 1 });
+  });
+
+  it('verweigert nicht angemeldeten Zugriff', async () => {
+    expect((await runPasswort(daten, {})).status).toBe(401);
+    expect(m.findOne).not.toHaveBeenCalled();
+  });
+
+  it.each([null, [], 42, 'text'])('weist ungültige Eingabe ab: %j', async data => {
+    expect((await runPasswort(data)).status).toBe(400);
+    expect(m.findOne).not.toHaveBeenCalled();
+  });
+
+  it('weist fehlerhaftes JSON ab', async () => {
+    const r = await POSTPasswort({ locals: { benutzer }, request: new Request('http://localhost', { method: 'POST', body: '{' }) } as any);
+    expect(r.status).toBe(400);
+    expect(m.findOne).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { ...daten, bisher: '' }, { ...daten, bisher: 42 },
+    { ...daten, neu: 42 }, { ...daten, neu: 'x'.repeat(11) },
+    { ...daten, neu: 'x'.repeat(1025) }, { ...daten, neu: daten.bisher }
+  ])('weist ungültiges Passwort ab', async data => {
+    expect((await runPasswort(data)).status).toBe(400);
+    expect(m.updateOne).not.toHaveBeenCalled();
+  });
+
+  it.each([null, { passwortHash: null }])('weist fehlenden Benutzer oder Hash ab', async user => {
+    m.findOne.mockResolvedValue(user);
+    expect((await runPasswort()).status).toBe(401);
+    expect(m.verify).not.toHaveBeenCalled();
+    expect(m.updateOne).not.toHaveBeenCalled();
+  });
+
+  it('weist falsches bisheriges Passwort ab', async () => {
+    m.verify.mockResolvedValue(false);
+    expect((await runPasswort()).status).toBe(401);
+    expect(m.hash).not.toHaveBeenCalled();
+    expect(m.updateOne).not.toHaveBeenCalled();
+  });
+
+  it.each([12, 1024])('akzeptiert Passwort mit %i Zeichen und aktualisiert nur eigenes aktives Konto', async length => {
+    const neu = 'x'.repeat(length);
+    const r = await runPasswort({ ...daten, neu });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({ erfolg: true });
+    const filter = { _id: new ObjectId(id), vereinId: id2, aktiv: true };
+    expect(m.findOne).toHaveBeenCalledWith(filter);
+    expect(m.verify).toHaveBeenCalledWith('alter-hash', daten.bisher);
+    expect(m.hash).toHaveBeenCalledWith(neu, { type: 2 });
+    expect(m.updateOne).toHaveBeenCalledWith({ ...filter, passwortHash: 'alter-hash' }, {
+      $set: { passwortHash: 'argon-hash', passwortwechselErforderlich: false, passwortGeaendertAm: expect.any(Date) }
+    });
+  });
+
+  it('meldet konkurrierende Passwortänderung', async () => {
+    m.updateOne.mockResolvedValue({ matchedCount: 0 });
+    expect((await runPasswort()).status).toBe(409);
+  });
+
+  it.each(['findOne', 'verify', 'hash', 'updateOne'] as const)('behandelt Fehler in %s', async method => {
+    m[method].mockRejectedValueOnce(new Error('Testfehler'));
+    expect((await runPasswort()).status).toBe(500);
+  });
+
+  it('behandelt Fehler ohne Error-Instanz', async () => {
+    m.findOne.mockRejectedValueOnce('Testfehler');
+    expect((await runPasswort()).status).toBe(500);
+  });
+});
