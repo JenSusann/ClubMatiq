@@ -5,6 +5,8 @@ import { ObjectId } from 'mongodb';
 const { findOne, collection, updateOne } = vi.hoisted(() => ({ findOne: vi.fn(), collection: vi.fn(), updateOne: vi.fn() }));
 vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection } }));
 import { handle } from '../../../src/hooks.server';
+import { GET } from '../../../src/routes/api/session/+server';
+import { POST } from '../../../src/routes/api/session/aktivitaet/+server';
 
 const uid = '507f1f77bcf86cd799439011';
 const sid = '507f1f77bcf86cd799439012';
@@ -82,5 +84,29 @@ describe('Server-Hook – Authentifizierung und Routing', () => {
   it('verwirft Session ohne aktiven Benutzer', async () => {
     findOne.mockResolvedValueOnce(session).mockResolvedValueOnce(null);
     const x = run('/', 'token'); await x.response; expect(x.cookies.delete).toHaveBeenCalledOnce();
+  });
+});
+
+describe.each([['GET session', GET], ['POST aktivitaet', POST]] as const)('%s', (_name, handler) => {
+  const benutzer = { id: '507f1f77bcf86cd799439011', vereinId: 'verein-1' };
+  const sessionFristen = { idleExpiresAt: 123456, absoluteExpiresAt: 234567 };
+  const call = (locals: object) => handler({ locals } as Parameters<typeof handler>[0]);
+
+  it('verweigert Zugriff ohne Benutzer', async () => {
+    const response = await call({ sessionFristen });
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ fehler: 'Nicht angemeldet.' });
+  });
+
+  it('verweigert Zugriff ohne Session-Fristen', async () => {
+    const response = await call({ benutzer });
+    expect(response.status).toBe(401);
+  });
+
+  it('liefert Session-Fristen ohne Cache-Freigabe', async () => {
+    const response = await call({ benutzer, sessionFristen });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.json()).toEqual(sessionFristen);
   });
 });
