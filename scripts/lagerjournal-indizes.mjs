@@ -1,6 +1,10 @@
 import 'dotenv/config';
 import { MongoClient } from 'mongodb';
 
+const dbName = process.env.MONGODB_DB_NAME;
+if (!['clubmatiq', 'clubmatiq_dev', 'clubmatiq_test', 'clubmatiq_demo'].includes(dbName)) throw new Error('MONGODB_DB_NAME fehlt oder ist unzulässig.');
+console.log('Zieldatenbank:', dbName);
+if (dbName === 'clubmatiq' && process.argv.includes('--apply') && !process.argv.includes('--confirm-production')) throw new Error('Produktivänderung erfordert --confirm-production.');
 const uri = process.env.MONGODB_URI;
 if (!uri) throw new Error('MONGODB_URI fehlt.');
 const client = new MongoClient(uri);
@@ -10,7 +14,7 @@ const definitionen = [
 ];
 try {
   await client.connect();
-  const collection = client.db('clubmatiq').collection('lagerbewegungen');
+  const collection = client.db(dbName).collection('lagerbewegungen');
   if (process.argv.includes('--apply')) {
     await collection.createIndexes(definitionen);
   }
