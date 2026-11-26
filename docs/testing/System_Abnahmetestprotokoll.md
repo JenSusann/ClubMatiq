@@ -50,8 +50,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #48 | Stornierungen und Gutschriften inkl. #118 | 20/20 | Nachprüfung 26.11.2026 |
 | #49 | Verkaufshistorie inkl. #119 | 38/38 | Nachprüfung 26.11.2026 |
 | #32 | Admin-Dashboard | 10/10 | Sammelbestätigung 26.11.2026 |
-| #62 | Manuelle Benutzeranlage | 15/15 | Sammelbestätigung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 307/307 | Dokumentierte Durchläufe |
+| #62 | Manuelle Benutzeranlage | 20/20 | Sammelbestätigung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 312/312 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -561,9 +561,23 @@ Keine Codeänderung erforderlich. Automatisierter Nachweis: bestehender erfolgre
 
 Automatisierte Tests für manuelle Anlage, Duplicate Key und Passwortwechsel-Sperren in Hooks vorhanden. Vollständiger CI-Lauf 45816880404 erfolgreich; spezifische Coverage und Sitzungswiderruf nach Passwortwechsel noch zu prüfen.
 
+#### Nachprüfung Sitzungswiderruf (#62)
+
+Commit 4bdb41f, Nachprüfung gemäss Sammelbestätigung bestanden.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-62-16 | Zwei aktive Sitzungen | Bestanden |
+| ST-62-17 | Aktuelle Sitzung bleibt erhalten | Bestanden |
+| ST-62-18 | Andere Sitzung widerrufen | Bestanden |
+| ST-62-19 | Fehlgeschlagener Wechsel erhält Sitzungen | Bestanden |
+| ST-62-20 | Fremde Benutzersitzung unverändert | Bestanden |
+
+Gezielter Integrationstest (5c7cef3) und npm run check gemäss Rückmeldung erfolgreich. Vollständiger CI-Lauf 45820817892 noch laufend.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 307 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 312 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
