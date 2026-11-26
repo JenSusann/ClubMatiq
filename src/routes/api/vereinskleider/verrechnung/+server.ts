@@ -11,12 +11,14 @@ type Verkaufsposition = {
   menge: number;
   einzelpreis: number | null;
   preisOffen?: boolean;
+  storniertMenge?: number;
   positionsbetrag: number;
   verkaufsart: 'direkt' | 'bestellung';
 };
 
 type Verkauf = Document & {
   vereinId: string;
+  status?: string;
   kaeufer: string;
   riegen?: string[];
   zahlungsart: string;
@@ -78,7 +80,7 @@ export const GET: RequestHandler = async ({ locals }) => {
       db.collection<Rechnung>('vereinskleider_rechnungen')
         .find({ vereinId }).sort({ erstelltAm: -1 }).limit(1000).toArray(),
       db.collection<Verkauf>('vereinskleider_verkaeufe')
-        .find({ vereinId, rechnungId: { $exists: false }, $nor: [{ endbetrag: 0, preisOffen: { $ne: true }, 'erstbezugsIds.0': { $exists: true } }] })
+        .find({ vereinId, status: { $ne: 'storniert' }, rechnungId: { $exists: false }, $nor: [{ endbetrag: 0, preisOffen: { $ne: true }, 'erstbezugsIds.0': { $exists: true } }] })
         .sort({ erstelltAm: -1 }).limit(1000)
         .project<Verkauf>({ kaeufer: 1, riegen: 1, endbetrag: 1, erstelltAm: 1, zahlungsart: 1, zahlungsstatus: 1, bezahltBetrag: 1, preisOffen: 1, offenePreispositionen: 1, trancheRechnungIds: 1 })
         .toArray()
@@ -117,18 +119,21 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       const verkaeufe = db.collection<Verkauf>('vereinskleider_verkaeufe');
       const verkauf = await verkaeufe.findOne({ _id: new ObjectId(verkaufId), vereinId }, { session });
       if (!verkauf) throw new Rechnungsfehler('Verkauf nicht gefunden.', 404);
+      if (verkauf.status === 'storniert') throw new Rechnungsfehler('Dieser Verkauf wurde vollständig storniert.', 409);
       if (verkauf.rechnungId) throw new Rechnungsfehler('Dieser Verkauf wurde bereits verrechnet.', 409);
       if (Array.isArray(verkauf.trancheRechnungIds) && verkauf.trancheRechnungIds.length > 0) {
         throw new Rechnungsfehler('Für diese Bestellung existieren bereits Teilrechnungen. Bitte weitere Tranchen erstellen.', 409);
       }
-      if (verkauf.preisOffen === true || verkauf.positionen?.some((p) => p.preisOffen === true || p.einzelpreis === null)) {
+      if (verkauf.preisOffen === true || verkauf.positionen?.some((p) => p.menge > 0 && (p.preisOffen === true || p.einzelpreis === null))) {
         throw new Rechnungsfehler('Die Bestellung enthält noch offene Verkaufspreise. Bitte zuerst alle Preise festlegen.', 409);
       }
       if (!Array.isArray(verkauf.positionen) || verkauf.positionen.length === 0 ||
           !gueltigerBetrag(verkauf.endbetrag) || !gueltigerBetrag(verkauf.zwischentotal) ||
           !gueltigerBetrag(verkauf.rabattTotal) ||
-          !verkauf.positionen.every((p) => Number.isSafeInteger(p.menge) && p.menge > 0 &&
-            gueltigerBetrag(p.einzelpreis) && gueltigerBetrag(p.positionsbetrag))) {
+          !verkauf.positionen.some((p) => p.menge > 0) ||
+          !verkauf.positionen.every((p) => Number.isSafeInteger(p.menge) && (
+            (p.menge > 0 && gueltigerBetrag(p.einzelpreis) && gueltigerBetrag(p.positionsbetrag)) ||
+            (p.menge === 0 && p.positionsbetrag === 0 && Number.isSafeInteger(p.storniertMenge) && (p.storniertMenge ?? 0) > 0)))) {
         throw new Rechnungsfehler('Der Verkauf enthält unvollständige oder ungültige Rechnungswerte.', 409);
       }
       // Zahlungseingänge aus dem Verkauf übernehmen, nicht erneut buchen.
@@ -197,7 +202,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         clubdeskExportStatus: 'nicht_exportiert' as const
       };
       const beansprucht = await verkaeufe.updateOne(
-        { _id: new ObjectId(verkaufId), vereinId, rechnungId: { $exists: false },
+        { _id: new ObjectId(verkaufId), vereinId, status: { $ne: 'storniert' }, rechnungId: { $exists: false },
           trancheRechnungIds: { $exists: false } },
         { $set: { rechnungId: rechnungId.toString(), aktualisiertAm: jetzt } },
         { session }
