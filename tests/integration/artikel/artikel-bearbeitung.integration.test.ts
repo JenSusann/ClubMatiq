@@ -455,7 +455,7 @@ describe('23-sammel-status-konflikt', () => {
 describe('23-sammel-wareneingang-erfolg', () => {
   it('Wareneingang erhöht Bestand und schliesst Bestellung ab', async () => {
     m.findOne.mockResolvedValueOnce({ status: 'bestellt', positionen: [{ artikelId: id, groesseId: null, menge: 2, geliefertMenge: 0, artikelname: 'Ball' }] });
-    m.findOne.mockResolvedValueOnce({ menge: 5 });
+    m.findOne.mockResolvedValueOnce({ name: 'Ball' }).mockResolvedValueOnce(null).mockResolvedValueOnce({ menge: 5 });
     const response = await route23.PATCH(event('PATCH', { aktion: 'wareneingang', positionen: [{ artikelId: id, groesseId: null, menge: 2 }] }) as never);
     expect(response.status).toBe(200);
     expect((await response.json()).status).toBe('geliefert');
