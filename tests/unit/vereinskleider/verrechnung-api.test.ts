@@ -102,3 +102,27 @@ describe('Rechnungsabgleich – CSV und Finanzkonsistenz',()=>{
  it('maskiert Empfänger und fehlende optionale Felder',async()=>{rows([invoice,{...invoice,empfaenger:null,status:undefined}]);const r=await call();expect(r.status).toBe(200);expect(await r.text()).toContain('"Muster ""A"""');});
  it('meldet Datenbankfehler',async()=>{m.collection('vereinskleider_rechnungen').find.mockImplementation(()=>{throw Error('DB');});expect((await call()).status).toBe(500);});
 });
+
+
+import { POST as TranchePOST } from '../../../src/routes/api/vereinskleider/verrechnung/tranche/+server';
+describe('Rechnungstranchen API – Konsistenz und Zahlungszuordnung (#38)',()=>{
+ const call=(body:unknown={verkaufId:id})=>TranchePOST({locals:user,request:{json:async()=>body}} as never);
+ const sales=()=>m.collection('vereinskleider_verkaeufe');
+ const invoices=()=>m.collection('vereinskleider_rechnungen');
+ const counter=()=>m.collection('vereinskleider_rechnungsnummern');
+ const base=()=>({...sale(),bezahltBetrag:0});
+ const previous=(data:unknown[])=>invoices().find.mockReturnValue({toArray:async()=>data});
+ beforeEach(()=>{sales().findOne.mockResolvedValue(base());sales().updateOne.mockResolvedValue({modifiedCount:1});counter().findOneAndUpdate.mockResolvedValue({nummer:1});previous([]);});
+ it('verweigert fehlende Berechtigung',async()=>{m.permission.mockReturnValue(new Response(null,{status:403}));expect((await call()).status).toBe(403);});
+ it.each([{body:null},{body:[]},{body:{}},{body:{verkaufId:42}},{body:{verkaufId:'bad'}}])('verweigert ungültige ID %j',async({body})=>{expect((await call(body)).status).toBe(400);});
+ it('verweigert defektes JSON',async()=>{expect((await TranchePOST({locals:user,request:{json:async()=>{throw Error('JSON');}}} as never)).status).toBe(400);});
+ it('meldet fehlenden Verkauf',async()=>{sales().findOne.mockResolvedValue(null);expect((await call()).status).toBe(404);});
+ it.each([{rechnungId:id},{positionen:null},{positionen:[]},{rabattTotal:1},{rabatte:[{}]},{zusaetzlicherRabatt:1},{rabattTotal:-1},{rabattTotal:NaN},{rabattTotal:0.001},{rabattTotal:'0'},{positionen:[{menge:0,einzelpreis:10}]},{positionen:[{menge:1,einzelpreis:0}]}])('verweigert inkonsistente Bestellung %j',async patch=>{sales().findOne.mockResolvedValue({...base(),...patch});expect((await call()).status).toBe(409);expect(invoices().insertOne).not.toHaveBeenCalled();});
+ it.each([{positionen:null},{positionen:[],status:'storniert'},{positionen:[{positionsIndex:0,menge:2}],gesamtbetrag:20,bezahltBetrag:0}])('verweigert nicht verrechenbare Historie %j',async r=>{previous([r]);expect((await call()).status).toBe(409);});
+ it.each([{zahlungen:{}},{zahlungen:[{betrag:0}]},{bezahltBetrag:10},{bezahltBetrag:21,zahlungen:[{betrag:21}]},{bezahltBetrag:10,zahlungen:[{betrag:10,datum:'bad',zahlungsart:'bar'}]},{bezahltBetrag:10,zahlungen:[{betrag:10,datum:'2026-11-26',zahlungsart:'bad'}]}])('verweigert inkonsistente Zahlungen %j',async patch=>{sales().findOne.mockResolvedValue({...base(),...patch});expect((await call()).status).toBe(409);});
+ it.each([null,{nummer:'1'}])('verweigert ungültigen Nummernzähler',async value=>{counter().findOneAndUpdate.mockResolvedValue(value);expect((await call()).status).toBe(500);});
+ it('erkennt konkurrierende Änderung',async()=>{sales().updateOne.mockResolvedValue({modifiedCount:0});expect((await call()).status).toBe(409);expect(invoices().insertOne).not.toHaveBeenCalled();});
+ it.each([0,10,20])('erstellt Rechnung mit CHF %s bezahlt',async betrag=>{sales().findOne.mockResolvedValue({...base(),bezahltBetrag:betrag,zahlungen:betrag?[{betrag,datum:'2026-11-26',zahlungsart:'bar'}]:[]});expect((await call()).status).toBe(201);expect(invoices().insertOne).toHaveBeenCalledWith(expect.objectContaining({vereinId:'verein-1',gesamtbetrag:20,bezahltBetrag:betrag,status:betrag===20?'bezahlt':betrag?'teilweise_bezahlt':'offen'}),expect.anything());});
+ it('ordnet nur verbleibende Verkaufszahlungen zu',async()=>{previous([{positionen:[{positionsIndex:0,menge:1}],gesamtbetrag:10,bezahltBetrag:10,zahlungen:[{betrag:5,quelle:'verkauf'},{betrag:5,quelle:'rechnung'}]}]);sales().findOne.mockResolvedValue({...base(),bezahltBetrag:15,zahlungen:[{betrag:15,datum:'2026-11-26',zahlungsart:'twint'}]});expect((await call()).status).toBe(201);expect(invoices().insertOne).toHaveBeenCalledWith(expect.objectContaining({gesamtbetrag:10,bezahltBetrag:10,zahlungen:[expect.objectContaining({betrag:10,quelle:'verkauf'})]}),expect.anything());});
+ it('meldet Datenbankfehler und beendet Session',async()=>{sales().findOne.mockRejectedValue(Error('DB'));expect((await call()).status).toBe(500);expect(m.session.endSession).toHaveBeenCalled();});
+});
