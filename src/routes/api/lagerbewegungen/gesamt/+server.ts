@@ -33,10 +33,10 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     for await (const b of cursor) {
       const zeile = {
       id: b._id.toString(), zeitpunkt: b.zeitpunkt, artikelId: String(b.artikelId),
-      artikel: artikelNamen.get(String(b.artikelId)) ?? 'Artikel nicht mehr vorhanden',
-      groesse: b.groesseId ? groessenNamen.get(String(b.groesseId)) ?? 'Unbekannte Grösse' : '–',
+      artikel: (typeof b.artikelName === 'string' && b.artikelName ? b.artikelName : artikelNamen.get(String(b.artikelId))) ?? 'Artikel nicht mehr vorhanden',
+      groesse: b.groesseId ? (typeof b.groesseName === 'string' && b.groesseName ? b.groesseName : groessenNamen.get(String(b.groesseId))) ?? 'Unbekannte Grösse' : '–',
       art: String(b.art), mengeDelta: b.mengeDelta,
-      benutzer: benutzerNamen.get(String(b.benutzerId)) ?? 'Benutzer nicht mehr vorhanden',
+      benutzer: (typeof b.benutzerName === 'string' && b.benutzerName ? b.benutzerName : benutzerNamen.get(String(b.benutzerId))) ?? 'Benutzer nicht mehr vorhanden',
       referenzTyp: String(b.referenzTyp ?? ''), referenzId: String(b.referenzId ?? '')
       };
       if (!suche || [zeile.artikel, zeile.groesse, zeile.art, zeile.benutzer, zeile.referenzTyp, zeile.referenzId]
