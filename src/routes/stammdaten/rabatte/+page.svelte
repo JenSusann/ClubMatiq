@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
   import { onMount } from 'svelte';
 
   type Rabattart = 'prozent' | 'betrag' | 'fixpreis';
@@ -175,6 +176,7 @@
 
   onMount(() => { void ladenAlle(); });
 </script>
+<Aktionsmeldung fehler={fehler} erfolg={meldung} fehlerSchliessen={() => fehler = ''} erfolgSchliessen={() => meldung = ''} />
 
 <svelte:head><title>Rabattregeln – ClubMatiq</title></svelte:head>
 
@@ -185,8 +187,8 @@
     <p>Vereinsweite Rabatte verwalten. Die Regeln stehen im Verkaufsformular zur Auswahl. Riegen werden aus den Vereinsstammdaten übernommen.</p>
   </header>
 
-  {#if fehler}<p class="meldung fehler" role="alert">{fehler}</p>{/if}
-  {#if meldung}<p class="meldung erfolg" role="status">{meldung}</p>{/if}
+  {#if fehler}<p class="meldung fehler" >{fehler}</p>{/if}
+  {#if meldung}<p class="meldung erfolg" >{meldung}</p>{/if}
 
   <section class="karte">
     <div class="titelzeile">
