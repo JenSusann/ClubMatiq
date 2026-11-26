@@ -1,5 +1,8 @@
 
 <script lang="ts">
+  import Aktionsmeldung from './Aktionsmeldung.svelte';
+  let { nachRueckgabe }: { nachRueckgabe?: () => Promise<void> } = $props();
+  export async function aktualisieren() { await datenLaden(); }
   import { onMount } from 'svelte';
 
   type Ausleihe = {
@@ -218,7 +221,7 @@
 
       rueckgabeSchliessen();
 
-      await datenLaden();
+      await Promise.all([datenLaden(), nachRueckgabe?.()]);
 
       erfolgsmeldung =
         `${gespeicherteMenge} Stück erfolgreich zurückgegeben.`;
@@ -244,6 +247,7 @@
     datenLaden();
   });
 </script>
+<Aktionsmeldung fehler={fehlermeldung} erfolg={erfolgsmeldung} fehlerSchliessen={() => fehlermeldung = ''} erfolgSchliessen={() => erfolgsmeldung = ''} />
 
 <section class="uebersicht">
   <div class="kopf">
@@ -263,13 +267,13 @@
   </div>
 
   {#if fehlermeldung}
-    <p class="fehlermeldung" role="alert">
+    <p class="fehlermeldung">
       {fehlermeldung}
     </p>
   {/if}
 
   {#if erfolgsmeldung}
-    <p class="erfolgsmeldung" role="status">
+    <p class="erfolgsmeldung">
       {erfolgsmeldung}
     </p>
   {/if}
