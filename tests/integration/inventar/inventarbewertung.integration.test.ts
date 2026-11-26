@@ -10,6 +10,7 @@ vi.mock('../../../src/lib/server/mongodb', async () => {
   return { client, db: client.db('clubmatiq_test') };
 });
 
+import { bewertungSpeichern, bewertungsdatum } from '../../../src/lib/server/inventarbewertung';
 import { client, db } from '../../../src/lib/server/mongodb';
 import { GET as uebersicht } from '../../../src/routes/api/inventar-uebersicht/+server';
 import { GET as exportInventar } from '../../../src/routes/api/export/inventar/+server';
@@ -246,4 +247,46 @@ describe('ClubMatiq – Inventarbewertung mit MongoDB', () => {
     }
   });
 
+
+  it('ordnet Sommer- und Winterzeit dem Schweizer Kalendertag zu', () => {
+    expect(bewertungsdatum(new Date('2026-12-31T23:30:00Z'))).toBe('2027-01-01');
+    expect(bewertungsdatum(new Date('2026-07-01T22:30:00Z'))).toBe('2026-07-02');
+  });
+
+  it('speichert pro Verein und Tag nur eine automatische Aufnahme und lässt manuelle Aufnahmen zu', async () => {
+    const erste = await bewertungSpeichern(vereinId, 'system', true);
+    expect(erste).not.toBeNull();
+    expect(await bewertungSpeichern(vereinId, 'system', true)).toBeNull();
+    const datum = bewertungsdatum(erste!.aufgenommenAm);
+    const gespeicherte = await db.collection('inventarbewertung_aufnahmen').findOne({ vereinId, automatischDatum: datum });
+    expect(gespeicherte?.aufgenommenVon).toBe('system');
+    expect(gespeicherte?.zeilen).toHaveLength(5);
+    expect(await bewertungSpeichern(vereinId, admin.id)).not.toBeNull();
+    expect(await db.collection('inventarbewertung_aufnahmen').countDocuments({ vereinId, automatischDatum: datum })).toBe(1);
+  });
+
+  it('verhindert parallele automatische Doppelaufnahmen', async () => {
+    const id = new ObjectId().toString();
+    try {
+      const resultate = await Promise.all([
+        bewertungSpeichern(id, 'system', true),
+        bewertungSpeichern(id, 'system', true)
+      ]);
+      expect(resultate.filter(Boolean)).toHaveLength(1);
+      expect(await db.collection('inventarbewertung_aufnahmen').countDocuments({ vereinId: id })).toBe(1);
+    } finally {
+      await db.collection('inventarbewertung_aufnahmen').deleteMany({ vereinId: id });
+    }
+  });
+
+  it('verwirft automatische Aufnahmen bei ungültigem Bestand', async () => {
+    const id = new ObjectId().toString();
+    try {
+      await db.collection('artikel').insertOne({ vereinId: id, name: 'Ungültig', menge: -1 });
+      await expect(bewertungSpeichern(id, 'system', true)).rejects.toThrow('Ungültiger Bestand');
+      expect(await db.collection('inventarbewertung_aufnahmen').countDocuments({ vereinId: id })).toBe(0);
+    } finally {
+      await db.collection('artikel').deleteMany({ vereinId: id });
+    }
+  });
 });
