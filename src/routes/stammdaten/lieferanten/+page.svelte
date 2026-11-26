@@ -146,8 +146,8 @@
     <button class="primaer" type="button" onclick={neu}>+ Lieferant erfassen</button>
   </header>
 
-  {#if fehler}<p class="warnung" >{fehler}</p>{/if}
-  {#if erfolg}<p class="erfolg" >{erfolg}</p>{/if}
+  
+  
 
   <section class="karte">
     <label for="suche">Lieferanten suchen</label>
