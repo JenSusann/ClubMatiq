@@ -22,7 +22,9 @@
 		"test": "vitest run tests/unit",
 		"test:watch": "vitest tests/unit",
 		"test:coverage": "vitest run tests/unit --coverage",
-		"test:integration": "vitest run --config vitest.integration.config.ts --coverage"
+		"test:integration": "vitest run --config vitest.integration.config.ts --coverage",
+		"coverage:merge": "node scripts/merge-coverage.mjs",
+		"test:all": "npm run test:coverage && npm run test:integration && npm run coverage:merge"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^8.0.0",
@@ -33,6 +35,9 @@
 		"@types/nodemailer": "^7.0.0",
 		"@types/qrcode": "^1.5.6",
 		"@vitest/coverage-v8": "^5.1.1",
+		"istanbul-lib-coverage": "^3.2.2",
+		"istanbul-lib-report": "^3.0.1",
+		"istanbul-reports": "^3.2.0",
 		"svelte": "^5.57.2",
 		"svelte-check": "^4.6.0",
 		"typescript": "^6.0.3",

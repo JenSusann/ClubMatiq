@@ -34,19 +34,17 @@ export default defineConfig({
     
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html', 'json-summary'],
+      reporter: ['text', 'html', 'json-summary', 'json'],
       include: [
         'src/routes/api/**/*.ts',
-        'src/lib/server/**/*.ts',
+        'src/lib/**/*.ts',
         'src/hooks.server.ts'
       ],
-
       exclude: [
         '**/*.d.ts',
         '**/*.test.ts',
         '**/*.spec.ts'
       ],
-
       reportsDirectory: './coverage/unit'
     }
   }
