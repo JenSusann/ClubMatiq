@@ -227,13 +227,9 @@
       Die Materialausleihe ist für die Rolle Mitglied nicht verfügbar.
     </p>
   {:else}
-  {#if fehlermeldung}
-    <p class="meldung fehler" >{fehlermeldung}</p>
-  {/if}
+  
 
-  {#if erfolgsmeldung}
-    <p class="meldung erfolg" >{erfolgsmeldung}</p>
-  {/if}
+  
 
   {#if wirdGeladen}
     <p>Inventar wird geladen ...</p>
