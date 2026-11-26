@@ -269,12 +269,12 @@ describe('Paket 35 – Verkaufshistorie', () => {
     const pipeline = collection('vereinskleider_verkaeufe').aggregate.mock.calls[0][0];
     expect(pipeline[0].$match).toMatchObject({ vereinId: 'verein-1', verkaufsart: 'gemischt', riegen: 'Aktive' });
     expect(pipeline.at(-1).$facet.eintraege[1].$skip).toBe(100);
-    expect(pipeline.some((x: any) => x.$match?.$expr)).toBe(true);
+    expect(pipeline).toContainEqual({ $match: { offenFilter: { $lte: 0.005 } } });
   });
   it.each(['offen', 'gutschrift'])('filtert Zahlungsstatus %s', async (zahlung) => {
     expect((await get(`?zahlung=${zahlung}`)).status).toBe(200);
     const pipeline = collection('vereinskleider_verkaeufe').aggregate.mock.calls[0][0];
-    expect(pipeline.some((x: any) => x.$match && Object.keys(x.$match).some(k => k === '$expr' || k === 'rechnung.gutgeschriebenBetrag'))).toBe(true);
+    expect(pipeline).toContainEqual({ $match: zahlung === 'offen' ? { offenFilter: { $gt: 0.005 } } : { gutschriftFilter: { $gt: 0 } } });
   });
   it('sucht Rechnungsnummern, Artikel und IDs', async () => {
     collection('vereinskleider_rechnungen').find.mockReturnValue({ project() { return this; }, toArray: vi.fn(async () => [{ verkaufId: ART }, { verkaufId: 'ungueltig' }]) });
