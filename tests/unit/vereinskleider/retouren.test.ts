@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { pruefeRetourenmenge, type RetourenVorgang } from '../../../src/lib/server/vereinskleider-retouren';
 
 const basis = (): RetourenVorgang => ({
@@ -59,4 +59,68 @@ describe('Issue #69 – sichere Retourenprüfung', () => {
     v.positionen![0].storniertMenge = 1;
     expect(pruefeRetourenmenge(v, 0, 3).maximal).toBe(3);
   });
+});
+
+import { ObjectId } from 'mongodb';
+import { PATCH as Abgleich } from '../../../src/routes/api/vereinskleider/clubdesk-abgleich/+server';
+import { GET as Export } from '../../../src/routes/api/vereinskleider/gutschriften/export/+server';
+import { GET as Historie } from '../../../src/routes/api/vereinskleider/retouren/historie/+server';
+const m=vi.hoisted(()=>({permission:vi.fn(),collection:vi.fn(),find:vi.fn(),sort:vi.fn(),limit:vi.fn(),toArray:vi.fn(),updateOne:vi.fn(),findOne:vi.fn(),aggregate:vi.fn()}));
+vi.mock('../../../src/lib/server/mongodb',()=>({db:{collection:m.collection}}));
+vi.mock('../../../src/lib/server/berechtigungen',()=>({pruefeBerechtigung:m.permission}));
+describe('Vereinskleider – Abgleich, Export und Retourenhistorie',()=>{
+  const id='507f1f77bcf86cd799439011', oid=new ObjectId(id);
+  const benutzer={id,vereinId:'verein-a',vorname:'Ada',nachname:'Test'};
+  const event=(data:unknown={},query='',user:object=benutzer)=>({locals:{benutzer:user},request:new Request('http://localhost',{method:'PATCH',body:JSON.stringify(data)}),url:new URL('http://localhost/?'+query)}) as never;
+  const valid={typ:'rechnung',id,datum:'2026-11-26',referenz:' Buchung 1 '};
+  const g={_id:oid,rechnungId:id,rechnungsnummer:'R1',gutschriftnummer:'G1',betrag:48,rueckerstattetBetrag:12,erstelltAm:'2026-11-26',artikelname:'Shirt "A"',menge:1};
+  const invoice={_id:oid,rechnungsnummer:'R1'};
+  beforeEach(()=>{
+    vi.resetAllMocks();
+    m.permission.mockReturnValue(null);m.collection.mockReturnValue(m);
+    m.find.mockReturnValue(m);m.sort.mockReturnValue(m);m.limit.mockReturnValue(m);m.aggregate.mockReturnValue(m);
+    m.toArray.mockResolvedValue([]);m.updateOne.mockResolvedValue({modifiedCount:1});m.findOne.mockResolvedValue(null);
+  });
+  it.each([Abgleich,Export,Historie])('verweigert Zugriff ohne Recht',async handler=>{
+    m.permission.mockReturnValue(new Response(null,{status:403}));
+    expect((await handler(event())).status).toBe(403);expect(m.collection).not.toHaveBeenCalled();
+  });
+  it.each([null,[],42,{...valid,typ:'bad'},{...valid,id:42},{...valid,id:'bad'},{...valid,datum:42},{...valid,datum:'bad'},{...valid,datum:'2026-13-01'},{...valid,datum:'2026-02-30'},{...valid,referenz:42},{...valid,referenz:'x'.repeat(121)}])('weist ungültigen Abgleich ab',async data=>{
+    expect((await Abgleich(event(data))).status).toBe(400);expect(m.updateOne).not.toHaveBeenCalled();
+  });
+  it.each(['rechnung','gutschrift'])('bestätigt Buchung für %s ohne Zahlungsänderung',async typ=>{
+    const r=await Abgleich(event({...valid,typ}));expect(r.status).toBe(200);
+    expect(m.collection).toHaveBeenCalledWith(typ==='rechnung'?'vereinskleider_rechnungen':'vereinskleider_gutschriften');
+    expect(m.updateOne).toHaveBeenCalledWith({_id:oid,vereinId:'verein-a',clubdeskVerbuchung:{$exists:false}},{$set:{clubdeskVerbuchung:{datum:valid.datum,referenz:'Buchung 1',erfasstAm:expect.any(Date),erfasstVon:id,erfasstVonName:'Ada Test'}}});
+  });
+  it('verwendet Ersatzname bei fehlendem Namen',async()=>{
+    const r=await Abgleich(event(valid,'',{id,vereinId:'verein-a'}));expect((await r.json()).clubdeskVerbuchung.erfasstVonName).toBe('Unbekannt');
+  });
+  it.each([null,{}])('unterscheidet fehlenden und bereits verbuchten Beleg',async found=>{
+    m.updateOne.mockResolvedValue({modifiedCount:0});m.findOne.mockResolvedValue(found);
+    expect((await Abgleich(event(valid))).status).toBe(found?409:404);
+    expect(m.findOne).toHaveBeenCalledWith({_id:oid,vereinId:'verein-a'},{projection:{clubdeskVerbuchung:1}});
+  });
+  it('meldet Abgleichfehler',async()=>{m.updateOne.mockRejectedValue(new Error('db'));expect((await Abgleich(event(valid))).status).toBe(500);});
+  it('exportiert CSV mit korrekter Maskierung und Beträgen',async()=>{
+    m.toArray.mockResolvedValueOnce([g,{...g,rueckerstattetBetrag:undefined,clubdeskVerbuchung:{datum:valid.datum,referenz:'B1',erfasstVonName:'Ada'},clubdeskExportStatus:'exportiert'}]).mockResolvedValueOnce([invoice]);
+    const r=await Export(event());expect(r.status).toBe(200);
+    expect(r.headers.get('content-type')).toContain('text/csv');expect(r.headers.get('cache-control')).toBe('no-store');
+    const csv=await r.text();expect(csv).toContain('"Shirt ""A"""');expect(csv).toContain('"48,00";"12,00";"36,00"');expect(csv).toContain('"exportiert";"Ja"');
+    expect(m.find).toHaveBeenNthCalledWith(1,{vereinId:'verein-a'});expect(m.find).toHaveBeenNthCalledWith(2,{vereinId:'verein-a',_id:{$in:[oid]}});
+  });
+  it('begrenzt Exportmenge',async()=>{m.toArray.mockResolvedValue(Array(10001).fill(g));expect((await Export(event())).status).toBe(409);});
+  it.each([42,'bad'])('verweigert ungültige Rechnungsreferenz',async rechnungId=>{m.toArray.mockResolvedValueOnce([{...g,rechnungId}]);expect((await Export(event())).status).toBe(409);});
+  it.each([[],[{...invoice,rechnungsnummer:'falsch'}]])('verweigert uneindeutige Rechnungszuordnung',async invoices=>{m.toArray.mockResolvedValueOnce([g]).mockResolvedValueOnce(invoices);expect((await Export(event())).status).toBe(409);});
+  it.each(['48',NaN,-1,Number.MAX_SAFE_INTEGER,1.001])('verweigert ungültigen Betrag',async betrag=>{m.toArray.mockResolvedValueOnce([{...g,betrag}]).mockResolvedValueOnce([invoice]);expect((await Export(event())).status).toBe(500);});
+  it.each([{rueckerstattetBetrag:49},{erstelltAm:'bad'}])('verweigert inkonsistente Gutschrift',async patch=>{m.toArray.mockResolvedValueOnce([{...g,...patch}]).mockResolvedValueOnce([invoice]);expect((await Export(event())).status).toBe(409);});
+  it('meldet Export-Datenbankfehler',async()=>{m.toArray.mockRejectedValue(new Error('db'));expect((await Export(event())).status).toBe(500);});
+  it.each(['0','-1','1.5','abc','9007199254740992'])('verweigert ungültige Seite',async seite=>{expect((await Historie(event({},'seite='+seite))).status).toBe(400);expect(m.aggregate).not.toHaveBeenCalled();});
+  it.each([[],[{}],[{anzahl:[],daten:[]}]])('liefert leere Historie',async result=>{m.toArray.mockResolvedValue(result);expect(await (await Historie(event())).json()).toEqual({retouren:[],seite:1,seiten:1,total:0});});
+  it('paginiert vereinsbezogene Retouren',async()=>{
+    m.toArray.mockResolvedValue([{daten:[{menge:1}],anzahl:[{total:51}]}]);
+    expect(await (await Historie(event({},'seite=2'))).json()).toEqual({retouren:[{menge:1}],seite:2,seiten:3,total:51});
+    const pipeline=m.aggregate.mock.calls[0][0];expect(pipeline[0]).toEqual({$match:{vereinId:'verein-a','retouren.0':{$exists:true}}});expect(pipeline[3].$facet.daten.slice(0,2)).toEqual([{$skip:25},{$limit:25}]);
+  });
+  it('meldet Historienfehler',async()=>{m.toArray.mockRejectedValue(new Error('db'));expect((await Historie(event())).status).toBe(500);});
 });
