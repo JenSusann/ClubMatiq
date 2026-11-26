@@ -53,7 +53,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #62 | Manuelle Benutzeranlage | 20/20 | Sammelbestätigung 26.11.2026 |
 | #64 | Benutzerlöschung und Einladungswiderruf | 15/15 | Einzelbestätigung 26.11.2026 |
 | #68 | Offene Preise und gemischte Teilzahlungen | 25/25 | Einzelbestätigung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 352/352 | Dokumentierte Durchläufe |
+| #70 | Gutschriften und Rückerstattungen | 25/25 | Einzelbestätigung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 377/377 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -637,7 +638,7 @@ Keine Fehler gemeldet; keine Codeänderung für diese Abnahme erforderlich. Absc
 
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 352 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 377 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
@@ -683,3 +684,37 @@ Historische Ergebnisse nicht ohne Nachweis ergänzen. Bei Regressionen frühere 
 
 ### Technischer Abschluss #68 – 26.11.2026
 25/25 manuelle Tests bestanden. 31 bestehende mockbasierte Integrationstests geprüft; drei zusätzliche echte MongoDB-Parallelitätstests (Preisfestlegung, Restzahlung vor Verrechnung, Vollrechnung) in `preisfestlegung.integration.test.ts`, Commit 9d80fd5. Gezielter Lauf und TypeScript-Check gemäss Entwicklerin erfolgreich. [CI 45825936609](https://github.com/JenSusann/ClubMatiq/actions/runs/45825936609) erfolgreich; kombinierte Coverage 98,19 % Statements, 95,04 % Branches, 96,20 % Functions, 98,90 % Lines. Quality Gate bestanden. Nicht sämtliche möglichen parallelen Teilrechnungskombinationen mit echter MongoDB geprüft.
+
+### Issue #70 – Gutschriften und Rückerstattungen
+
+26.11.2026: 25/25 manuelle Tests gemäss Einzelbestätigung bestanden.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-70-01 | Gutschrift offen | Bestanden |
+| ST-70-02 | Als erledigt markieren | Bestanden |
+| ST-70-03 | Keine offene Forderung oder Rückerstattung | Bestanden |
+| ST-70-04 | Doppelabschluss verhindert | Bestanden |
+| ST-70-05 | Anspruch CHF 48 | Bestanden |
+| ST-70-06 | Erledigung bei Auszahlung blockiert | Bestanden |
+| ST-70-07 | Pflichtangaben | Bestanden |
+| ST-70-08 | Teilrückerstattung CHF 20 TWINT | Bestanden |
+| ST-70-09 | Rest CHF 28 | Bestanden |
+| ST-70-10 | Überzahlung CHF 29 blockiert | Bestanden |
+| ST-70-11 | Rest CHF 28 Bank | Bestanden |
+| ST-70-12 | Rückerstattet, Rest null | Bestanden |
+| ST-70-13 | Doppelrückerstattung blockiert | Bestanden |
+| ST-70-14 | Historie und Bearbeiter | Bestanden |
+| ST-70-15 | Teilbezahlte Rechnung: Anspruch CHF 20 | Bestanden |
+| ST-70-16 | Barerstattung CHF 20 | Bestanden |
+| ST-70-17 | Originalrechnung und Zahlungen unverändert | Bestanden |
+| ST-70-18 | Gutschriften- und Rechnungs-PDF | Bestanden |
+| ST-70-19 | Gutschriftenexport und Rechnungsabgleich-CSV | Bestanden |
+| ST-70-20 | Teilrechnungszuordnung | Bestanden |
+| ST-70-21 | Retoure und Rückerstattung | Bestanden |
+| ST-70-22 | Altdaten | Bestanden |
+| ST-70-23 | Berechtigungen | Bestanden |
+| ST-70-24 | Persistenz nach Neuladen | Bestanden |
+| ST-70-25 | Mobile Darstellung und Dialoge | Bestanden |
+
+Technische Abschlussprüfung (Export-Coverage, Vereinsisolation, Parallelität) noch offen.
