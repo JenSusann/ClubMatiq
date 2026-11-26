@@ -117,6 +117,29 @@ beforeEach(() => {
 
 describe('ClubMatiq Artikel-Detailverwaltung', () => {
 
+  it('protokolliert keine Bewegung bei unverändertem Bestand', async () => {
+    expect((await PATCH(kontext(admin, artikelId, { ...eingabe(), menge: 10 }))).status).toBe(200);
+    expect(mocks.journal).not.toHaveBeenCalled();
+  });
+  it('verhindert Überlauf der Variantensumme', async () => {
+    const response = await PATCH(kontext(admin, artikelId, { ...eingabe(), hatGroessen: true,
+      varianten: [groesseId, new ObjectId().toString()].map(groesseId => ({ groesseId, menge: Number.MAX_SAFE_INTEGER, einzelwert: 1, mindestbestand: 0 })) }));
+    expect(response.status).toBe(400);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('bricht ab wenn der Artikel innerhalb der Transaktion fehlt', async () => {
+    let aufrufe = 0;
+    mocks.findOne.mockImplementation(async (name: string) => name === 'artikel' ? (++aufrufe === 1 ? artikel() : null) : { _id: new ObjectId() });
+    expect((await PATCH(kontext())).status).toBe(500);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+    expect(mocks.endSession).toHaveBeenCalledOnce();
+  });
+  it('protokolliert negative Bestandskorrekturen', async () => {
+    expect((await PATCH(kontext(admin, artikelId, { ...eingabe(), menge: 3 }))).status).toBe(200);
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ mengeDelta: -7 }), expect.anything());
+  });
+
+
   it('lädt einen einzelnen Artikel', async () => {
     const response = await GET(kontext());
     const daten = await response.json();
