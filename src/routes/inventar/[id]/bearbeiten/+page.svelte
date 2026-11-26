@@ -302,13 +302,9 @@
 
   <h1>Inventarartikel bearbeiten</h1>
 
-  {#if fehlermeldung}
-    <p class="meldung fehler" >{fehlermeldung}</p>
-  {/if}
+  
 
-  {#if erfolgsmeldung}
-    <p class="meldung erfolg" >{erfolgsmeldung}</p>
-  {/if}
+  
 
   {#if wirdGeladen}
     <p>Artikel wird geladen ...</p>
