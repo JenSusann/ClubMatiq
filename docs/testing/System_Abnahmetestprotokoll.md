@@ -735,3 +735,28 @@ Technische Abschlussprüfung (Export-Coverage, Vereinsisolation, Parallelität) 
 ### Technischer Abschluss #70 / #121 – 26.11.2026
 
 CI [45829003597](https://github.com/JenSusann/ClubMatiq/actions/runs/45829003597), Commit ced5c68: erfolgreich. Kombinierte Coverage: Statements 98.18 %, Branches 95.00 % (5190/5463), Functions 96.22 %, Lines 98.88 %. Quality Gate bestanden. 12 Status-Integrationstests inklusive drei echter MongoDB-Tests (parallele vollständige Rückerstattung derselben bzw. zweier Gutschriften und fremder Verein); 20 Export-Integrationstests inklusive 16 neuer Regressionstests. Manuelle Abnahme 30/30 inklusive #121. Rollenprüfung in den neuen MongoDB-Tests gemockt; identische Teilrückerstattungen bei ausreichend verbleibendem Anspruch nicht als idempotent nachgewiesen. Keine automatische Auszahlung.
+
+
+## Manuelle Abnahme #50 – 26.11.2026
+
+| ID | Prüfung | Ergebnis |
+|---|---|---|
+| ST-50-01 | Aktive Artikel | Bestanden |
+| ST-50-02 | Archivierung | Bestanden |
+| ST-50-03 | Reaktivierung | Bestanden |
+| ST-50-04 | Gesamtbestand | Bestanden |
+| ST-50-05 | Inaktive Varianten | Bestanden |
+| ST-50-06 | Mindestbestand | Bestanden |
+| ST-50-07 | Ausleihen | Bestanden |
+| ST-50-08 | Schadensmeldungen | Bestanden |
+| ST-50-09 | Kleiderbestellungen | Bestanden |
+| ST-50-10 | Vollständige Stornierung | Bestanden |
+| ST-50-11 | Teilstornierung | Bestanden |
+| ST-50-12 | Filterlinks | Bestanden |
+| ST-50-13 | Aktualisierung | Bestanden |
+| ST-50-14 | Rollen | Bestanden |
+| ST-50-15 | Vereinstrennung | Bestanden |
+| ST-50-16 | Mobile Ansicht | Bestanden |
+| ST-50-17 | Leerzustand | Bestanden |
+
+17/17 gemäss Entwicklerin bestanden. Kumuliert 399/399. Commits a4b9d81, 61159fa, c404cd0. Automatisierter Abschlussnachweis folgt.
