@@ -228,9 +228,7 @@
   .sekundaer { border: 1px solid #cbd5e1; color: #334155; background: white; }
   .gefahr { border: 1px solid #fecaca; color: #b91c1c; background: #fff; }
   .gefahr-voll { background: #b91c1c; color: white; border-color: #b91c1c; }
-  .warnung, .erfolg { padding: 12px 16px; border-radius: 8px; }
-  .warnung { background: #fffbeb; color: #92400e; }
-  .erfolg { background: #ecfdf5; color: #166534; }
+
   .leer { text-align: center; color: #64748b; padding: 40px; }
   .tabelle { padding: 0; overflow: hidden; }
   .scroll { overflow-x: auto; }
