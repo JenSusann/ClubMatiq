@@ -212,3 +212,21 @@ describe('Issue #51 – historische Journalnamen', () => {
     }
   });
 });
+
+describe('Issue #51 – Artikellöschung mit echter MongoDB', () => {
+  it('löscht Bestand und erhält den historischen Journalabgang', async () => {
+    const { DELETE } = await import('../../../src/routes/api/artikel/[id]/+server');
+    const id = new ObjectId();
+    try {
+      await db.collection('artikel').insertOne({ _id: id, vereinId, name: 'Löschtest', menge: 5, hatGroessen: false });
+      const response = await DELETE({ params: { id: id.toString() }, locals: { benutzer: admin } } as never);
+      expect(response.status).toBe(200);
+      expect(await db.collection('artikel').findOne({ _id: id, vereinId })).toBeNull();
+      const eintraege = await db.collection('lagerbewegungen').find({ vereinId, artikelId: id.toString() }).toArray();
+      expect(eintraege).toEqual([expect.objectContaining({ mengeDelta: -5, artikelName: 'Löschtest', referenzTyp: 'artikel-loeschung' })]);
+    } finally {
+      await db.collection('artikel').deleteOne({ _id: id, vereinId });
+      await db.collection('lagerbewegungen').deleteMany({ vereinId, artikelId: id.toString() });
+    }
+  });
+});
