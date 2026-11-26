@@ -1,14 +1,25 @@
-import 'dotenv/config';
+import { parse } from 'dotenv';
 import { MongoClient } from 'mongodb';
 import { readFile, writeFile } from 'node:fs/promises';
 
-const names = ['clubmatiq', 'clubmatiq_dev', 'clubmatiq_test', 'clubmatiq_demo'];
-const name = process.env.MONGODB_DB_NAME;
-const uri = process.env.MONGODB_URI;
-if (!uri || !names.includes(name)) throw new Error('Datenbankkonfiguration fehlt oder ist unzulässig.');
+const targets = {
+  dev: { file: '.env', name: 'clubmatiq_dev' },
+  demo: { file: '.env.demo.local', name: 'clubmatiq_demo' },
+  prod: { file: '.env.production.local', name: 'clubmatiq' }
+};
 const args = process.argv.slice(2);
+const selectors = args.filter(a => a.startsWith('--environment='));
+if (selectors.length !== 1) throw new Error('Genau eine Umgebung angeben.');
+const target = targets[selectors[0].split('=')[1]];
+if (!target || !Object.hasOwn(targets, selectors[0].split('=')[1])) throw new Error('Unzulässige Umgebung.');
+const config = parse(await readFile(target.file));
+const name = config.MONGODB_DB_NAME;
+const uri = config.MONGODB_URI;
+if (!uri || name !== target.name) throw new Error('Konfiguration passt nicht zur Zielumgebung.');
+args.splice(args.indexOf(selectors[0]), 1);
 const exporting = args.includes('--export');
 const apply = args.includes('--apply');
+if (exporting && name !== 'clubmatiq') throw new Error('Referenzschema nur aus Produktion exportieren.');
 if (args.some(a => !['--export', '--apply', '--confirm-production'].includes(a)) || (exporting && apply)) throw new Error('Ungültige Argumente.');
 if (apply && name === 'clubmatiq' && !args.includes('--confirm-production')) throw new Error('Produktivänderung erfordert --confirm-production.');
 const file = 'database-schema.json';
