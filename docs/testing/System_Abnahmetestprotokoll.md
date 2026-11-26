@@ -367,7 +367,7 @@ Erstprüfung: 13/14 bestanden. ST-44-07: Validierung wirksam, Fehlermeldung jedo
 | ST-44-07c | Gültige Rückgabe weiterhin möglich | Bestanden |
 | ST-44-07d | Dialog erneut öffnen ohne alte Meldung | Bestanden |
 
-**Manuelle Abnahme:** 18/18 nach Korrektur bestanden. Automatisierte Ausleih-Tests und TypeScript-Check nach der UI-Korrektur nicht separat bestätigt.
+**Manuelle Abnahme:** 18/18 nach Korrektur bestanden. Unit- und Integrationstests nach der UI-Korrektur gemäss Bestätigung der Entwicklerin ohne Fehler. TypeScript-Check nicht separat bestätigt. Übergreifende UX-Beobachtungen werden in Issue #39 weiterverfolgt.
 
 ## 3. Geplanter Regressionstestkatalog
 
