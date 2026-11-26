@@ -51,7 +51,7 @@ beforeAll(async () => {
     { _id: artikelId, vereinId, name: 'Testshirt ÄÖÜ' },
     { _id: fremdArtikelId, vereinId: fremdvereinId, name: 'Geheimes Shirt' }
   ]);
-  await db.collection('benutzer').insertOne({ _id: benutzerId, vereinId, vorname: 'Test', nachname: 'Person' });
+  await db.collection('benutzer').insertOne({ _id: benutzerId, vereinId, vorname: 'Test', nachname: 'Person', email: prefix + '@example.invalid' });
   await db.collection('lagerbewegungen').insertMany([
     ...Array.from({ length: 200 }, (_, i) => bewegung(i, vereinId, artikelId, prefix + '-normal-' + i)),
     bewegung(200, vereinId, artikelId, prefix + '-gesucht'),
@@ -187,7 +187,7 @@ describe('Issue #51 – historische Journalnamen', () => {
     try {
       await db.collection('artikel').insertOne({ _id: id, vereinId, name: 'Historisches Shirt', menge: 2 });
       await db.collection('groessen').insertOne({ _id: groesseId, vereinId, bezeichnung: 'Historische Grösse' });
-      await db.collection('benutzer').insertOne({ _id: personId, vereinId, vorname: 'Historische', nachname: 'Person' });
+      await db.collection('benutzer').insertOne({ _id: personId, vereinId, vorname: 'Historische', nachname: 'Person', email: prefix + '-snapshot@example.invalid' });
       await session.withTransaction(async () => {
         await db.collection('artikel').updateOne({ _id: id, vereinId }, { $inc: { menge: -1 } }, { session });
         await protokolliereLagerbewegung({ vereinId, artikelId: id.toString(), groesseId: groesseId.toString(), art: 'verkauf', mengeDelta: -1, benutzerId: personId.toString(), referenzId, referenzTyp: 'test' }, session);
