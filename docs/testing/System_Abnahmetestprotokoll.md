@@ -334,7 +334,7 @@ Testdatum: 26.11.2026. Manuelle Sammelbestätigung der Entwicklerin. Implementie
 | ST-37-10 | Berechtigungen | Mitglied kann suchen, nicht unberechtigt bearbeiten | Bestanden |
 | ST-37-11 | Mobile Ansicht | Filter bleiben bedienbar | Bestanden |
 
-**Manuelle Abnahme:** 11/11 bestanden. TypeScript-Check und Ausführung der fünf zusätzlichen Unit-Tests zur Weiterleitung und Authentifizierung noch nicht bestätigt.
+**Manuelle Abnahme:** 11/11 bestanden. TypeScript-Check und Unit-Tests einschliesslich der fünf zusätzlichen Tests zur Weiterleitung und Authentifizierung gemäss Bestätigung der Entwicklerin am 26.11.2026 ohne Fehler. Funktionale Abnahme abgeschlossen.
 
 ## 3. Geplanter Regressionstestkatalog
 
