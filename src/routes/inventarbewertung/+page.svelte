@@ -60,7 +60,7 @@
   });
 
   const datum = (wert: Date) => wert.toLocaleString('de-CH', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
+    timeZone: 'Europe/Zurich', day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit'
   });
 
@@ -180,6 +180,16 @@
   type HistorischeZeile = { artikelId: string; artikel: string; kategorie: string; lagerort: string; groesse: string; menge: number; einzelwert: number | null; gesamtwert: number | null };
   let aufnahmen = $state<Aufnahme[]>([]);
   let auswahl = $state('');
+  let stichtag = $state('');
+  const aufnahmeDatum = (wert: string) => new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Zurich', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(new Date(wert));
+  let gefilterteAufnahmen = $derived(aufnahmen.filter(a => !stichtag || aufnahmeDatum(a.aufgenommenAm) === stichtag));
+  function stichtagGeaendert() {
+    auswahl = '';
+    historisch = null;
+    aufnahmeFehler = '';
+  }
   let historisch = $state<(Aufnahme & { zeilen: HistorischeZeile[] }) | null>(null);
   let aufnahmeFehler = $state('');
   let aufnahmeBusy = $state(false);
@@ -208,6 +218,7 @@
         if (!antwort.ok) throw new Error('Bewertungsaufnahme konnte nicht gespeichert werden.');
         const daten = await antwort.json();
         await aufnahmenLaden();
+        stichtag = '';
         auswahl = daten._id;
       }
       await aufnahmeAnzeigen();
@@ -254,10 +265,17 @@
       </div>
       <p class="hinweis">Aufnahmen enthalten den tatsächlichen Bestand und Einzelwert zum Aufnahmezeitpunkt. Nicht gespeicherte vergangene Stichtage können nicht rückwirkend rekonstruiert werden.</p>
       <div class="feld">
+        <label for="bewertungsstichtag">Aufnahmen nach Stichtag filtern</label>
+        <input id="bewertungsstichtag" type="date" bind:value={stichtag} disabled={aufnahmeBusy} onchange={stichtagGeaendert} />
+        {#if stichtag && gefilterteAufnahmen.length === 0}
+          <p role="status">Für diesen Stichtag ist keine Bewertungsaufnahme vorhanden.</p>
+        {/if}
+      </div>
+      <div class="feld">
         <label for="aufnahme">Bewertungsaufnahme auswählen</label>
         <select id="aufnahme" bind:value={auswahl} disabled={aufnahmeBusy} onchange={() => aufnahmeAktion(false)}>
           <option value="">Bitte auswählen</option>
-          {#each aufnahmen as a}
+          {#each gefilterteAufnahmen as a}
             <option value={a._id}>{datum(new Date(a.aufgenommenAm))}</option>
           {/each}
         </select>
