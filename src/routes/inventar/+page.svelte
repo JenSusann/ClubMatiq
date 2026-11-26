@@ -195,9 +195,7 @@
     <div class="kopf-aktionen"><a href="/inventar/lagerbewegungen" class="button">Gesamtes Lagerbewegungsjournal</a></div>
   </div>
 
-  {#if fehlermeldung}
-    <p class="meldung fehler" >{fehlermeldung}</p>
-  {/if}
+  
 
   {#if wirdGeladen}
     <p>Inventar wird geladen ...</p>
