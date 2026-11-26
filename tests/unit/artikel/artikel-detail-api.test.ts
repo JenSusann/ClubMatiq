@@ -766,3 +766,35 @@ describe('ClubMatiq Artikel-Detailverwaltung', () => {
 
 
 });
+
+describe('Issue #51 – Artikellöschung im Journal', () => {
+  it('protokolliert den Restbestand vor der Löschung', async () => {
+    expect((await DELETE(kontext())).status).toBe(200);
+    expect(mocks.journal).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      vereinId, artikelId, groesseId: null, mengeDelta: -10,
+      artikelName: 'Trainingsball', referenzTyp: 'artikel-loeschung'
+    }), expect.objectContaining({ session: expect.anything() }));
+    expect(mocks.journal.mock.invocationCallOrder[0]).toBeLessThan(mocks.deleteOne.mock.invocationCallOrder[0]);
+  });
+  it('protokolliert Varianten ohne doppelte Gesamtmenge', async () => {
+    const zweite = new ObjectId().toString();
+    mocks.findOne.mockImplementation(async (name: string) => name === 'artikel' ? { ...artikel(), hatGroessen: true } : null);
+    mocks.find.mockReturnValue({ toArray: vi.fn().mockResolvedValue([{ groesseId, menge: 4 }, { groesseId: zweite, menge: 6 }]) });
+    expect((await DELETE(kontext())).status).toBe(200);
+    expect(mocks.journal).toHaveBeenCalledTimes(2);
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ groesseId, mengeDelta: -4 }), expect.anything());
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ groesseId: zweite, mengeDelta: -6 }), expect.anything());
+  });
+  it('erzeugt bei Nullbestand keine Bewegung', async () => {
+    mocks.findOne.mockImplementation(async (name: string) => name === 'artikel' ? { ...artikel(), menge: 0 } : null);
+    expect((await DELETE(kontext())).status).toBe(200);
+    expect(mocks.journal).not.toHaveBeenCalled();
+  });
+  it('bricht bei Journalfehler vor der Löschung ab', async () => {
+    mocks.journal.mockRejectedValueOnce(new Error('Journalfehler'));
+    expect((await DELETE(kontext())).status).toBe(500);
+    expect(mocks.deleteMany).not.toHaveBeenCalled();
+    expect(mocks.deleteOne).not.toHaveBeenCalled();
+    expect(mocks.endSession).toHaveBeenCalledOnce();
+  });
+});
