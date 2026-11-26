@@ -120,7 +120,7 @@
     void riegenLaden();
   });
 </script>
-<Aktionsmeldung fehler={importFehler || fehlermeldung} erfolg={importMeldung} fehlerSchliessen={() => { importFehler = ''; fehlermeldung = ''; }} erfolgSchliessen={() => importMeldung = ''} />
+<Aktionsmeldung fehler={importFehler} erfolg={importMeldung} fehlerSchliessen={() => importFehler = ''} erfolgSchliessen={() => importMeldung = ''} />
 
 <svelte:head>
   <title>Mitglieder | ClubMatiq</title>
@@ -143,9 +143,7 @@
       <input id="csv-datei" type="file" accept=".csv,text/csv" bind:this={dateiEingabe} onchange={dateiAuswaehlen} />
       <button type="submit" disabled={!datei || importieren}>{importieren ? 'Wird importiert …' : 'CSV importieren'}</button>
     </form>
-    {#if importFehler}
-      <p class="meldung fehler" role="alert">{importFehler}</p>
-    {/if}
+    
     {#if importErgebnis}
       <div class="meldung erfolg" role="status">
         <strong>Import abgeschlossen.</strong>
