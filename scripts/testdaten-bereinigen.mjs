@@ -22,7 +22,9 @@ if (!uri) {
   throw new Error('MONGODB_URI fehlt in der .env-Datei.');
 }
 
-const dbName = 'clubmatiq';
+const dbName = process.env.MONGODB_DB_NAME;
+if (!['clubmatiq_dev', 'clubmatiq_test', 'clubmatiq_demo'].includes(dbName)) throw new Error('Bereinigung nur in Entwicklungs-, Test- oder Demo-Datenbank erlaubt.');
+console.log('Zieldatenbank:', dbName);
 const args = process.argv.slice(2);
 
 const deleting = args.includes('--delete');
