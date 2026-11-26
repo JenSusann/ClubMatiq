@@ -153,6 +153,7 @@ jobs:
       - name: Kombinierte Coverage erstellen
         run: npm run coverage:merge
       - name: Kombinierte Coverage speichern
+        if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
           name: combined-test-coverage
