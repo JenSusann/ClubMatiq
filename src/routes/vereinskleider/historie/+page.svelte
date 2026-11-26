@@ -344,7 +344,7 @@
                     </div>
                     <div class="belege">
                       <h3>Rechnungen und Gutschriften</h3>
-                      {#each v.rechnungen ?? (v.rechnung ? [v.rechnung] : []) as rechnung (rechnung._id)}
+                      {#each (v.rechnungen ?? (v.rechnung ? [v.rechnung] : [])) as rechnung (rechnung._id)}
                         <p><a href={`/api/vereinskleider/verrechnung/${rechnung._id}/pdf`} target="_blank" rel="noopener noreferrer">Rechnung / Quittung {rechnung.rechnungsnummer ?? ''} als PDF</a></p>
                         {#each gutschriftenZu(rechnung._id) as g (g._id)}
                           <p><a href={`/api/vereinskleider/verrechnung/${rechnung._id}/pdf?gutschriftId=${g._id}`} target="_blank" rel="noopener noreferrer">Gutschrift {g.gutschriftnummer} als PDF</a> · {chf(g.betrag)}</p>
@@ -439,7 +439,7 @@
   th{background:#f1f5f9;color:#334155;white-space:nowrap}td strong{font-weight:600}small{display:block;color:#64748b;font-size:.78rem;margin-top:.25rem}
   .rechts{text-align:right;white-space:nowrap}.status{display:inline-block;border:1px solid #cbd5e1;border-radius:999px;padding:.2rem .5rem;white-space:nowrap;font-size:.8rem}
   .detailzeile td{background:#f8fafc}.details{padding:.5rem;display:grid;gap:.8rem}.details p{margin:.2rem 0;font-size:.88rem}
-  .detailkopf a{color:#2563eb}.positionen th{background:#e8eef5}.zusammenfassung{display:grid;grid-template-columns:minmax(150px,1fr) auto;gap:.4rem 1rem;max-width:450px;margin-left:auto;font-size:.9rem}.zusammenfassung strong{text-align:right}
+  .belege a{color:#2563eb}.positionen th{background:#e8eef5}.zusammenfassung{display:grid;grid-template-columns:minmax(150px,1fr) auto;gap:.4rem 1rem;max-width:450px;margin-left:auto;font-size:.9rem}.zusammenfassung strong{text-align:right}
   .seitenwahl{margin:1.25rem 0}.seitenwahl>div{display:flex;gap:.5rem}.meldung{padding:1rem;border:1px solid #cbd5e1;border-radius:8px}.fehler{border-color:#ef4444;color:#b91c1c}
   @media(max-width:800px){.werkzeuge{grid-template-columns:1fr}.seite{padding:1rem}.kopf{align-items:flex-start}}
 </style>
