@@ -535,6 +535,21 @@ describe('ClubMatiq Vereinskleider – Bestellübergabe', () => {
     expect(mocks.insertOne).toHaveBeenCalledWith('lagerbewegungen', expect.objectContaining({ art: 'verkauf', mengeDelta: -2, benutzerId: admin.id }), expect.objectContaining({ session: expect.anything() }));
     expect(mocks.endSession).toHaveBeenCalledOnce();
   });
+  it('Issue #65: erlaubt das letzte unreservierte Stück', async () => {
+    artikel!.menge = 1;
+    positionen[0] = position({ menge: 1 });
+    const response = await ausfuehren(eingabe({ menge: 1 }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).uebergabe).toMatchObject({ uebergeben: 1, offen: 0, status: 'abgeschlossen' });
+    expect(mocks.updateOne).toHaveBeenCalledWith('artikel', expect.objectContaining({ vereinId, menge: { $gte: 1 } }), expect.objectContaining({ $inc: { menge: -1 } }), expect.anything());
+  });
+  it('Issue #65: sperrt Übergabe bei Bestand null', async () => {
+    artikel!.menge = 0;
+    positionen[0] = position({ menge: 1 });
+    await fehlerErwarten(409, 'Nur 0 Stück', eingabe({ menge: 1 }));
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
   it('schliesst die Bestellung bei vollständiger Übergabe ab', async () => {
     const response = await ausfuehren(eingabe({ menge: 5 }));
     expect(response.status).toBe(200);
@@ -552,7 +567,7 @@ describe('ClubMatiq Vereinskleider – Bestellübergabe', () => {
     expect(response.status).toBe(200);
     expect((await response.json()).uebergabe).toMatchObject({ reserviert: 1, uebergeben: 2 });
   });
-  it('schützt fremde Reservierungen und die Anprobierreserve', async () => {
+  it('schützt fremde Reservierungen', async () => {
     artikel!.menge = 5;
     reservierteVorgaenge = [
       { positionen }, { positionen: [position({ reserviertMenge: 4 })] }
