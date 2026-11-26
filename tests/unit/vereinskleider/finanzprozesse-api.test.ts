@@ -328,3 +328,120 @@ describe('Teilzahlungen vor Verrechnung – Randfälle', () => {
     expect(m.session.endSession).toHaveBeenCalled();
   });
 });
+
+import { PATCH as patchGutschrift } from '../../../src/routes/api/vereinskleider/gutschriften/status/+server';
+import { POST as postPreisfestlegung } from '../../../src/routes/api/vereinskleider/preisfestlegung/+server';
+
+describe('Gutschriftenstatus – finanzielle Konsistenz', () => {
+  const input = { gutschriftId: ID, aktion: 'rueckerstattet', datum: '2026-11-26', zahlungsart: 'bank', bemerkung: ' Test ', betrag: 5 };
+  const credit = { _id: ID, rechnungId: RID, betrag: 10 };
+  function setup(g: Record<string, unknown> = {}, r: Record<string, unknown> = {}, all?: unknown[]) {
+    const c = {...credit, ...g};
+    m.collections.vereinskleider_gutschriften.findOne.mockResolvedValue(c);
+    m.collections.vereinskleider_rechnungen.findOne.mockResolvedValue(rechnung({ bezahltBetrag: 30, gutgeschriebenBetrag: 10, ...r }));
+    m.collections.vereinskleider_gutschriften.find.mockReturnValue({toArray: async () => all ?? [c]});
+  }
+  it('verweigert fehlendes Recht', async () => {
+    m.permission.mockReturnValue(denied());
+    expect((await call(patchGutschrift,input)).status).toBe(403);
+  });
+  it.each([{body:null},{body:[]},{body:{...input,gutschriftId:1}},{body:{...input,aktion:'bad'}}])('verwirft Eingabe %j', async ({body}) => {
+    expect((await call(patchGutschrift,body)).status).toBe(400);
+  });
+  it('meldet fehlende Gutschrift', async () => {
+    expect((await call(patchGutschrift,input)).status).toBe(404);
+  });
+  it.each([
+    [{rechnungId:'bad'}, {},409], [{}, {gesamtbetrag:-1},400],
+    [{}, {gesamtbetrag:Infinity},400], [{}, {gesamtbetrag:'30'},400],
+    [{}, {gesamtbetrag:1.001},400], [{}, {gesamtbetrag:Number.MAX_SAFE_INTEGER},400],
+    [{}, {gutgeschriebenBetrag:31},409], [{}, {bezahltBetrag:31},409],
+    [{betrag:11}, {},409], [{rueckerstattetBetrag:11}, {},409],
+    [{bearbeitungsstatus:'erledigt'}, {},409], [{bearbeitungsstatus:'rueckerstattet'}, {},409]
+  ])('verhindert inkonsistente Gutschrift %j', async (g,r,status) => {
+    setup(g as Record<string,unknown>,r as Record<string,unknown>);
+    expect((await call(patchGutschrift,input)).status).toBe(status);
+    expect(m.collections.vereinskleider_gutschriften.updateOne).not.toHaveBeenCalled();
+  });
+  it('verweigert fehlende Rechnung', async () => {
+    setup();m.collections.vereinskleider_rechnungen.findOne.mockResolvedValue(null);
+    expect((await call(patchGutschrift,input)).status).toBe(409);
+  });
+  it.each([{all:[]},{all:[{...credit,betrag:9}]}])('verweigert inkonsistente Gesamtliste', async ({all}) => {
+    setup({}, {}, all);expect((await call(patchGutschrift,input)).status).toBe(409);
+  });
+  it.each([{datum:42},{datum:'bad'},{datum:'2026-02-30'},{datum:'2026-13-01'},{zahlungsart:'karte'},{bemerkung:null},{bemerkung:'x'.repeat(1001)}])('verwirft Auszahlungsdaten %j', async patch => {
+    setup();expect((await call(patchGutschrift,{...input,...patch})).status).toBe(400);
+  });
+  it.each([0,11])('verhindert unzulässige Auszahlung %s', async betrag => {
+    setup();expect((await call(patchGutschrift,{...input,betrag})).status).toBe(409);
+  });
+  it.each([[5,'teilweise_rueckerstattet',5],[10,'rueckerstattet',0]])('dokumentiert Auszahlung %s', async (betrag,status,rest) => {
+    setup();const r=await response(await call(patchGutschrift,{...input,betrag}));
+    expect(r.status).toBe(200);expect(r.body).toMatchObject({status,rueckerstattungOffen:rest});
+    expect(m.collections.vereinskleider_gutschriften.updateOne.mock.calls[0][1].$set).toMatchObject({rueckerstattetBetrag:betrag,rueckerstattungen:[expect.objectContaining({bemerkung:'Test',betrag})]});
+  });
+  it('schliesst ohne offene Rückerstattung ab', async () => {
+    setup({}, {bezahltBetrag:20});
+    expect((await response(await call(patchGutschrift,{...input,aktion:'erledigt'}))).body.status).toBe('erledigt');
+  });
+  it('verhindert Abschluss bei offener Rückerstattung', async () => {
+    setup();expect((await call(patchGutschrift,{...input,aktion:'erledigt'})).status).toBe(409);
+  });
+  it.each(['vereinskleider_gutschriften','vereinskleider_rechnungen'])('erkennt konkurrierende Änderung %s', async name => {
+    setup();m.collections[name].updateOne.mockResolvedValue({modifiedCount:0});
+    expect((await call(patchGutschrift,input)).status).toBe(409);
+    expect(m.session.endSession).toHaveBeenCalled();
+  });
+  it('meldet unerwarteten Fehler', async () => {
+    m.session.withTransaction.mockRejectedValueOnce(Error('DB'));
+    expect((await call(patchGutschrift,input)).status).toBe(500);
+  });
+});
+
+describe('Preisfestlegung – offene Bestellpositionen', () => {
+  const input={verkaufId:ID,positionsIndex:0,einzelpreis:10};
+  const offen=pos({einzelpreis:null,preisOffen:true,positionsbetrag:0});
+  const setup=(patch:Record<string,unknown>={})=>m.collections.vereinskleider_verkaeufe.findOne.mockResolvedValue(verkauf({positionen:[offen],...patch}));
+  it('verweigert fehlendes Recht',async()=>{m.permission.mockReturnValue(denied());expect((await call(postPreisfestlegung,input)).status).toBe(403);});
+  it.each([{body:null},{body:[]},...[
+    {verkaufId:42},{verkaufId:'bad'},{positionsIndex:-1},{positionsIndex:1.5},
+    {einzelpreis:-1},{einzelpreis:'10'},{einzelpreis:Infinity},{einzelpreis:1.001},
+    {zahlung:null},{zahlung:1},{zahlung:[]},{zahlung:{betrag:-1,zahlungsart:'bar'}},
+    {zahlung:{betrag:1,zahlungsart:'karte'}},{zahlung:{betrag:0,zahlungsart:'bar'}}
+  ].map(p=>({body:{...input,...p}}))])('verwirft ungültige Preisfestlegung %j',async({body})=>{
+    expect((await call(postPreisfestlegung,body)).status).toBe(400);expect(m.startSession).not.toHaveBeenCalled();
+  });
+  it('meldet fehlende Bestellung',async()=>{expect((await call(postPreisfestlegung,input)).status).toBe(404);});
+  it.each([
+    [{rechnungId:RID},409],[{positionen:null},404],[{positionen:[]},404],[{status:'storniert'},409],
+    ...[{verkaufsart:'direkt'},{preisOffen:false},{einzelpreis:1},{menge:0},{menge:1.5},{storniertMenge:1},{uebergebenMenge:1}].map(p=>[{positionen:[{...offen,...p}]},409]),
+    [{zahlungen:'bad'},409],[{zahlungen:[null]},409],[{zahlungen:[{betrag:0,zahlungsart:'bar'}]},409],
+    [{zahlungen:[{betrag:1,zahlungsart:'karte'}]},409],[{rabattTotal:1},409]
+  ])('verhindert inkonsistente Preisfestlegung %j',async(patch,status)=>{
+    setup(patch as Record<string,unknown>);expect((await call(postPreisfestlegung,input)).status).toBe(status);
+    expect(m.collections.vereinskleider_verkaeufe.updateOne).not.toHaveBeenCalled();
+  });
+  it('verhindert gleichzeitige Zahlung bei Teilrechnung',async()=>{
+    setup({trancheRechnungIds:[RID]});expect((await call(postPreisfestlegung,{...input,zahlung:{betrag:10,zahlungsart:'bar'}})).status).toBe(409);
+  });
+  it.each([[0,'bezahlt'],[10,'offen']])('fixiert Preis %s ohne Zahlung',async(einzelpreis,status)=>{
+    setup();const r=await response(await call(postPreisfestlegung,{...input,einzelpreis}));
+    expect(r.status).toBe(200);expect(r.body.ergebnis).toMatchObject({einzelpreis,zahlungsstatus:status});
+  });
+  it('erlaubt Preisfestlegung mit bestehender Teilrechnung ohne neue Zahlung',async()=>{
+    setup({trancheRechnungIds:[RID]});expect((await call(postPreisfestlegung,input)).status).toBe(200);
+  });
+  it.each([[0,'preis_offen'],[10,'teilweise_bezahlt']])('behält weitere offene Positionen bei',async(betrag,status)=>{
+    setup({positionen:[offen,{...offen,artikelId:RID}]});
+    const r=await response(await call(postPreisfestlegung,{...input,...(betrag?{zahlung:{betrag,zahlungsart:'twint'}}:{})}));
+    expect(r.status).toBe(200);expect(r.body.ergebnis).toMatchObject({offenePreispositionen:1,zahlungsstatus:status});
+  });
+  it('erkennt konkurrierende Preisänderung',async()=>{
+    setup();m.collections.vereinskleider_verkaeufe.updateOne.mockResolvedValue({modifiedCount:0});
+    expect((await call(postPreisfestlegung,input)).status).toBe(409);
+  });
+  it.each([[Error('Ungültiger Preis'),400],[Error('DB'),500],['DB',500]])('behandelt Transaktionsfehler',async(error,status)=>{
+    m.session.withTransaction.mockRejectedValueOnce(error);expect((await call(postPreisfestlegung,input)).status).toBe(status);expect(m.session.endSession).toHaveBeenCalled();
+  });
+});
