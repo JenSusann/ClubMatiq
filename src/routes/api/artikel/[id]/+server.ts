@@ -612,6 +612,23 @@ export const DELETE: RequestHandler = async ({
 
     try {
       await session.withTransaction(async () => {
+        const aktuell = await db.collection('artikel').findOne({ _id: objektId, vereinId }, { session });
+        if (!aktuell) throw new Error('Artikel konnte nicht gelöscht werden.');
+        const varianten = aktuell.hatGroessen
+          ? await db.collection('artikelvarianten').find({ artikelId, vereinId }, { session }).toArray()
+          : [];
+        const positionen = aktuell.hatGroessen
+          ? varianten.map(v => ({ groesseId: String(v.groesseId), menge: Number(v.menge ?? 0) }))
+          : [{ groesseId: null, menge: Number(aktuell.menge ?? 0) }];
+        for (const position of positionen) {
+          if (position.menge === 0) continue;
+          await protokolliereLagerbewegung({
+            vereinId, artikelId, groesseId: position.groesseId,
+            art: 'korrektur', mengeDelta: -position.menge,
+            benutzerId: locals.benutzer!.id, referenzId: artikelId,
+            referenzTyp: 'artikel-loeschung'
+          }, session);
+        }
         await db
           .collection('artikelvarianten')
           .deleteMany(
