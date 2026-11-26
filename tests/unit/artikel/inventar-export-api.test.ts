@@ -258,7 +258,11 @@ describe('Issue #50 – Dashboard-Kennzahlen', () => {
     m.collections = cols;
     return cols;
   }
-  const laden = (rolle = 'admin') => dashboardLoad({ locals: { benutzer: user(rolle) }, depends: vi.fn() } as never);
+  const laden = async (rolle = 'admin') => {
+    const result = await dashboardLoad({ locals: { benutzer: user(rolle) }, depends: vi.fn() } as never);
+    if (!result) throw new Error('Dashboard liefert keine Daten');
+    return result;
+  };
   it('liefert ohne Anmeldung keine Kennzahlen', async () => {
     expect(await dashboardLoad({ locals: {}, depends: vi.fn() } as never)).toMatchObject({ kennzahlen: null, kennzahlenFehler: null });
   });
