@@ -1,5 +1,7 @@
 
 <script lang="ts">
+  import { verwendeBestaetigung } from '../../../lib/bestaetigung';
+  const bestaetigen = verwendeBestaetigung();
   type Kategorie = {
     _id: string;
     name: string;
@@ -105,8 +107,8 @@
 
   // Kategorie löschen
   async function kategorieLoeschen(kategorie: Kategorie) {
-    const bestaetigt = confirm(
-      `Möchtest du die Kategorie "${kategorie.name}" wirklich löschen?`
+    const bestaetigt = await bestaetigen(
+      `Möchtest du die Kategorie "${kategorie.name}" wirklich löschen?`, 'Löschen', true
     );
 
     if (!bestaetigt) return;
