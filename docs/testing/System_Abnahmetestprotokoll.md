@@ -40,8 +40,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #22 | Bestandskonsistenz | 10/10 | Screenshot |
 | #71 | ClubDesk-Gruppenzuordnung und Riegenverwaltung | 20/20 | Screenshot und Einzelbestätigung 25.11.2026 |
 | #34 | Vereinskleider und Erstbezüge | 20/20 | Einzelbestätigung 25.11.2026 |
-| #35 | Inventarbewertung (Teilabnahme) | 26/26 | Einzelbestätigung, Nachprüfung und Stichtagsfilter |
-| Gesamt | Quantifizierte manuelle Prüfungen | 124/124 | Dokumentierte Durchläufe |
+| #35 | Inventarbewertung (Teilabnahme) | 27/27 | Einzelbestätigung, Stichtagsfilter und Netlify-Funktionstest |
+| Gesamt | Quantifizierte manuelle Prüfungen | 125/125 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -285,13 +285,21 @@ Implementierung: Commit [5ab1618](https://github.com/JenSusann/ClubMatiq/commit/
 | ST-35-18 | Historische Aufnahme exportieren | Ursprüngliche Bewertungsdaten bleiben erhalten | Bestanden |
 | ST-35-19 | Bei aktivem Filter eine neue Aufnahme erstellen | Neue Aufnahme wird angezeigt | Bestanden |
 
-**Gesamtergebnis #35:** 26/26 dokumentierte manuelle Testfälle bestanden (21 bisherige und 5 zusätzliche). Automatische Aufnahmen bleiben offen.
+#### Automatische Bewertungsaufnahme (26.11.2026)
 
-**Teilabnahme:** Aktuelle Bewertung und manuell gespeicherte Bewertungsaufnahmen erfolgreich geprüft. Automatische Aufnahmen und frei wählbare historische Stichtage nicht umgesetzt oder abgenommen. Issue #35 bleibt offen.
+| ID | Aufgabe | Erwartung | Ergebnis |
+|---|---|---|---|
+| ST-35-20 | Netlify-Funktion manuell auslösen und Bewertungsübersicht kontrollieren | Neue Aufnahme sichtbar | Bestanden gemäss Bestätigung der Entwicklerin |
+
+Netlify erkannte den Zeitplan `55 21,22 * * *`; Screenshot zeigt einen Funktionsaufruf ohne sichtbaren Fehler. Die Entwicklerin bestätigt eine neue Aufnahme. Die Zuordnung zum konkreten Aufruf ist nicht unabhängig verifiziert; der Aufruf ausserhalb des vorgesehenen Schweizer Zeitfensters steht im Widerspruch zur Zeitprüfung im Code. Reguläre zeitgesteuerte Ausführung um 23:55 Uhr bleibt separat zu bestätigen.
+
+Automatisierte Nachweise: lokaler TypeScript-Check und erweiterte Integrationstests erfolgreich gemäss Entwicklerin; [CI-Lauf 45736896601](https://github.com/JenSusann/ClubMatiq/actions/runs/45736896601) erfolgreich inklusive kombiniertem Quality Gate. Netlify-Deployment erfolgreich gemäss Entwicklerin.
+
+**Gesamtergebnis #35:** 27/27 dokumentierte manuelle Testfälle gemäss Bestätigungen bestanden. Historische Auswertung nur für tatsächlich gespeicherte Aufnahmen; keine rückwirkende Rekonstruktion. Jahresendaufnahme geplant um 23:55 Uhr, nicht exakt Mitternacht. Regulärer Zeitlauf noch nicht nachgewiesen.
 
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 124 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 125 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
