@@ -691,11 +691,6 @@
     color: #991b1b;
   }
 
-  .erfolg {
-    background: #dcfce7;
-    color: #166534;
-  }
-
   .groessen-auswahl {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
