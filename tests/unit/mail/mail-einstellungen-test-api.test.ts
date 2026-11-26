@@ -96,6 +96,7 @@ describe('SMTP-Testversand: Berechtigungen, Isolation und Versand', () => {
       const antwort = await POST(kontext());
       expect(antwort.status).toBe(502);
       expect(JSON.stringify(await antwort.json())).not.toContain('sensitive-token');
+      expect(JSON.stringify(log.mock.calls)).not.toContain('sensitive-token');
     } finally {
       log.mockRestore();
     }
