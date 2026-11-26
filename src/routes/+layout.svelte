@@ -2,11 +2,38 @@
   import favicon from '#lib/assets/favicon.svg';
   import { page } from '$app/state';
   import { goto, invalidateAll } from '$app/navigation';
-  import { onMount, type Snippet } from 'svelte';
+  import { onMount, tick, type Snippet } from 'svelte';
+  import { setzeBestaetigung } from '../lib/bestaetigung';
   import { erstelleRollenVorschau, type Rolle } from '../lib/rollenVorschau.svelte';
 
   let { children, data }: { children: Snippet; data: { benutzer: App.Locals['benutzer']; sessionFristen?: { absolut: number; inaktiv: number } } } = $props();
   const rollenVorschau = erstelleRollenVorschau();
+  let bestaetigungsDialog: HTMLDialogElement;
+  let anfrage = $state<{ text: string; aktion: string; kritisch: boolean } | null>(null);
+  let antwort: ((wert: boolean) => void) | null = null;
+  function abschliessen(wert: boolean) {
+    const resolve = antwort;
+    antwort = null;
+    anfrage = null;
+    if (bestaetigungsDialog?.open) bestaetigungsDialog.close();
+    resolve?.(wert);
+  }
+  setzeBestaetigung((text, aktion = 'Bestätigen', kritisch = false) => {
+    if (antwort) return Promise.resolve(false);
+    return new Promise<boolean>((resolve) => {
+      antwort = resolve;
+      anfrage = { text, aktion, kritisch };
+      void tick().then(() => {
+        if (!antwort) return;
+        try { bestaetigungsDialog.showModal(); }
+        catch { abschliessen(false); }
+      });
+    });
+  });
+  $effect(() => {
+    const pfad = page.url.pathname;
+    return () => { if (antwort) abschliessen(false); };
+  });
   let wirdAbgemeldet = $state(false);
   let logoutFehler = $state('');
   const rollenNamen: Record<Rolle, string> = {
@@ -143,6 +170,16 @@
     </div>
   </footer>
 </div>
+<dialog bind:this={bestaetigungsDialog} class="bestaetigungs-dialog" aria-labelledby="bestaetigung-titel" oncancel={(e) => { e.preventDefault(); abschliessen(false); }} onclose={() => { if (antwort) abschliessen(false); }}>
+  {#if anfrage}
+    <h2 id="bestaetigung-titel">Aktion bestätigen</h2>
+    <p>{anfrage.text}</p>
+    <div class="bestaetigungs-aktionen">
+      <button type="button" onclick={() => abschliessen(false)}>Abbrechen</button>
+      <button type="button" class="primaer" class:kritisch={anfrage.kritisch} onclick={() => abschliessen(true)}>{anfrage.aktion}</button>
+    </div>
+  {/if}
+</dialog>
 {#if warnung}
   <div class="session-overlay">
     <div class="session-dialog" role="alertdialog" aria-modal="true" aria-labelledby="session-titel">
@@ -155,6 +192,8 @@
   </div>
 {/if}
 <style>
+.bestaetigungs-dialog{width:min(460px,calc(100% - 32px));max-height:85dvh;overflow:auto;border:0;border-radius:14px;padding:24px;color:#172b4d;box-shadow:0 12px 40px #0003}.bestaetigungs-dialog::backdrop{background:#172b4d88}.bestaetigungs-dialog h2{margin:0 0 14px;font-size:20px}.bestaetigungs-dialog p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}.bestaetigungs-aktionen{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:24px}.bestaetigungs-aktionen button{padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;background:white;cursor:pointer}.bestaetigungs-aktionen .primaer{background:#172b4d;color:white;border-color:#172b4d}.bestaetigungs-aktionen .kritisch{background:#b91c1c;border-color:#b91c1c}
+
 .session-overlay{position:fixed;inset:0;background:#172b4d88;display:grid;place-items:center;z-index:1000;padding:16px}.session-dialog{background:white;border-radius:14px;padding:24px;width:min(440px,100%);box-shadow:0 12px 40px #0003}.session-countdown{text-align:center;font-size:36px;font-weight:700;font-variant-numeric:tabular-nums;margin:20px}.session-aktionen{display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap}.session-aktionen button{padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;background:white;cursor:pointer}.session-aktionen .session-weiter{background:#2563eb;color:white;border-color:#2563eb}
 
  :global(body){margin:0;font-family:Arial,sans-serif;background:#f8fafc;color:#1e293b}:global(*){box-sizing:border-box}.app{min-height:100vh;display:flex;flex-direction:column}header{background:#172b4d;color:white;padding:17px 40px;display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:white}.brand-name{font-size:23px;font-weight:800}.logo{font-size:28px}.header-rechts,.public-links{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.public-links a,.hilfe-link{color:#cbd5e1;text-decoration:none;font-size:14px}.public-links a:hover,.hilfe-link:hover{color:white}.public-links .login{background:#2563eb;color:white;border-radius:9px;padding:11px 15px;font-weight:700}.rollenwechsel{display:flex;flex-direction:column;gap:5px}.rollenwechsel label{color:#cbd5e1;font-size:11px}.rollenwechsel select{background:#334155;color:white;border:1px solid #64748b;border-radius:8px;padding:8px}.benutzer-info{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.benutzer-name{font-size:14px;font-weight:600}.benutzer-rolle{font-size:12px;color:#cbd5e1}.logout-button{background:transparent;color:white;border:1px solid #64748b;border-radius:8px;padding:10px 14px;cursor:pointer}.logout-fehler{background:#fef2f2;color:#b91c1c;padding:12px 40px}.vorschau-banner{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 40px;background:#dbeafe;color:#1e40af;font-size:13px}.vorschau-banner button{background:#2563eb;color:white;border:0;border-radius:8px;padding:9px 13px;cursor:pointer}nav{display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:13px 40px;background:white;border-bottom:1px solid #e2e8f0}nav a{text-decoration:none;color:#475569;padding:10px 12px;border-radius:8px;font-size:14px}nav a:hover{background:#f1f5f9}nav a.active{background:#dbeafe;color:#1d4ed8}.content{flex:1;padding:20px}.auth-content{padding:48px 20px}footer{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:24px 40px;border-top:1px solid #e2e8f0;background:white;color:#64748b;font-size:13px}footer div{display:flex;gap:20px}footer a{color:#475569;text-decoration:none}@media(max-width:900px){header{padding:16px 20px;flex-wrap:wrap}.header-rechts{gap:12px}.public-links{gap:12px}nav{padding:12px 20px}.content{padding:10px}.auth-content{padding:24px 12px}footer{padding:20px}.vorschau-banner{padding:12px 20px}}
