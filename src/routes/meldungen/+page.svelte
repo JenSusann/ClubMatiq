@@ -1,5 +1,6 @@
 
 <script lang="ts">
+  import Aktionsmeldung from '../../lib/Aktionsmeldung.svelte';
   import { onMount } from 'svelte';
   import { page } from '$app/state';
   import { verwendeRollenVorschau } from '../../lib/rollenVorschau.svelte';
@@ -343,6 +344,7 @@
     }
   }
 </script>
+<Aktionsmeldung fehler={fehlermeldung} erfolg={erfolgsmeldung} fehlerSchliessen={() => fehlermeldung = ''} erfolgSchliessen={() => erfolgsmeldung = ''} />
 
 <svelte:head>
   <title>Schadensmeldungen – ClubMatiq</title>
@@ -364,13 +366,13 @@
   </div>
 
   {#if fehlermeldung}
-    <p class="meldung fehler" role="alert">
+    <p class="meldung fehler" >
       {fehlermeldung}
     </p>
   {/if}
 
   {#if erfolgsmeldung}
-    <p class="meldung erfolg" role="status">
+    <p class="meldung erfolg" >
       {erfolgsmeldung}
     </p>
   {/if}
