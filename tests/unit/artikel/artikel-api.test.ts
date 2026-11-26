@@ -93,6 +93,14 @@ beforeEach(() => {
 });
 
 describe('ClubMatiq Inventarverwaltung', () => {
+  it('speichert Variante ohne bekannten Einzelwert', async () => {
+    const response = await POST(kontext(admin, { ...gueltigerArtikel(), hatGroessen: true,
+      varianten: [{ groesseId, menge: 2, einzelwert: null, mindestbestand: 0 }] }));
+    expect(response.status).toBe(201);
+    expect(mocks.insertMany).toHaveBeenCalledWith([expect.objectContaining({ groesseId, einzelwert: null })], expect.anything());
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ groesseId, mengeDelta: 2 }), expect.anything());
+  });
+
 
   it('legt Nullbestand ohne Journalbuchung an', async () => {
     expect((await POST(kontext(admin, { ...gueltigerArtikel(), menge: 0 }))).status).toBe(201);
@@ -100,9 +108,11 @@ describe('ClubMatiq Inventarverwaltung', () => {
   });
   it('verhindert Überlauf der Variantensumme', async () => {
     const zweiteGroesse = new ObjectId().toString();
+    mocks.countDocuments.mockResolvedValueOnce(2);
     const response = await POST(kontext(admin, { ...gueltigerArtikel(), hatGroessen: true,
       varianten: [groesseId, zweiteGroesse].map(groesseId => ({ groesseId, menge: Number.MAX_SAFE_INTEGER, einzelwert: 1, mindestbestand: 0 })) }));
     expect(response.status).toBe(400);
+    expect((await response.json()).fehler).toBe('Ungültige Gesamtmenge.');
     expect(mocks.insertOne).not.toHaveBeenCalled();
   });
   it('meldet Journalfehler und beendet die Session', async () => {
