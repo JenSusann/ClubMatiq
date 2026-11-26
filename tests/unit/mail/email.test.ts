@@ -20,3 +20,72 @@ describe('Resend-Einladungsmail', () => {
   it.each([null, {}, { id: 123 }, { id: null }, 'invalid'])('weist fehlende Versand-ID zurück %#', async (result) => { globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => result }) as any; await expect(versendeEinladung(daten)).rejects.toThrow('Versand-ID'); });
   it('reicht Netzwerkfehler weiter', async () => { globalThis.fetch = vi.fn().mockRejectedValue(new Error('network')) as any; await expect(versendeEinladung(daten)).rejects.toThrow('network'); });
 });
+
+import { ObjectId } from 'mongodb';
+import { verschluesseln, entschluesseln, ladeMailKonfiguration } from '../../../src/lib/server/mail-einstellungen';
+const mailMocks = vi.hoisted(() => ({findOne:vi.fn(),sendMail:vi.fn(),createTransport:vi.fn(),m365:vi.fn()}));
+vi.mock('../../../src/lib/server/mongodb',()=>({db:{collection:()=>({findOne:mailMocks.findOne})}}));
+vi.mock('nodemailer',()=>({default:{createTransport:mailMocks.createTransport}}));
+vi.mock('../../../src/lib/server/microsoft365',()=>({versendeMicrosoft365Mail:mailMocks.m365}));
+
+describe('Vereinsbezogene Mail-Konfiguration und Versand',()=>{
+  const vereinId='507f1f77bcf86cd799439011';
+  beforeEach(()=>{
+    vi.stubEnv('MAIL_ENCRYPTION_KEY','ab'.repeat(32));
+    mailMocks.findOne.mockReset().mockResolvedValue(null);
+    mailMocks.sendMail.mockReset().mockResolvedValue({messageId:'smtp-id'});
+    mailMocks.createTransport.mockReset().mockReturnValue({sendMail:mailMocks.sendMail});
+    mailMocks.m365.mockReset().mockResolvedValue(undefined);
+  });
+  afterEach(()=>vi.unstubAllEnvs());
+  it('verschlüsselt und entschlüsselt mit zufälligem IV',()=>{
+    const a=verschluesseln('Testgeheimnis');
+    const b=verschluesseln('Testgeheimnis');
+    expect(a).not.toBe(b);
+    expect(entschluesseln(a)).toBe('Testgeheimnis');
+    expect(entschluesseln(b)).toBe('Testgeheimnis');
+  });
+  it.each(['','abc','zz'.repeat(32)])('verweigert ungültigen Schlüssel',key=>{
+    vi.stubEnv('MAIL_ENCRYPTION_KEY',key);
+    expect(()=>verschluesseln('test')).toThrow('MAIL_ENCRYPTION_KEY');
+  });
+  it.each(['','a','a.b','a..c'])('verweigert ungültiges Geheimnis',wert=>{
+    expect(()=>entschluesseln(wert)).toThrow();
+  });
+  it('verweigert Entschlüsselung mit falschem Schlüssel',()=>{
+    const wert=verschluesseln('test');
+    vi.stubEnv('MAIL_ENCRYPTION_KEY','cd'.repeat(32));
+    expect(()=>entschluesseln(wert)).toThrow();
+  });
+  it.each([null,{}, {mailEinstellungen:{methode:'unbekannt'}}])('verwendet Resend als Standard',async verein=>{
+    mailMocks.findOne.mockResolvedValue(verein);
+    expect(await ladeMailKonfiguration(vereinId)).toEqual({methode:'resend'});
+    expect(mailMocks.findOne).toHaveBeenCalledWith({_id:new ObjectId(vereinId)});
+  });
+  it.each([true,false])('versendet SMTP mit secure=%s',async secure=>{
+    mailMocks.findOne.mockResolvedValue({mailEinstellungen:{methode:'smtp',smtp:{host:'smtp.example.ch',port:587,secure,benutzername:'user',absender:'mail@example.ch',geheimnis:verschluesseln('pw')}}});
+    expect(await versendeEinladung({...daten,vereinId})).toEqual({id:'smtp-id'});
+    expect(mailMocks.createTransport).toHaveBeenCalledWith(expect.objectContaining({secure,requireTLS:!secure,auth:{user:'user',pass:'pw'}}));
+    expect(mailMocks.sendMail).toHaveBeenCalledWith(expect.objectContaining({to:daten.email,from:'mail@example.ch'}));
+  });
+  it.each([undefined,{}])('verweigert unvollständiges SMTP',async smtp=>{
+    mailMocks.findOne.mockResolvedValue({mailEinstellungen:{methode:'smtp',smtp}});
+    await expect(versendeEinladung({...daten,vereinId})).rejects.toThrow('SMTP-Konfiguration');
+    expect(mailMocks.createTransport).not.toHaveBeenCalled();
+  });
+  it('versendet über vereinsbezogenes Microsoft 365',async()=>{
+    const microsoft365={tenantId:'tenant',clientId:'client',absender:'mail@example.ch'};
+    mailMocks.findOne.mockResolvedValue({mailEinstellungen:{methode:'microsoft365',microsoft365}});
+    expect((await versendeEinladung({...daten,vereinId})).id).toMatch(/^m365-/);
+    expect(mailMocks.m365).toHaveBeenCalledWith(microsoft365,expect.objectContaining({an:daten.email,html:expect.any(String)}));
+  });
+  it('verweigert unvollständiges Microsoft 365',async()=>{
+    mailMocks.findOne.mockResolvedValue({mailEinstellungen:{methode:'microsoft365'}});
+    await expect(versendeEinladung({...daten,vereinId})).rejects.toThrow('Microsoft-365-Konfiguration');
+    expect(mailMocks.m365).not.toHaveBeenCalled();
+  });
+  it('versendet über Resend bei fehlender Vereinskonfiguration',async()=>{
+    globalThis.fetch=vi.fn().mockResolvedValue({ok:true,json:async()=>({id:'resend-id'})}) as any;
+    expect(await versendeEinladung({...daten,vereinId})).toEqual({id:'resend-id'});
+  });
+});
