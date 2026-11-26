@@ -44,8 +44,8 @@ describe('Artikelbearbeitung zusätzliche Fälle',()=>{
  it('DELETE Artikel fehlt',async()=>{expect((await DELETE(ctx('DELETE'))).status).toBe(404)});
  it('DELETE durch Ausleihe blockiert',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id)}).mockResolvedValueOnce({_id:new ObjectId()});expect((await DELETE(ctx('DELETE'))).status).toBe(409)});
  it('DELETE durch Meldung blockiert',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id)}).mockResolvedValueOnce(null).mockResolvedValueOnce({_id:new ObjectId()});expect((await DELETE(ctx('DELETE'))).status).toBe(409)});
- it('DELETE erfolgreich',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id)});expect((await DELETE(ctx('DELETE'))).status).toBe(200);expect(m.deleteMany).toHaveBeenCalled();expect(m.endSession).toHaveBeenCalled()});
- it('DELETE fehlgeschlagene Löschung',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id)});m.deleteOne.mockResolvedValueOnce({deletedCount:0});expect((await DELETE(ctx('DELETE'))).status).toBe(500)});
+ it('DELETE erfolgreich',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id)}).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce({_id:new ObjectId(id)});expect((await DELETE(ctx('DELETE'))).status).toBe(200);expect(m.deleteMany).toHaveBeenCalled();expect(m.endSession).toHaveBeenCalled()});
+ it('DELETE fehlgeschlagene Löschung',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id)}).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce({_id:new ObjectId(id)});m.deleteOne.mockResolvedValueOnce({deletedCount:0});expect((await DELETE(ctx('DELETE'))).status).toBe(500)});
 });
 });
 
@@ -179,7 +179,7 @@ describe('23-artikel-delete-ausleihe', () => {
 // Ursprüngliche Datei: 23-artikel-delete-erfolg.integration.test.ts
 describe('23-artikel-delete-erfolg', () => {
   it('Artikel und Varianten werden gelöscht', async () => {
-    m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false });
+    m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false }).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false });
     const response = await route1.DELETE(event('DELETE', undefined) as never);
     expect(response.status).toBe(200);
     expect(m.deleteMany).toHaveBeenCalledOnce();
@@ -192,7 +192,7 @@ describe('23-artikel-delete-erfolg', () => {
 // Ursprüngliche Datei: 23-artikel-delete-fehler.integration.test.ts
 describe('23-artikel-delete-fehler', () => {
   it('Fehlgeschlagenes Löschen liefert Fehler', async () => {
-    m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false });
+    m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false }).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false });
     m.deleteOne.mockResolvedValueOnce({ deletedCount: 0 });
     const response = await route2.DELETE(event('DELETE', undefined) as never);
     expect(response.status).toBe(500);
