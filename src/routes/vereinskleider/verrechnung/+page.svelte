@@ -462,8 +462,8 @@
     <div class="karte kennzahl"><span>Rückerstattungen offen</span><strong>{chf(rueckerstattungenSumme)}</strong></div>
   </div>
 
-  {#if fehler}<p class="meldung fehler" >{fehler}</p>{/if}
-  {#if erfolg}<p class="meldung erfolg" >{erfolg}</p>{/if}
+  
+  
   {#if begrenzt}<p class="meldung hinweis">Es werden maximal 1000 Vorgänge beziehungsweise Rechnungen geladen.</p>{/if}
   {#if gutschriftenBegrenzt}<p class="meldung hinweis">Es werden maximal 1000 Gutschriften angezeigt.</p>{/if}
 
@@ -726,7 +726,7 @@
   button:disabled { opacity: .55; cursor: not-allowed; }
   .meldung { padding: 12px 16px; border-radius: 8px; }
   .fehler { background: #fef2f2; color: #b91c1c; }
-  .erfolg { background: #f0fdf4; color: #166534; }
+
   .leer { padding: 15px 0; color: #64748b; }
   .tabellenbereich { width: 100%; overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 14px; }
