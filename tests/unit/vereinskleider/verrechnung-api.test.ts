@@ -79,3 +79,26 @@ describe('Zahlungseingang PATCH',()=>{
 });
 
 });
+
+
+import { GET as ExportRechnungen } from '../../../src/routes/api/vereinskleider/verrechnung/export/+server';
+describe('Rechnungsabgleich – CSV und Finanzkonsistenz',()=>{
+ const invoice={_id:id,rechnungsnummer:'R1',verkaufId:id,erstelltAm:'2026-11-26',empfaenger:'Muster "A"',status:'bezahlt',gesamtbetrag:100};
+ const call=()=>ExportRechnungen({locals:user} as never);
+ function rows(data:unknown[]){
+  const limit=vi.fn(()=>({toArray:async()=>data}));const sort=vi.fn(()=>({limit}));
+  m.collection('vereinskleider_rechnungen').find.mockReturnValue({sort});return {limit,sort};
+ }
+ it('verweigert fehlende Berechtigung',async()=>{m.permission.mockReturnValue(new Response(null,{status:403}));expect((await call()).status).toBe(403);});
+ it('begrenzt Export auf 10000 Rechnungen',async()=>{const {limit}=rows(Array(10001).fill(invoice));expect((await call()).status).toBe(409);expect(limit).toHaveBeenCalledWith(10001);});
+ it.each([{gesamtbetrag:'100'},{gesamtbetrag:NaN},{gesamtbetrag:-1},{gesamtbetrag:0.001},{gesamtbetrag:Number.MAX_SAFE_INTEGER},{gutgeschriebenBetrag:101},{bezahltBetrag:101},{erstelltAm:'bad'},{rueckerstattungOffen:1}])('verweigert inkonsistente Rechnung %j',async patch=>{rows([{...invoice,...patch}]);expect((await call()).status).toBe(500);});
+ it('exportiert Teilrechnung mit Rückerstattung und Buchungsreferenz',async()=>{
+  const {sort,limit}=rows([{...invoice,rechnungstranche:true,gutgeschriebenBetrag:30,bezahltBetrag:100,rueckerstattungOffen:10,clubdeskVerbuchung:{datum:'2026-11-26',referenz:'B1',erfasstVonName:'Ada'}}]);
+  const r=await call();expect(r.status).toBe(200);expect(r.headers.get('cache-control')).toBe('no-store');
+  expect(await r.text()).toContain('"100,00";"30,00";"70,00";"100,00";"0,00";"10,00";"20,00";"Ja";"2026-11-26";"B1";"Ada"');
+  expect(m.collection('vereinskleider_rechnungen').find).toHaveBeenCalledWith({vereinId:'verein-1'});expect(sort).toHaveBeenCalledWith({erstelltAm:-1});expect(limit).toHaveBeenCalledWith(10001);
+ });
+ it('berechnet offene Rückerstattung bei fehlendem historischem Feld',async()=>{rows([{...invoice,gutgeschriebenBetrag:30,bezahltBetrag:100}]);expect(await (await call()).text()).toContain('"70,00";"100,00";"0,00";"30,00";"0,00";"Nein"');});
+ it('maskiert Empfänger und fehlende optionale Felder',async()=>{rows([invoice,{...invoice,empfaenger:null,status:undefined}]);const r=await call();expect(r.status).toBe(200);expect(await r.text()).toContain('"Muster ""A"""');});
+ it('meldet Datenbankfehler',async()=>{m.collection('vereinskleider_rechnungen').find.mockImplementation(()=>{throw Error('DB');});expect((await call()).status).toBe(500);});
+});
