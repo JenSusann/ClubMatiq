@@ -56,6 +56,7 @@
     positionen?: Position[];
     rabatte?: Rabatt[];
     rechnung?: Rechnung | null;
+    rechnungen?: Rechnung[];
     uebergaben?: Array<{ positionsIndex: number; menge: number }>;
     retouren?: Array<{ positionsIndex: number; menge: number; grund: string; wiederverkaufbar: boolean; datum: string; betrag: number }>;
     stornierungen?: Array<{ menge?: number; grund?: string; datum?: string; erstelltAm?: string; storniertAm?: string }>;
@@ -340,9 +341,17 @@
                   <div class="details">
                     <div class="detailkopf">
                       <h2>Verkaufsdetails</h2>
-                      {#if v.rechnung?._id}
-                        <a href={`/api/vereinskleider/verrechnung/${v.rechnung._id}/pdf`} target="_blank" rel="noopener noreferrer">Rechnung / Quittung als PDF</a>
-                      {/if}
+                    </div>
+                    <div class="belege">
+                      <h3>Rechnungen und Gutschriften</h3>
+                      {#each v.rechnungen ?? (v.rechnung ? [v.rechnung] : []) as rechnung (rechnung._id)}
+                        <p><a href={`/api/vereinskleider/verrechnung/${rechnung._id}/pdf`} target="_blank" rel="noopener noreferrer">Rechnung / Quittung {rechnung.rechnungsnummer ?? ''} als PDF</a></p>
+                        {#each gutschriftenZu(rechnung._id) as g (g._id)}
+                          <p><a href={`/api/vereinskleider/verrechnung/${rechnung._id}/pdf?gutschriftId=${g._id}`} target="_blank" rel="noopener noreferrer">Gutschrift {g.gutschriftnummer} als PDF</a> · {chf(g.betrag)}</p>
+                        {/each}
+                      {:else}
+                        <p>Noch kein Rechnungs- oder Zahlungsbeleg erstellt.</p>
+                      {/each}
                     </div>
                     <p><strong>Verkaufs-ID:</strong> {v._id} · <strong>Bestellstatus:</strong> {v.status || '–'} · <strong>Zahlungsart:</strong> {v.zahlungsart || '–'}</p>
                     <div class="positionen">
