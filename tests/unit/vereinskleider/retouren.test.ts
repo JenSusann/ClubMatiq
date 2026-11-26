@@ -111,12 +111,12 @@ describe('Vereinskleider – Abgleich, Export und Retourenhistorie',()=>{
   });
   it('begrenzt Exportmenge',async()=>{m.toArray.mockResolvedValue(Array(10001).fill(g));expect((await Export(event())).status).toBe(409);});
   it.each([42,'bad'])('verweigert ungültige Rechnungsreferenz',async rechnungId=>{m.toArray.mockResolvedValueOnce([{...g,rechnungId}]);expect((await Export(event())).status).toBe(409);});
-  it.each([[],[{...invoice,rechnungsnummer:'falsch'}]])('verweigert uneindeutige Rechnungszuordnung',async invoices=>{m.toArray.mockResolvedValueOnce([g]).mockResolvedValueOnce(invoices);expect((await Export(event())).status).toBe(409);});
+  it.each([{invoices:[]},{invoices:[{...invoice,rechnungsnummer:'falsch'}]}])('verweigert uneindeutige Rechnungszuordnung',async ({invoices})=>{m.toArray.mockResolvedValueOnce([g]).mockResolvedValueOnce(invoices);expect((await Export(event())).status).toBe(409);});
   it.each(['48',NaN,-1,Number.MAX_SAFE_INTEGER,1.001])('verweigert ungültigen Betrag',async betrag=>{m.toArray.mockResolvedValueOnce([{...g,betrag}]).mockResolvedValueOnce([invoice]);expect((await Export(event())).status).toBe(500);});
   it.each([{rueckerstattetBetrag:49},{erstelltAm:'bad'}])('verweigert inkonsistente Gutschrift',async patch=>{m.toArray.mockResolvedValueOnce([{...g,...patch}]).mockResolvedValueOnce([invoice]);expect((await Export(event())).status).toBe(409);});
   it('meldet Export-Datenbankfehler',async()=>{m.toArray.mockRejectedValue(new Error('db'));expect((await Export(event())).status).toBe(500);});
   it.each(['0','-1','1.5','abc','9007199254740992'])('verweigert ungültige Seite',async seite=>{expect((await Historie(event({},'seite='+seite))).status).toBe(400);expect(m.aggregate).not.toHaveBeenCalled();});
-  it.each([[],[{}],[{anzahl:[],daten:[]}]])('liefert leere Historie',async result=>{m.toArray.mockResolvedValue(result);expect(await (await Historie(event())).json()).toEqual({retouren:[],seite:1,seiten:1,total:0});});
+  it.each([{result:[]},{result:[{}]},{result:[{anzahl:[],daten:[]}]}])('liefert leere Historie',async ({result})=>{m.toArray.mockResolvedValue(result);expect(await (await Historie(event())).json()).toEqual({retouren:[],seite:1,seiten:1,total:0});});
   it('paginiert vereinsbezogene Retouren',async()=>{
     m.toArray.mockResolvedValue([{daten:[{menge:1}],anzahl:[{total:51}]}]);
     expect(await (await Historie(event({},'seite=2'))).json()).toEqual({retouren:[{menge:1}],seite:2,seiten:3,total:51});
