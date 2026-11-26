@@ -56,7 +56,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #70 | Gutschriften und Rückerstattungen inkl. #121 | 30/30 | Einzelbestätigung 26.11.2026 |
 | #50 | Dashboard | 17/17 | Sammelbestätigung 26.11.2026 |
 | #51 | Lagerbewegungsjournal | 21/21 | Sammelbestätigung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 420/420 | Dokumentierte Durchläufe |
+| #65 | Übergabe letztes Lagerstück | 10/10 | Sammelbestätigung |
+| Gesamt | Quantifizierte manuelle Prüfungen | 430/430 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -802,3 +803,20 @@ CI [45829003597](https://github.com/JenSusann/ClubMatiq/actions/runs/45829003597
 | ST-51-21 | Grössenvarianten ohne doppelte Rückbuchungsprotokollierung | Bestanden |
 
 21/21 gemäss Sammelbestätigung. CI [45904070874](https://github.com/JenSusann/ClubMatiq/actions/runs/45904070874) erfolgreich. Echter MongoDB-Rollback-Test d67b3e6 erfolgreich (CI 45898570106). Produktive Indizes, historische Artikelbezeichnungen nach Löschung und vollständiger Nachweis sämtlicher Schreibpfade bleiben offen.
+
+## Manuelle Abnahme #65
+
+| ID | Prüfung | Ergebnis |
+|---|---|---|
+| ST-65-01 | Bestand 0 | Bestanden |
+| ST-65-02 | Wareneingang 1 Stück | Bestanden |
+| ST-65-03 | Letztes Stück übergeben | Bestanden |
+| ST-65-04 | Bestand 0 nach Übergabe | Bestanden |
+| ST-65-05 | Übergabehistorie | Bestanden |
+| ST-65-06 | Lagerjournal +1/-1 | Bestanden |
+| ST-65-07 | Fremdreservierung geschützt | Bestanden |
+| ST-65-08 | Teilübergabe | Bestanden |
+| ST-65-09 | Grössenvariante | Bestanden |
+| ST-65-10 | Erneute Übergabe gesperrt | Bestanden |
+
+10/10 gemäss Sammelbestätigung. CI [45905839420](https://github.com/JenSusann/ClubMatiq/actions/runs/45905839420) erfolgreich; drei echte MongoDB-Regressionstests (85e4e4d). Wareneingang bis Übergabe manuell geprüft, automatisiert mit vorbereitetem Bestand. Separater Rollback- und Vereinsisolationsnachweis für diesen Ablauf nicht ergänzt.
