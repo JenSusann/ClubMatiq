@@ -820,3 +820,7 @@ CI [45829003597](https://github.com/JenSusann/ClubMatiq/actions/runs/45829003597
 | ST-65-10 | Erneute Übergabe gesperrt | Bestanden |
 
 10/10 gemäss Sammelbestätigung. CI [45905839420](https://github.com/JenSusann/ClubMatiq/actions/runs/45905839420) erfolgreich; drei echte MongoDB-Regressionstests (85e4e4d). Wareneingang bis Übergabe manuell geprüft, automatisiert mit vorbereitetem Bestand. Separater Rollback- und Vereinsisolationsnachweis für diesen Ablauf nicht ergänzt.
+
+### Technischer Abschluss #65
+
+CI [45906588822](https://github.com/JenSusann/ClubMatiq/actions/runs/45906588822) erfolgreich. Vollständige Wareneingang-Übergabe-Kette, Vereinsisolation und echter MongoDB-Rollback bei simuliertem Journalfehler nachgewiesen (c785a50). Unit-Grenzfälle Bestand 0 und 1 ergänzt (43a7dff); Teilübergabe und Fremdreservierungen bereits in bestehender Suite. 10/10 manuelle Tests, kumuliert 430/430. Abschluss bereit.
