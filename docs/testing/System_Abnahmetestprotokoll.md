@@ -808,6 +808,10 @@ CI [45829003597](https://github.com/JenSusann/ClubMatiq/actions/runs/45829003597
 
 Historische Artikel-, Grössen- und Benutzernamen werden bei neuen Journalbewegungen gespeichert. Anzeige und Excel-Export wurden angepasst; bestehende Einträge nutzen weiterhin die bisherige Namensauflösung. MongoDB-Integrationstest für Umbenennung und Löschung ergänzt. CI nach Fixture-Korrekturen (letzter Commit b45cf75) gemäss Rückmeldung der Entwicklerin erfolgreich. Inventurkorrektur und Inventurstornierung verwenden den Journalhelper innerhalb derselben Transaktion. Für die produktiven Indizes liegt noch kein Nachweis vor.
 
+### Schlussprüfung der Bestandsänderungen #51
+
+Quellcodeabgleich der regulären Bestandsänderungen inklusive Retouren und Bestellungsübergabe durchgeführt. Artikellöschung als zusätzlicher Schreibpfad transaktional angebunden (b788ea2). Vier Unit-Regressionstests (184eacb) und ein echter MongoDB-Integrationstest (2c71b44) ergänzt; CI gemäss Rückmeldung der Entwicklerin erfolgreich. Indexskript scripts/lagerjournal-indizes.mjs (21991f5) vorhanden; produktive Ausführung und Verifikation ausstehend. Keine zusätzliche manuelle Browser-Abnahme behauptet.
+
 ## Manuelle Abnahme #65
 
 | ID | Prüfung | Ergebnis |
