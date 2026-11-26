@@ -529,6 +529,8 @@ beforeEach(() => {
   mocks.countDocuments.mockResolvedValue(1);
   mocks.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
   mocks.insertMany.mockResolvedValue({ acknowledged: true });
+  mocks.withTransaction.mockImplementation(async (fn: () => Promise<unknown>) => fn());
+  mocks.startSession.mockReturnValue({ withTransaction: mocks.withTransaction, endSession: mocks.endSession });
   mocks.deleteMany.mockResolvedValue({ deletedCount: 0 });
   mocks.deleteOne.mockResolvedValue({ deletedCount: 1 });
   mocks.find.mockReturnValue({ sort: () => ({ toArray: async () => [] }) });
