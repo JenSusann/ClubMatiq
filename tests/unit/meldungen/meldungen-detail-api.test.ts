@@ -32,7 +32,7 @@ describe('Schadensmeldung bearbeiten',()=>{
   it.each(['offen','in_bearbeitung','erledigt'])('speichert Status %s nur im eigenen Verein',async status=>{
     const col=setup();const r=await PATCH(patch({status,bearbeitungsnotiz:'  Geprüft  '},'materialverantwortlich'));
     expect(r.status).toBe(200);expect(col.updateOne.mock.calls[0][0].vereinId).toBe('v1');
-    expect(col.updateOne.mock.calls[0][1].$set).toMatchObject({status,bearbeitungsnotiz:'Geprüft',bearbeitetVonId:'u1',bearbeitetVonName:'Anna Muster'});
+    expect(col.updateOne.mock.calls[0][1][0].$set).toMatchObject({status:{$literal:status},bearbeitungsnotiz:{$literal:'Geprüft'},bearbeitetVonId:{$literal:'u1'},bearbeitetVonName:{$literal:'Anna Muster'}});
   });
   it('liefert 404 bei fremder Meldung',async()=>{const col=setup();col.updateOne.mockResolvedValue({matchedCount:0});expect((await PATCH(patch({status:'erledigt',bearbeitungsnotiz:''}))).status).toBe(404)});
   it('liefert 500 bei Datenbankfehler',async()=>{const col=setup();col.updateOne.mockRejectedValue(Error('db'));expect((await PATCH(patch({status:'erledigt',bearbeitungsnotiz:''}))).status).toBe(500)});
@@ -65,9 +65,9 @@ describe('Schadensmeldung bearbeiten – Funktions- und Fehlerpfade', () => {
     updateOne.mockResolvedValue({ matchedCount: 1 });
     const res = await runRandfall({ status, bearbeitungsnotiz: '  Geprüft  ' });
     expect(res.status).toBe(200);
-    expect(updateOne).toHaveBeenCalledWith(expect.objectContaining({ vereinId: 'verein-a' }), expect.objectContaining({
-      $set: expect.objectContaining({ status, bearbeitungsnotiz: 'Geprüft', bearbeitetVonName: 'Test Person' })
-    }));
+    expect(updateOne).toHaveBeenCalledWith(expect.objectContaining({ vereinId: 'verein-a' }), [expect.objectContaining({
+      $set: expect.objectContaining({ status: {$literal: status}, bearbeitungsnotiz: {$literal: 'Geprüft'}, bearbeitetVonName: {$literal: 'Test Person'} })
+    })]);
   });
   it('weist ungültige Statuswerte zurück', async () => {
     expect((await runRandfall({ status: 'gelöscht', bearbeitungsnotiz: '' })).status).toBe(400);
@@ -83,4 +83,14 @@ describe('Schadensmeldung bearbeiten – Funktions- und Fehlerpfade', () => {
     updateOne.mockRejectedValue(new Error('Datenbank nicht erreichbar'));
     expect((await runRandfall({ status: 'offen', bearbeitungsnotiz: '' })).status).toBe(500);
   });
+});
+
+it('protokolliert den bisherigen Status und schützt Notizen mit Dollarzeichen als Literal', async () => {
+  const col = setup();
+  expect((await PATCH(patch({status:'erledigt',bearbeitungsnotiz:'$status'}))).status).toBe(200);
+  const set = col.updateOne.mock.calls[0][1][0].$set;
+  expect(set.bearbeitungsverlauf.$concatArrays).toEqual([
+    {$ifNull:['$bearbeitungsverlauf',[]]},
+    [expect.objectContaining({datum:'$$NOW',alterStatus:'$status',neuerStatus:{$literal:'erledigt'},notiz:{$literal:'$status'},bearbeitetVonId:{$literal:'u1'}})]
+  ]);
 });
