@@ -760,3 +760,7 @@ CI [45829003597](https://github.com/JenSusann/ClubMatiq/actions/runs/45829003597
 | ST-50-17 | Leerzustand | Bestanden |
 
 17/17 gemäss Entwicklerin bestanden. Kumuliert 399/399. Commits a4b9d81, 61159fa, c404cd0. Automatisierter Abschlussnachweis folgt.
+
+
+## Technischer Abschluss – 26.11.2026
+17/17 manuelle Tests gemäss Entwicklerin bestanden. Neun zusätzliche Dashboard-Unit-Tests in tests/unit/artikel/inventar-export-api.test.ts (a762908, Typkorrektur 95804d5). CI [45864599244](https://github.com/JenSusann/ClubMatiq/actions/runs/45864599244) erfolgreich; Combined Coverage 98.18 / 95.00 / 96.22 / 98.88 %. Dashboard-Page-Server liegt ausserhalb des bisherigen Coverage-Include; die Tests laufen dennoch. Bestellmenge enthält bereits den Stornoabzug. Fehlerzustand automatisiert mit Mock geprüft, Aktualisierungszustand im UI vorhanden. Abschluss bereit.
