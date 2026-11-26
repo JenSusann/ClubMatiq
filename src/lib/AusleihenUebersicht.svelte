@@ -266,17 +266,9 @@
     </button>
   </div>
 
-  {#if fehlermeldung}
-    <p class="fehlermeldung">
-      {fehlermeldung}
-    </p>
-  {/if}
+  
 
-  {#if erfolgsmeldung}
-    <p class="erfolgsmeldung">
-      {erfolgsmeldung}
-    </p>
-  {/if}
+  
 
   {#if wirdGeladen}
     <p>Ausleihen werden geladen ...</p>
@@ -696,14 +688,6 @@
     margin-bottom: 15px;
     background: #fee2e2;
     color: #991b1b;
-    border-radius: 8px;
-  }
-
-  .erfolgsmeldung {
-    padding: 12px;
-    margin-bottom: 15px;
-    background: #dcfce7;
-    color: #166534;
     border-radius: 8px;
   }
 
