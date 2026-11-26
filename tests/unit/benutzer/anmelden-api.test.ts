@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const m = vi.hoisted(() => ({
-  findOne: vi.fn(), insertOne: vi.fn(), deleteOne: vi.fn(), updateOne: vi.fn(), createIndex: vi.fn(),
+  findOne: vi.fn(), insertOne: vi.fn(), deleteOne: vi.fn(), deleteMany: vi.fn(), updateOne: vi.fn(), createIndex: vi.fn(),
   hash: vi.fn(), verify: vi.fn(), withTransaction: vi.fn(), endSession: vi.fn(),
   set: vi.fn(), get: vi.fn(), del: vi.fn()
 }));
 vi.mock('../../../src/lib/server/mongodb', () => ({
-  db: { collection: vi.fn(() => ({findOne:m.findOne, insertOne:m.insertOne, deleteOne:m.deleteOne, updateOne:m.updateOne, createIndex:m.createIndex})) },
-  client: { startSession: () => ({withTransaction:m.withTransaction, endSession:m.endSession}) }
+  db: { collection: vi.fn(() => ({findOne:m.findOne, insertOne:m.insertOne, deleteOne:m.deleteOne, deleteMany:m.deleteMany, updateOne:m.updateOne, createIndex:m.createIndex})) },
+  client: { withSession: async (cb: (session: { withTransaction: typeof m.withTransaction }) => Promise<unknown>) => cb({ withTransaction: m.withTransaction }), startSession: () => ({withTransaction:m.withTransaction, endSession:m.endSession}) }
 }));
 vi.mock('argon2', () => ({ hash:m.hash, verify:m.verify, argon2id:2 }));
 const id='507f1f77bcf86cd799439011';
@@ -15,7 +15,7 @@ const cookies={get:m.get,set:m.set,delete:m.del};
 const request=(data:unknown)=>new Request('http://localhost/api/test',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)});
 beforeEach(()=>{
   vi.clearAllMocks();m.findOne.mockResolvedValue(null);m.insertOne.mockResolvedValue({insertedId:{toString:()=>id}});
-  m.updateOne.mockResolvedValue({modifiedCount:1});m.deleteOne.mockResolvedValue({deletedCount:1});
+  m.updateOne.mockResolvedValue({modifiedCount:1});m.deleteOne.mockResolvedValue({deletedCount:1});m.deleteMany.mockResolvedValue({deletedCount:1});
   m.createIndex.mockResolvedValue('email_1');m.hash.mockResolvedValue('argon-hash');m.verify.mockResolvedValue(true);m.endSession.mockResolvedValue(undefined);
   m.withTransaction.mockImplementation(async (cb:()=>Promise<void>)=>cb());
 });
@@ -136,7 +136,8 @@ import { ObjectId } from 'mongodb';
 describe('Passwort ändern', () => {
   const benutzer = { id, vereinId: id2 };
   const daten = { bisher: 'AltesPasswort123!', neu: 'NeuesPasswort456!' };
-  const runPasswort = (data: unknown = daten, locals: object = { benutzer }) =>
+  const sessionId = '507f1f77bcf86cd799439013';
+  const runPasswort = (data: unknown = daten, locals: object = { benutzer, sessionId }) =>
     POSTPasswort({ request: request(data), locals } as any);
 
   beforeEach(() => {
@@ -154,8 +155,14 @@ describe('Passwort ändern', () => {
     expect(m.findOne).not.toHaveBeenCalled();
   });
 
+  it.each([null, undefined, 'ungueltig'])('verweigert fehlende oder ungültige Session-ID: %s', async sessionId => {
+    expect((await runPasswort(daten, { benutzer, sessionId })).status).toBe(401);
+    expect(m.findOne).not.toHaveBeenCalled();
+    expect(m.deleteMany).not.toHaveBeenCalled();
+  });
+
   it('weist fehlerhaftes JSON ab', async () => {
-    const r = await POSTPasswort({ locals: { benutzer }, request: new Request('http://localhost', { method: 'POST', body: '{' }) } as any);
+    const r = await POSTPasswort({ locals: { benutzer, sessionId }, request: new Request('http://localhost', { method: 'POST', body: '{' }) } as any);
     expect(r.status).toBe(400);
     expect(m.findOne).not.toHaveBeenCalled();
   });
@@ -194,15 +201,18 @@ describe('Passwort ändern', () => {
     expect(m.hash).toHaveBeenCalledWith(neu, { type: 2 });
     expect(m.updateOne).toHaveBeenCalledWith({ ...filter, passwortHash: 'alter-hash' }, {
       $set: { passwortHash: 'argon-hash', passwortwechselErforderlich: false, passwortGeaendertAm: expect.any(Date) }
-    });
+    }, { session: expect.any(Object) });
+    expect(m.deleteMany).toHaveBeenCalledWith({ benutzerId: id, _id: { $ne: new ObjectId(sessionId) } }, { session: expect.any(Object) });
+    expect(m.withTransaction).toHaveBeenCalledTimes(1);
   });
 
   it('meldet konkurrierende Passwortänderung', async () => {
     m.updateOne.mockResolvedValue({ matchedCount: 0 });
     expect((await runPasswort()).status).toBe(409);
+    expect(m.deleteMany).not.toHaveBeenCalled();
   });
 
-  it.each(['findOne', 'verify', 'hash', 'updateOne'] as const)('behandelt Fehler in %s', async method => {
+  it.each(['findOne', 'verify', 'hash', 'updateOne', 'deleteMany'] as const)('behandelt Fehler in %s', async method => {
     m[method].mockRejectedValueOnce(new Error('Testfehler'));
     expect((await runPasswort()).status).toBe(500);
   });
