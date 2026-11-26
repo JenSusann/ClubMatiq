@@ -358,7 +358,7 @@
   .regel { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-top: 1px solid #e2e8f0; align-items: center; }
   .meta { font-size: 13px; margin-top: 6px; }
 
-  .fehler, .warnung { background: #fef2f2; color: #991b1b; }
+  .warnung { background: #fef2f2; color: #991b1b; }
 
   .hinweis { font-size: 13px; line-height: 1.5; }
   @media (max-width: 650px) { .felder { grid-template-columns: 1fr; } .breit { grid-column: auto; } .karte { padding: 16px; } .regel { align-items: flex-start; } }
