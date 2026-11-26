@@ -164,3 +164,40 @@ beforeEach(() => {
   expect(ops[0].updateOne.update.$set.clubdeskGruppen).toEqual(['Gruppe A (TurnerIn)', 'Gruppe B (TurnerIn)']);
   expect(ops[0].updateOne.update.$set).not.toHaveProperty('erstbezugsRabattIds');
 });
+
+describe('Mitglieder – Riegenfilter und Importdetails (#38)',()=>{
+ const rows=[{...member(1),riegen:['Aktive'],erstbezugsRabattIds:['r1']},{...member(2),riegen:[]},member(3),{...member(4),clubdeskGruppen:['Unbekannt'],clubdeskHauptgruppe:'Unbekannt',clubdeskGruppendetails:[{gruppe:'Unbekannt',funktion:null}]}];
+ const get=(query:string)=>GET({locals,url:new URL('http://localhost/?'+query)} as never);
+ beforeEach(()=>{
+  m.collection.find.mockImplementation((filter:Record<string,unknown>)=>({sort:()=>({limit:()=>({toArray:async()=>rows})}),toArray:async()=>filter.aktiv?[{_id:'r1',name:'Aktive',bereich:'aktive',aktiv:true}]:[]}));
+ });
+ it.each([['riege=Aktive',['1']],['riege=__ohne',['2','3','4']],['riege=Unbekannt',[]],['details=1&bereich=aktive',['1']],['details=1&bereich=juko',[]]])('filtert %s',async(query,ids)=>{
+  expect((await (await get(query as string)).json()).map((x:any)=>x.clubdeskId)).toEqual(ids);
+ });
+ it('liefert optionale Felder und berechnete Bereiche',async()=>{
+  const data=await (await get('details=1')).json();
+  expect(data[0]).toMatchObject({bereiche:['aktive'],erstbezugsRabattIds:['r1']});
+  expect(data[2]).not.toHaveProperty('riegen');
+  expect(data[3]).toMatchObject({riegen:[],clubdeskGruppen:['Unbekannt'],clubdeskHauptgruppe:'Unbekannt',clubdeskGruppendetails:[{gruppe:'Unbekannt',funktion:null}],bereiche:[]});
+ });
+ it('importiert Gruppen und Riegen ohne Duplikate',async()=>{
+  const r=await post(upload('[Id];Vorname;Nachname;Gruppen;Riegen\n1;Anna;Muster;A, A, B (Leitung), ;X|X|Y\n1;Anna;Muster;C;Y|Z'));
+  expect(r.status).toBe(200);
+  expect(m.collection.bulkWrite.mock.calls[0][0][0].updateOne.update.$set).toMatchObject({clubdeskGruppen:['A','B (Leitung)','C'],clubdeskGruppendetails:[{gruppe:'A',funktion:null},{gruppe:'B',funktion:'Leitung'},{gruppe:'C',funktion:null}],riegen:['X','Y','Z']});
+ });
+ it('berechnet Riegen bei vollständigen ClubDesk-Gruppenspalten',async()=>{
+  const r=await post(upload('[Id];Vorname;Nachname;Gruppe;Gruppen\n1;Anna;Muster;A;A\n1;Anna;Muster;B;B'));
+  expect(r.status).toBe(200);
+  expect(m.collection.bulkWrite.mock.calls[0][0][0].updateOne.update.$set).toMatchObject({clubdeskHauptgruppe:'B',clubdeskGruppen:['A','B'],riegen:[]});
+ });
+ it('akzeptiert einzelne Namen und fehlende optionale Spaltenwerte',async()=>{
+  const r=await post(upload('[Id];Vorname;Nachname;Ort\r1;Anna;\r\r2;;Muster'));
+  expect(r.status).toBe(200);
+  const ops=m.collection.bulkWrite.mock.calls[0][0];
+  expect(ops[0].updateOne.update.$set).toMatchObject({vorname:'Anna',nachname:'',ort:''});
+  expect(ops[1].updateOne.update.$set).toMatchObject({vorname:'',nachname:'Muster',ort:''});
+ });
+ it('verweigert fehlenden Content-Type',async()=>{
+  await messageZusatz(POST({locals,request:{headers:new Headers()}} as never),400,'CSV-Datei');
+ });
+});
