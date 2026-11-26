@@ -40,8 +40,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #22 | Bestandskonsistenz | 10/10 | Screenshot |
 | #71 | ClubDesk-Gruppenzuordnung und Riegenverwaltung | 20/20 | Screenshot und Einzelbestätigung 25.11.2026 |
 | #34 | Vereinskleider und Erstbezüge | 20/20 | Einzelbestätigung 25.11.2026 |
-| #35 | Inventarbewertung (Teilabnahme) | 21/21 | Einzelbestätigung und Nachprüfung |
-| Gesamt | Quantifizierte manuelle Prüfungen | 119/119 | Dokumentierte Durchläufe |
+| #35 | Inventarbewertung (Teilabnahme) | 26/26 | Einzelbestätigung, Nachprüfung und Stichtagsfilter |
+| Gesamt | Quantifizierte manuelle Prüfungen | 124/124 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -273,11 +273,25 @@ ST-35-04: Die Erfassungsmaske setzte fehlende Einzelwerte automatisch auf CHF 0.
 
 **Automatisierte Nachweise:** Drei neue MongoDB-Integrationstests (f97af77) ohne Fehler gemeldet. Weiterer Regressionstest für explizite Nullwerte (114f82b) ergänzt, Ausführung noch nicht bestätigt. Erwarteter Gesamtumfang 2’588 Tests; kein abschliessender Konsolenauszug. Direkte POST/PATCH-Regressionstests noch offen.
 
+#### Nachprüfung Stichtagsfilter (26.11.2026)
+
+Implementierung: Commit [5ab1618](https://github.com/JenSusann/ClubMatiq/commit/5ab1618a523ebb17740851f077e7db91f93311ac). Ergebnis gemäss Sammelbestätigung der Entwicklerin: alle fünf Fälle bestanden.
+
+| ID | Aufgabe | Erwartung | Ergebnis |
+|---|---|---|---|
+| ST-35-15 | Datum mit vorhandener Aufnahme auswählen | Passende Aufnahmen erscheinen | Bestanden |
+| ST-35-16 | Datum ohne Aufnahme auswählen | Entsprechender Hinweis erscheint | Bestanden |
+| ST-35-17 | Datumsfilter entfernen | Alle Aufnahmen erscheinen | Bestanden |
+| ST-35-18 | Historische Aufnahme exportieren | Ursprüngliche Bewertungsdaten bleiben erhalten | Bestanden |
+| ST-35-19 | Bei aktivem Filter eine neue Aufnahme erstellen | Neue Aufnahme wird angezeigt | Bestanden |
+
+**Gesamtergebnis #35:** 26/26 dokumentierte manuelle Testfälle bestanden (21 bisherige und 5 zusätzliche). Automatische Aufnahmen bleiben offen.
+
 **Teilabnahme:** Aktuelle Bewertung und manuell gespeicherte Bewertungsaufnahmen erfolgreich geprüft. Automatische Aufnahmen und frei wählbare historische Stichtage nicht umgesetzt oder abgenommen. Issue #35 bleibt offen.
 
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 119 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 124 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
