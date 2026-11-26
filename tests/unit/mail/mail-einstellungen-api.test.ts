@@ -172,3 +172,60 @@ describe('E-Mail-Einstellungen API', () => {
   });
 
 });
+
+describe('E-Mail-Einstellungen – zusätzliche Validierungen', () => {
+  const smtp = {host:'smtp.example.ch',port:587,secure:false,benutzername:'user',absender:'user@example.ch',passwort:'pw'};
+  const microsoft365 = {tenantId:'f7cf9dfa-5f0d-429c-9b64-c4c7a5d66a75',clientId:'e7cd00c1-cd5d-4d3f-8a35-6324ddb026a8',absender:'mail@verein.ch'};
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mocks.pruefeBerechtigung.mockReturnValue(null);
+    mocks.findOne.mockResolvedValue(null);
+    mocks.updateOne.mockResolvedValue({matchedCount:1});
+    mocks.verschluesseln.mockReturnValue('encrypted');
+  });
+  it('liefert Standardwerte ohne Konfiguration', async () => {
+    expect(await (await GET(kontext('GET'))).json()).toEqual({methode:'resend',smtp:null,microsoft365:null});
+  });
+  it('blockiert PUT ohne Berechtigung', async () => {
+    mocks.pruefeBerechtigung.mockReturnValue(new Response(null,{status:403}));
+    expect((await PUT(kontext('PUT',{methode:'resend'}))).status).toBe(403);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it.each([null,[],42,'text',{}, {methode:'falsch'}])('weist ungültige Konfiguration ab', async data => {
+    expect((await PUT(kontext('PUT',data))).status).toBe(400);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it.each(['smtp','microsoft365'])('weist fehlende oder ungültige %s Details ab', async methode => {
+    for (const details of [null,[],42]) {
+      expect((await PUT(kontext('PUT',{methode,[methode]:details}))).status).toBe(400);
+    }
+  });
+  it.each([
+    {host:42},{host:'.example.ch'},{host:'example.ch.'},{port:1.5},{port:0},{port:65536},
+    {secure:42},{benutzername:42},{benutzername:'x'.repeat(255)},{absender:42},{absender:'invalid'}
+  ])('weist ungültige SMTP-Felder ab', async patch => {
+    expect((await PUT(kontext('PUT',{methode:'smtp',smtp:{...smtp,...patch}}))).status).toBe(400);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('verlangt ein SMTP-Passwort ohne gespeichertes Geheimnis', async () => {
+    expect((await PUT(kontext('PUT',{methode:'smtp',smtp:{...smtp,passwort:42}}))).status).toBe(400);
+  });
+  it('behandelt SMTP-Verschlüsselungsfehler', async () => {
+    mocks.verschluesseln.mockImplementationOnce(()=>{throw new Error('key');});
+    expect((await PUT(kontext('PUT',{methode:'smtp',smtp}))).status).toBe(500);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it.each([{tenantId:42},{clientId:42},{absender:42},{zertifikatPem:'x'.repeat(20001)},{privaterSchluesselPem:'x'.repeat(20001)}])('weist ungültige Microsoft-365-Felder ab', async patch => {
+    expect((await PUT(kontext('PUT',{methode:'microsoft365',microsoft365:{...microsoft365,...patch}}))).status).toBe(400);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('behält Schlüssel bei unveränderter Entra-App', async () => {
+    mocks.findOne.mockResolvedValue({mailEinstellungen:{microsoft365:{...microsoft365,zertifikat:'cert',privaterSchluessel:'key'}}});
+    expect((await PUT(kontext('PUT',{methode:'microsoft365',microsoft365}))).status).toBe(200);
+    expect(mocks.updateOne.mock.calls[0][1].$set.mailEinstellungen.microsoft365).toEqual({...microsoft365,zertifikat:'cert',privaterSchluessel:'key'});
+  });
+  it.each([new Error('db'),'db'])('behandelt Microsoft-365-Datenbankfehler', async error => {
+    mocks.findOne.mockRejectedValueOnce(error);
+    expect((await PUT(kontext('PUT',{methode:'microsoft365',microsoft365}))).status).toBe(500);
+  });
+});
