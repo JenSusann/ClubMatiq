@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
   import { onMount } from 'svelte';
   type Position = { verkaufsart?: string; menge?: number; artikelname?: string; groesseId?: string | null; einzelpreis?: number };
   type Retoure = { positionsIndex: number; menge: number; grund: string; datum: string; betrag: number; wiederverkaufbar: boolean };
@@ -135,13 +136,15 @@
   });
 </script>
 
+<Aktionsmeldung fehler={fehler} erfolg={erfolg} fehlerSchliessen={() => fehler = ''} erfolgSchliessen={() => erfolg = ''} />
+
 <svelte:head><title>Retouren | ClubMatiq</title></svelte:head>
 <main>
   <a href="/vereinskleider" class="zurueck">← Zurück zu Vereinskleider</a>
   <h1>Retouren</h1>
   <p class="untertitel">Übergebene Vereinskleider zurücknehmen, Gutschriften erstellen und Retouren nachvollziehen.</p>
-  {#if fehler}<p class="meldung fehler" role="alert">{fehler}</p>{/if}
-  {#if erfolg}<p class="meldung" role="status">{erfolg}</p>{/if}
+  {#if fehler}<p class="meldung fehler" >{fehler}</p>{/if}
+  {#if erfolg}<p class="meldung" >{erfolg}</p>{/if}
   <section class="karte">
     <h2>Neue Retoure erfassen</h2>
     <label>Mitglied oder Artikel suchen
