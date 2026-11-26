@@ -1,5 +1,6 @@
 
 <script lang="ts">
+  import Aktionsmeldung from '../../lib/Aktionsmeldung.svelte';
   import { onMount } from 'svelte';
 
   type Inventur = {
@@ -134,6 +135,7 @@
     void datenLaden();
   });
 </script>
+<Aktionsmeldung fehler={fehler} erfolg={erfolg} fehlerSchliessen={() => fehler = ''} erfolgSchliessen={() => erfolg = ''} />
 
 <svelte:head>
   <title>Inventur | ClubMatiq</title>
