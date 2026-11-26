@@ -802,7 +802,11 @@ CI [45829003597](https://github.com/JenSusann/ClubMatiq/actions/runs/45829003597
 | ST-51-20 | Offene Inventur ohne Journalbewegung stornieren | Bestanden |
 | ST-51-21 | Grössenvarianten ohne doppelte Rückbuchungsprotokollierung | Bestanden |
 
-21/21 gemäss Sammelbestätigung. CI [45904070874](https://github.com/JenSusann/ClubMatiq/actions/runs/45904070874) erfolgreich. Echter MongoDB-Rollback-Test d67b3e6 erfolgreich (CI 45898570106). Produktive Indizes, historische Artikelbezeichnungen nach Löschung und vollständiger Nachweis sämtlicher Schreibpfade bleiben offen.
+21/21 gemäss Sammelbestätigung. CI [45904070874](https://github.com/JenSusann/ClubMatiq/actions/runs/45904070874) erfolgreich. Echter MongoDB-Rollback-Test d67b3e6 erfolgreich (CI 45898570106). Produktive Indizes und vollständiger Nachweis sämtlicher Schreibpfade bleiben offen.
+
+### Ergänzender technischer Nachweis #51
+
+Historische Artikel-, Grössen- und Benutzernamen werden bei neuen Journalbewegungen gespeichert. Anzeige und Excel-Export wurden angepasst; bestehende Einträge nutzen weiterhin die bisherige Namensauflösung. MongoDB-Integrationstest für Umbenennung und Löschung ergänzt. CI nach Fixture-Korrekturen (letzter Commit b45cf75) gemäss Rückmeldung der Entwicklerin erfolgreich. Inventurkorrektur und Inventurstornierung verwenden den Journalhelper innerhalb derselben Transaktion. Für die produktiven Indizes liegt noch kein Nachweis vor.
 
 ## Manuelle Abnahme #65
 
