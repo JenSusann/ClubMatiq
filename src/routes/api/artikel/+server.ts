@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
-import { db } from '../../../lib/server/mongodb';
+import { db, client } from '../../../lib/server/mongodb';
+import { protokolliereLagerbewegung } from '../../../lib/server/lagerbewegungen';
 import { pruefeBerechtigung } from '../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
@@ -110,7 +111,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     for (const variante of varianten) {
       if (!variante || typeof variante !== 'object' || Array.isArray(variante) ||
           typeof variante.groesseId !== 'string' || !ObjectId.isValid(variante.groesseId) ||
-          typeof variante.menge !== 'number' || !Number.isInteger(variante.menge) || variante.menge < 0 ||
+          typeof variante.menge !== 'number' || !Number.isSafeInteger(variante.menge) || variante.menge < 0 ||
           (variante.einzelwert !== null && (typeof variante.einzelwert !== 'number' || !Number.isFinite(variante.einzelwert) || variante.einzelwert < 0)) ||
           typeof variante.mindestbestand !== 'number' || !Number.isSafeInteger(variante.mindestbestand) || variante.mindestbestand < 0) {
         return json({ fehler: 'Ungültige Grössenbestände oder Einzelwerte.' }, { status: 400 });
@@ -124,7 +125,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     }
     gesamtmenge = gepruefteVarianten.reduce((summe, variante) => summe + variante.menge, 0);
   } else {
-    if (typeof menge !== 'number' || !Number.isInteger(menge) || menge < 0) {
+    if (typeof menge !== 'number' || !Number.isSafeInteger(menge) || menge < 0) {
       return json({ fehler: 'Bitte eine gültige Menge eingeben.' }, { status: 400 });
     }
     gesamtmenge = menge;
@@ -162,6 +163,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     // ========================================
     // Hauptartikel speichern
     // ========================================
+    if (!Number.isSafeInteger(gesamtmenge)) return json({ fehler: 'Ungültige Gesamtmenge.' }, { status: 400 });
+    const session = client.startSession();
+    try {
+      const artikelId = await session.withTransaction(async () => {
     const ergebnis = await db.collection('artikel').insertOne({
       vereinId,
       name: name.trim(),
@@ -175,33 +180,29 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       hatGroessen,
       istVereinskleidung: istVereinskleidung === true,
       erstelltAm: new Date()
-    });
+    }, { session });
 
-    // ========================================
-    // Grössenvarianten speichern
-    // ========================================
-    if (hatGroessen) {
-      try {
-        await db.collection('artikelvarianten').insertMany(
-          gepruefteVarianten.map((variante) => ({
-            vereinId,
-            artikelId: ergebnis.insertedId.toString(),
-            groesseId: variante.groesseId,
-            menge: variante.menge,
-            mindestbestand: variante.mindestbestand,
-            einzelwert: variante.einzelwert
-          }))
-        );
-      } catch (error) {
-        await db.collection('artikelvarianten').deleteMany({
-          artikelId: ergebnis.insertedId.toString(), vereinId
-        });
-        await db.collection('artikel').deleteOne({ _id: ergebnis.insertedId, vereinId });
-        throw error;
-      }
+
+        const id = ergebnis.insertedId.toString();
+        if (hatGroessen) {
+          await db.collection('artikelvarianten').insertMany(
+            gepruefteVarianten.map(v => ({ vereinId, artikelId: id, ...v })), { session }
+          );
+        }
+        for (const v of hatGroessen ? gepruefteVarianten : [{ groesseId: null, menge: gesamtmenge }]) {
+          if (v.menge === 0) continue;
+          await protokolliereLagerbewegung({
+            vereinId, artikelId: id, groesseId: v.groesseId, art: 'anlage',
+            mengeDelta: v.menge, benutzerId: locals.benutzer!.id,
+            referenzId: id, referenzTyp: 'artikel'
+          }, session);
+        }
+        return id;
+      });
+      return json({ erfolg: true, artikelId, gesamtmenge }, { status: 201 });
+    } finally {
+      await session.endSession();
     }
-
-    return json({ erfolg: true, artikelId: ergebnis.insertedId.toString(), gesamtmenge }, { status: 201 });
   } catch (error) {
     console.error('Fehler beim Speichern:', error);
     return json({ fehler: 'Inventarartikel konnte nicht gespeichert werden.' }, { status: 500 });
