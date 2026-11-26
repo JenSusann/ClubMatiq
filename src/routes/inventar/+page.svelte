@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Aktionsmeldung from '../../lib/Aktionsmeldung.svelte';
   import { verwendeBestaetigung } from '../../lib/bestaetigung';
   const bestaetigen = verwendeBestaetigung();
   import { onMount } from 'svelte';
@@ -51,6 +52,7 @@
   let ausgeklappteArtikel = $state<string[]>([]);
   let wirdGeladen = $state(true);
   let fehlermeldung = $state('');
+  let erfolgsmeldung = $state('');
   let wirdGeloescht = $state<string | null>(null);
 
   const exportUrl = $derived('/api/export/inventar?' + new URLSearchParams({
@@ -100,12 +102,14 @@
     if (!bestaetigt) return;
     wirdGeloescht = a._id;
     fehlermeldung = '';
+    erfolgsmeldung = '';
     try {
       const antwort = await fetch(`/api/artikel/${a._id}`, { method: 'DELETE' });
       const daten = await antwort.json();
       if (!antwort.ok) throw new Error(daten.fehler || 'Artikel konnte nicht gelöscht werden.');
       artikel = artikel.filter((eintrag) => eintrag._id !== a._id);
       ausgeklappteArtikel = ausgeklappteArtikel.filter((id) => id !== a._id);
+      erfolgsmeldung = `Artikel «${a.name}» gelöscht.`;
     } catch (error) {
       fehlermeldung = error instanceof Error ? error.message : 'Löschen fehlgeschlagen.';
     } finally {
@@ -121,6 +125,7 @@
       : `Artikel "${a.name}" wieder aktivieren?`, archivieren ? 'Archivieren' : 'Aktivieren'))) return;
     wirdGeloescht = a._id;
     fehlermeldung = '';
+    erfolgsmeldung = '';
     try {
       const antwort = await fetch(`/api/artikel/${a._id}/archiv`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -131,13 +136,15 @@
       artikel = artikel.map((eintrag) => eintrag._id === a._id
         ? { ...eintrag, archiviert: archivieren, archiviertAm: archivieren ? new Date().toISOString() : null }
         : eintrag);
+      erfolgsmeldung = `Artikel «${a.name}» ${archivieren ? 'archiviert' : 'aktiviert'}.`;
+      await artikelLaden(false);
     } catch (error) {
       fehlermeldung = error instanceof Error ? error.message : 'Archivierung fehlgeschlagen.';
     } finally { wirdGeloescht = null; }
   }
 
-  async function artikelLaden() {
-    wirdGeladen = true;
+  async function artikelLaden(initial = true) {
+    if (initial) wirdGeladen = true;
     fehlermeldung = '';
     try {
       const antwort = await fetch('/api/inventar-uebersicht');
@@ -175,6 +182,7 @@
     artikelLaden();
   });
 </script>
+<Aktionsmeldung fehler={fehlermeldung} erfolg={erfolgsmeldung} fehlerSchliessen={() => fehlermeldung = ''} erfolgSchliessen={() => erfolgsmeldung = ''} />
 
 <svelte:head><title>Inventarverwaltung – ClubMatiq</title></svelte:head>
 
@@ -188,7 +196,7 @@
   </div>
 
   {#if fehlermeldung}
-    <p class="meldung fehler" role="alert">{fehlermeldung}</p>
+    <p class="meldung fehler" >{fehlermeldung}</p>
   {/if}
 
   {#if wirdGeladen}
