@@ -14,7 +14,7 @@
 | Aktuelle App | https://clubmatiq.netlify.app |
 | Getestete Version | **Noch ergänzen:** URL der separat deployten Testversion und Commit/Tag. Dokumentationsbasis: [`9f2e7bc`](https://github.com/JenSusann/ClubMatiq/commit/9f2e7bc816b91b1f3878c4c269f2403f143fc4f9), 17.11.2026; dies ist **kein Nachweis einer getesteten Version**. |
 | Testzugänge | **Noch ergänzen:** Bereitstellungsweg für eigens angelegte Testkonten je Rolle; keine Passwörter im öffentlichen Repository |
-| Figma / Referenz-Mockup | **Noch ergänzen:** direkter Link zum Referenz-Mockup |
+| Referenz-Mockup (PowerPoint) | [Interaktives Mockup](docs/konzeption/ClubMatiq_Mockup.pptx) · [Design- und Workflow-Dokumentation](docs/konzeption/ui-prototyping.pdf) |
 | Weitere Artefakte [Optional] | [Crazy 8s](docs/images/crazy8s.png) · [User Journey Map](docs/images/user-journey.png) · [GitHub Issues](https://github.com/JenSusann/ClubMatiq/issues) |
 
 > **Zugriff:** Vor der Abgabe sicherstellen, dass die Dozierenden auf Repository, App und verlinkte Artefakte zugreifen können.
@@ -137,7 +137,7 @@ Das Projekt folgt dem phasenorientierten Prototyping-Prozess. Die nachfolgenden 
 
 - **Gewählte Variante & Begründung:** Gewählt wurde eine funktionsorientierte Webanwendung mit einer zentralen Startseite und separaten Bereichen. Das unterstützt unterschiedliche Aufgaben und ermöglicht eine schrittweise Erweiterung. Ein gemeinsamer Artikelbestand dient als Grundlage für Inventar, Ausleihen, Inventur und Vereinskleider.
 - **End-to-End-Ablauf:** Beispiel: Eine Leiterin sucht Material, prüft die Artikeldetails und erfasst eine Ausleihe; bei der Rückgabe wird die Ausleihe aktualisiert. Ein weiterer Ablauf umfasst die Auswahl von Vereinskleidern, die Erfassung einer Bestellung bzw. eines Verkaufs und die spätere Übergabe und Verrechnung. Die frühe [User Journey Map](docs/images/user-journey.png) dokumentiert die Nutzerperspektive; der zweite Ablauf ist eine spätere funktionale Erweiterung.
-- **Mockup:** Link siehe «Figma / Referenz-Mockup» in der [Projektübersicht](#projektübersicht--zugänge). **Noch ergänzen:** Referenz-Mockup und Screenshots mit kurzen Bildbeschreibungen.
+- **Mockup:** Das [interaktive PowerPoint-Mockup](docs/konzeption/ClubMatiq_Mockup.pptx) umfasst 21 Bildschirmansichten. Die [Dokumentation zu Aufgabe 10](docs/konzeption/ui-prototyping.pdf) erläutert Toolauswahl, Designentscheidungen und Workflows. Die Navigation erfolgt im Bildschirmpräsentationsmodus über interne Hyperlinks.
 
 **Nachweis:** [Entscheidungsreflexion, Seite 6](docs/konzeption/sketch-personas-entscheidung.pdf#page=6)
 
@@ -149,6 +149,7 @@ Das Projekt folgt dem phasenorientierten Prototyping-Prozess. Die nachfolgenden 
 
 - **Informationsarchitektur:** Die Startseite dient als Einstieg in die Module. Die Anwendung ist nach Aufgabenbereichen strukturiert: Inventar, QR-Code, Ausleihen, Vereinskleider, Inventur, Inventarbewertung, Meldungen, Materialsuche und Stammdaten. Die Vereinskleiderverwaltung ist zusätzlich in Bestand, Verkauf, Bestellungen, Sammelbestellungen, Verrechnung und Historie gegliedert.
 - **User Interface Design:** Die Benutzeroberfläche nutzt getrennte Listen-, Detail- und Formularseiten. Inventarartikel können über eigene Seiten angelegt, bearbeitet und angezeigt werden. Für Vereinskleider stehen eigene Arbeitsoberflächen für Bestandsverwaltung, Verkauf und Folgeprozesse zur Verfügung. **Noch ergänzen:** echte Screenshots der wichtigsten Ansichten mit kurzen Erläuterungen.
+- **Referenz-Mockup:** PowerPoint wurde anstelle von Figma aufgrund der einfacheren Handhabung gewählt. Die Workflows Artikelerfassung, QR-Code und Vereinskleiderbestellung werden mit statischen Beispieldaten simuliert; eine tatsächliche Datenverarbeitung ist nicht Bestandteil des Mockups. Die manuelle Prüfung der zentralen Workflows ist in [Aufgabe 10](docs/konzeption/ui-prototyping.pdf) dokumentiert.
 - **Designentscheidungen:** Funktionskacheln vereinfachen den Einstieg; separate Detailseiten reduzieren die Komplexität umfangreicher Formulare. Stammdaten werden unabhängig von Bewegungsprozessen gepflegt. Die Vereinskleiderprozesse sind getrennt, damit Bestellungen, Übergaben und Verrechnungen nachvollziehbar bleiben.
 
 #### 3.4.2. Umsetzung (Technik)
@@ -448,7 +449,11 @@ Die entwickelnde Person trägt die Verantwortung für die fachliche Richtigkeit,
 - [Crazy 8s](docs/images/crazy8s.png)
 - [User Journey Map](docs/images/user-journey.png)
 - [GitHub Issues](https://github.com/JenSusann/ClubMatiq/issues)
-- **Noch ergänzen:** Referenz-Mockup, Screenshots des Prototyps, anonymisierte Testprotokolle, Auswertung und ggf. Demonstrationsvideo.
+- [Problemraumanalyse](docs/konzeption/problemraumanalyse.pdf)
+- [Proto-Personas, Skizzen und Entscheidungsreflexion](docs/konzeption/sketch-personas-entscheidung.pdf)
+- [Interaktives Referenz-Mockup (PowerPoint)](docs/konzeption/ClubMatiq_Mockup.pptx)
+- [UI-Prototyping – Aufgabe 10](docs/konzeption/ui-prototyping.pdf)
+- **Noch ergänzen:** Screenshots des implementierten Prototyps, anonymisierte Testprotokolle, Auswertung und ggf. Demonstrationsvideo.
 
 ### Quellen und Urheberrecht
 
