@@ -42,6 +42,7 @@
     status: Meldungsstatus;
     bearbeitungsnotiz: string;
     erstelltAm: string;
+    bearbeitungsverlauf?: { datum: string; alterStatus: Meldungsstatus; neuerStatus: Meldungsstatus; alteNotiz: string; notiz: string; bearbeitetVonName: string }[];
   };
 
   // ========================================
@@ -50,6 +51,8 @@
 
   let artikel = $state<Artikel[]>([]);
   let meldungen = $state<Schadensmeldung[]>([]);
+  let statusFilter = $state('');
+  let gefilterteMeldungen = $derived(meldungen.filter(m => !statusFilter || m.status === statusFilter));
 
   let artikelId = $state('');
   let beschreibung = $state('');
@@ -101,11 +104,11 @@
       if (!antwort.ok) {
         throw new Error(daten.fehler || 'Änderungen konnten nicht gespeichert werden.');
       }
-      meldungen = meldungen.map((eintrag) =>
-        eintrag._id === meldung._id
-          ? { ...eintrag, status: entwurf.status, bearbeitungsnotiz: entwurf.bearbeitungsnotiz.trim() }
-          : eintrag
-      );
+      const aktualisiert = await fetch('/api/meldungen');
+      if (!aktualisiert.ok) throw new Error('Änderungen gespeichert, Übersicht konnte nicht neu geladen werden.');
+      meldungen = await aktualisiert.json();
+      const { [meldung._id]: entfernt, ...rest } = entwuerfe;
+      entwuerfe = rest;
       bearbeitungErfolg = { ...bearbeitungErfolg, [meldung._id]: 'Änderungen gespeichert.' };
     } catch (error) {
       bearbeitungFehler = {
@@ -478,18 +481,27 @@
         <h2>Schadensmeldungen</h2>
 
         <span class="anzahl">
-          {meldungen.length} Meldungen
+          {gefilterteMeldungen.length} von {meldungen.length} Meldungen
         </span>
       </div>
 
-      {#if meldungen.length === 0}
+      <div class="feld">
+        <label for="status-filter">Status filtern</label>
+        <select id="status-filter" bind:value={statusFilter}>
+          <option value="">Alle Status</option>
+          <option value="offen">Offen</option>
+          <option value="in_bearbeitung">In Bearbeitung</option>
+          <option value="erledigt">Erledigt</option>
+        </select>
+      </div>
+      {#if gefilterteMeldungen.length === 0}
         <div class="leer">
           <span>✅</span>
-          <p>Noch keine Schadensmeldungen vorhanden.</p>
+          <p>Keine passenden Schadensmeldungen vorhanden.</p>
         </div>
       {:else}
         <div class="meldungs-liste">
-          {#each meldungen as meldung (meldung._id)}
+          {#each gefilterteMeldungen as meldung (meldung._id)}
             <article class="meldungs-karte">
               <div class="karten-kopf">
                 <div>
@@ -570,6 +582,18 @@
                   <p>{meldung.bearbeitungsnotiz}</p>
                 </div>
               {/if}
+
+              <details class="bearbeitungsnotiz">
+                <summary>Bearbeitungsverlauf ({meldung.bearbeitungsverlauf?.length ?? 0})</summary>
+                {#each meldung.bearbeitungsverlauf ?? [] as schritt}
+                  <p><strong>{formatiereDatum(schritt.datum)} – {schritt.bearbeitetVonName}</strong></p>
+                  <p>{statusNamen[schritt.alterStatus]} → {statusNamen[schritt.neuerStatus]}</p>
+                  {#if schritt.alteNotiz}<p>Vorherige Notiz: {schritt.alteNotiz}</p>{/if}
+                  <p>Neue Notiz: {schritt.notiz || '–'}</p>
+                {:else}
+                  <p>Keine protokollierten Bearbeitungsschritte vorhanden.</p>
+                {/each}
+              </details>
 
               {#if meldung.fotos?.length}
                 <div class="fotos">
