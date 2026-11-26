@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Aktionsmeldung from '../../lib/Aktionsmeldung.svelte';
+  let aufnahmeErfolg = $state('');
   import { onMount } from 'svelte';
 
   type Variante = {
@@ -210,6 +212,8 @@
     historisch = await antwort.json();
   }
   async function aufnahmeAktion(neu: boolean) {
+    if (aufnahmeBusy) return;
+    aufnahmeErfolg = '';
     aufnahmeBusy = true;
     aufnahmeFehler = '';
     try {
@@ -217,6 +221,7 @@
         const antwort = await fetch('/api/inventarbewertung/stichtage', { method: 'POST' });
         if (!antwort.ok) throw new Error('Bewertungsaufnahme konnte nicht gespeichert werden.');
         const daten = await antwort.json();
+        aufnahmeErfolg = 'Bewertungsaufnahme gespeichert.';
         await aufnahmenLaden();
         stichtag = '';
         auswahl = daten._id;
@@ -231,6 +236,7 @@
     aufnahmenLaden().catch(error => { aufnahmeFehler = error.message; });
   });
 </script>
+<Aktionsmeldung fehler={aufnahmeFehler || fehler} erfolg={aufnahmeErfolg} fehlerSchliessen={() => { aufnahmeFehler = ''; fehler = ''; }} erfolgSchliessen={() => aufnahmeErfolg = ''} />
 
 <svelte:head>
   <title>Inventarbewertung – ClubMatiq</title>
