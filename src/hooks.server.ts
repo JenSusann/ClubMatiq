@@ -81,5 +81,6 @@ export const handle = async ({
     }
   }
   if (event.locals.benutzer && pfad === '/anmelden') redirect(303, '/dashboard');
+  if (pfad === '/materialsuche' || pfad === '/materialsuche/') redirect(308, '/inventar' + event.url.search);
   return resolve(event);
 };
