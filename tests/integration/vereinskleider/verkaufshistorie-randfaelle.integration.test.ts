@@ -486,3 +486,27 @@ describe('Issue #68 – keine Ersatzpreis-Verrechnung bei explizit offenem Preis
     expect((await response.json()).fehler).toContain('Ersatzpreis');
   });
 });
+
+describe('Belegverknüpfungen in der Verkaufshistorie (#49 #119)', () => {
+ it('serialisiert sämtliche Rechnungs-IDs', async () => {
+   const a={_id:new ObjectId(),rechnungsnummer:'R1'}, b={_id:new ObjectId(),rechnungsnummer:'R2'};
+   setup({aggregate:[{eintraege:[{_id:new ObjectId(id),rechnung:a,rechnungen:[a,b]}],zaehler:[{anzahl:1}]}]});
+   const response=await route0.GET(event('GET') as never);
+   expect(response.status).toBe(200);
+   expect((await response.json()).verkaeufe[0].rechnungen).toEqual([{...a,_id:a._id.toString()},{...b,_id:b._id.toString()}]);
+ });
+ it('liefert ohne Belege eine leere Liste', async () => {
+   setup({aggregate:[{eintraege:[{_id:new ObjectId(id)}],zaehler:[{anzahl:1}]}]});
+   const response=await route0.GET(event('GET') as never);
+   expect((await response.json()).verkaeufe[0]).toMatchObject({rechnung:null,rechnungen:[]});
+ });
+ it('begrenzt den Rechnungslookup nicht auf einen Beleg und wahrt Vereinsisolation', async () => {
+   const c=setup();
+   expect((await route0.GET(event('GET') as never)).status).toBe(200);
+   const pipeline=c.vereinskleider_verkaeufe.aggregate.mock.calls[0][0];
+   const lookup=pipeline.find((stage: any)=>stage.$lookup?.as==='rechnungsTreffer').$lookup;
+   expect(lookup.pipeline.some((stage: any)=>stage.$limit!==undefined)).toBe(false);
+   expect(lookup.pipeline[0].$match.$expr.$and).toContainEqual({$eq:['$vereinId','$$verein']});
+   expect(pipeline).toContainEqual(expect.objectContaining({$set:expect.objectContaining({rechnungen:'$rechnungsTreffer'})}));
+ });
+});
