@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
   import { verwendeBestaetigung } from '../../../lib/bestaetigung';
   const bestaetigen = verwendeBestaetigung();
   import { onMount } from 'svelte';
@@ -382,6 +383,7 @@
 
   onMount(() => { void datenLaden(); });
 </script>
+<Aktionsmeldung fehler={fehler} erfolg={erfolg} fehlerSchliessen={() => fehler = ''} erfolgSchliessen={() => erfolg = ''} />
 
 <svelte:head><title>Sammelbestellungen – ClubMatiq</title></svelte:head>
 
@@ -397,8 +399,8 @@
     </button>
   </header>
 
-  {#if fehler}<p class="warnung" role="alert">{fehler}</p>{/if}
-  {#if erfolg}<p class="erfolg" role="status">{erfolg}</p>{/if}
+  {#if fehler}<p class="warnung" >{fehler}</p>{/if}
+  {#if erfolg}<p class="erfolg" >{erfolg}</p>{/if}
   {#if groessenFehler}<p class="warnung" role="status">{groessenFehler}</p>{/if}
 
   {#if laden}
