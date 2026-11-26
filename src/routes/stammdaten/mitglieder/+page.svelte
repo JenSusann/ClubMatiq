@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
+  let importMeldung = $state('');
   import { onMount } from 'svelte';
 
   type Mitglied = {
@@ -85,6 +87,7 @@
     const eingabe = ereignis.currentTarget as HTMLInputElement;
     datei = eingabe.files?.[0] ?? null;
     importErgebnis = null;
+    importMeldung = '';
     importFehler = '';
   }
 
@@ -93,6 +96,7 @@
     importieren = true;
     importFehler = '';
     importErgebnis = null;
+    importMeldung = '';
     try {
       const formular = new FormData();
       formular.append('datei', datei);
@@ -100,6 +104,7 @@
       const daten: unknown = await antwort.json();
       if (!antwort.ok) throw new Error(fehlerText(daten, 'Der CSV-Import ist fehlgeschlagen.'));
       importErgebnis = daten as ImportErgebnis;
+      importMeldung = 'Mitgliederimport erfolgreich abgeschlossen.';
       datei = null;
       if (dateiEingabe) dateiEingabe.value = '';
       await mitgliederLaden();
@@ -115,6 +120,7 @@
     void riegenLaden();
   });
 </script>
+<Aktionsmeldung fehler={importFehler || fehlermeldung} erfolg={importMeldung} fehlerSchliessen={() => { importFehler = ''; fehlermeldung = ''; }} erfolgSchliessen={() => importMeldung = ''} />
 
 <svelte:head>
   <title>Mitglieder | ClubMatiq</title>
