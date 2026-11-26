@@ -99,4 +99,36 @@ describe('Issue #121 – Gutschriftenabgleich', () => {
     m.pruefeBerechtigung.mockReturnValue(new Response('Verboten',{status:403}));
     expect((await exportGutschriften(event() as never)).status).toBe(403);
   });
+  it('verweigert bezahlte Beträge oberhalb der ursprünglichen Rechnung', async () => {
+    vorbereiten(49,0);
+    expect((await exportGutschriften(event() as never)).status).toBe(409);
+  });
+  it('verweigert Gutschriftensumme oberhalb des Rechnungsbetrags', async () => {
+    vorbereiten(20,0);
+    m.daten[0].gutgeschriebenBetrag = 49;
+    expect((await exportGutschriften(event() as never)).status).toBe(409);
+  });
+  it('verweigert fehlende Gutschriften zur Rechnung', async () => {
+    vorbereiten(20,0);
+    m.credits[0].betrag = 24;
+    expect((await exportGutschriften(event() as never)).status).toBe(409);
+  });
+  it('verweigert abgeschlossene Gutschrift mit nicht gedecktem Restanspruch', async () => {
+    vorbereiten(20,0,'erledigt');
+    expect((await exportGutschriften(event() as never)).status).toBe(409);
+  });
+  it('berücksichtigt alte unbezahlte Rechnungen ohne Zahlungsfeld', async () => {
+    vorbereiten(0,0);
+    delete m.daten[0].bezahltBetrag;
+    expect(await rest()).toEqual(['"0,00"']);
+  });
+  it('berücksichtigt alte Gutschriften ohne Bearbeitungsstatus', async () => {
+    vorbereiten(20,0);
+    delete m.credits[0].bearbeitungsstatus;
+    expect(await rest()).toEqual(['"20,00"']);
+  });
+  it('exportiert leeren Kontrollauszug ohne Gutschriften', async () => {
+    expect(await rest()).toEqual([]);
+  });
+
 });
