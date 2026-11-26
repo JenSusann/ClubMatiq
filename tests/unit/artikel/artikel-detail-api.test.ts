@@ -116,6 +116,29 @@ beforeEach(() => {
 });
 
 describe('ClubMatiq Artikel-Detailverwaltung', () => {
+  it.each([3, 8, 12, undefined])('berechnet Korrektur aus bestehender Variante %s', async (alt) => {
+    mocks.findOne.mockImplementation(async (name: string) => name === 'artikel' ? { ...artikel(), hatGroessen: true } : { _id: new ObjectId() });
+    const vorhandene = [{ groesseId, menge: alt }];
+    mocks.find.mockReturnValue({ toArray: vi.fn().mockResolvedValueOnce(vorhandene).mockResolvedValueOnce(vorhandene).mockResolvedValueOnce([]) });
+    const response = await PATCH(kontext(admin, artikelId, { ...eingabe(), hatGroessen: true,
+      varianten: [{ groesseId, menge: 8, einzelwert: 35, mindestbestand: 2 }] }));
+    expect(response.status).toBe(200);
+    if (alt === 8) expect(mocks.journal).not.toHaveBeenCalled();
+    else expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ groesseId, mengeDelta: 8 - (alt ?? 0) }), expect.anything());
+  });
+  it('verwendet Null als Altbestand bei fehlendem Mengenfeld', async () => {
+    mocks.findOne.mockImplementation(async (name: string) => name === 'artikel' ? { ...artikel(), menge: undefined } : { _id: new ObjectId() });
+    expect((await PATCH(kontext())).status).toBe(200);
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ mengeDelta: 15 }), expect.anything());
+  });
+  it('verhindert Entfernen einer Variante mit neuem Bestand innerhalb der Transaktion', async () => {
+    mocks.findOne.mockImplementation(async (name: string) => name === 'artikel' ? { ...artikel(), hatGroessen: true } : { _id: new ObjectId() });
+    mocks.find.mockReturnValue({ toArray: vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]).mockResolvedValueOnce([{ groesseId: new ObjectId().toString(), menge: 2 }]) });
+    expect((await PATCH(kontext(admin, artikelId, { ...eingabe(), hatGroessen: true, varianten: [{ groesseId, menge: 8, einzelwert: 35, mindestbestand: 2 }] }))).status).toBe(500);
+    expect(mocks.journal).not.toHaveBeenCalled();
+    expect(mocks.endSession).toHaveBeenCalledOnce();
+  });
+
 
   it('protokolliert keine Bewegung bei unverändertem Bestand', async () => {
     expect((await PATCH(kontext(admin, artikelId, { ...eingabe(), menge: 10 }))).status).toBe(200);
