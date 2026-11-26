@@ -53,8 +53,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #62 | Manuelle Benutzeranlage | 20/20 | Sammelbestätigung 26.11.2026 |
 | #64 | Benutzerlöschung und Einladungswiderruf | 15/15 | Einzelbestätigung 26.11.2026 |
 | #68 | Offene Preise und gemischte Teilzahlungen | 25/25 | Einzelbestätigung 26.11.2026 |
-| #70 | Gutschriften und Rückerstattungen | 25/25 | Einzelbestätigung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 377/377 | Dokumentierte Durchläufe |
+| #70 | Gutschriften und Rückerstattungen inkl. #121 | 30/30 | Einzelbestätigung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 382/382 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -638,7 +638,7 @@ Keine Fehler gemeldet; keine Codeänderung für diese Abnahme erforderlich. Absc
 
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 377 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 382 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
@@ -718,3 +718,15 @@ Historische Ergebnisse nicht ohne Nachweis ergänzen. Bei Regressionen frühere 
 | ST-70-25 | Mobile Darstellung und Dialoge | Bestanden |
 
 Technische Abschlussprüfung (Export-Coverage, Vereinsisolation, Parallelität) noch offen.
+
+### Nachprüfung #121 / #70 – 26.11.2026
+
+| ID | Prüfung | Ergebnis |
+|---|---|---|
+| ST-70-19a | Unbezahlt: CSV Rest CHF 0 | Bestanden |
+| ST-70-19b | Teilbezahlt: CSV Rest CHF 20 | Bestanden |
+| ST-70-19c | Nach Erstattung CHF 20: Rest CHF 0 | Bestanden |
+| ST-70-19d | Teilrückerstattung: korrekter Rest | Bestanden |
+| ST-70-19e | Mehrere Gutschriften: keine Doppelzählung | Bestanden |
+
+5/5 Nachprüfungen, TypeScript-Check und gezielte Integrationstests gemäss Entwicklerin erfolgreich. Korrektur e02dd3c, Tests 32f0a81. Vollständiger CI-Nachweis und echte MongoDB-Parallelitätsprüfung für #70 noch offen.
