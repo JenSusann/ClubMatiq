@@ -1,5 +1,6 @@
 
 <script lang="ts">
+  import Aktionsmeldung from '../../lib/Aktionsmeldung.svelte';
   import { onMount } from 'svelte';
   import AusleihenUebersicht from '../../lib/AusleihenUebersicht.svelte';
   import { verwendeRollenVorschau } from '../../lib/rollenVorschau.svelte';
@@ -41,6 +42,7 @@
 
   let wirdGeladen = $state(true);
   let wirdGespeichert = $state(false);
+  let uebersicht: AusleihenUebersicht;
   let fehlermeldung = $state('');
   let erfolgsmeldung = $state('');
 
@@ -116,7 +118,7 @@
   });
 
   async function ausleiheSpeichern() {
-    if (!darfAusleihenVerwalten) return;
+    if (wirdGespeichert || !darfAusleihenVerwalten) return;
     fehlermeldung = '';
     erfolgsmeldung = '';
 
@@ -193,7 +195,7 @@
       erfolgsmeldung = 'Materialausleihe erfolgreich erfasst.';
 
       // Aktualisierte Bestände laden
-      await artikelLaden();
+      await Promise.all([artikelLaden(), uebersicht?.aktualisieren()]);
     } catch (error) {
       fehlermeldung =
         error instanceof Error
@@ -204,6 +206,7 @@
     }
   }
 </script>
+<Aktionsmeldung fehler={fehlermeldung} erfolg={erfolgsmeldung} fehlerSchliessen={() => fehlermeldung = ''} erfolgSchliessen={() => erfolgsmeldung = ''} />
 
 <svelte:head>
   <title>Materialausleihe – ClubMatiq</title>
@@ -225,11 +228,11 @@
     </p>
   {:else}
   {#if fehlermeldung}
-    <p class="meldung fehler" role="alert">{fehlermeldung}</p>
+    <p class="meldung fehler" >{fehlermeldung}</p>
   {/if}
 
   {#if erfolgsmeldung}
-    <p class="meldung erfolg" role="status">{erfolgsmeldung}</p>
+    <p class="meldung erfolg" >{erfolgsmeldung}</p>
   {/if}
 
   {#if wirdGeladen}
@@ -390,7 +393,7 @@
     </form>
   {/if}
 
-    <AusleihenUebersicht />
+    <AusleihenUebersicht bind:this={uebersicht} nachRueckgabe={artikelLaden} />
   {/if}
 
 </main>
