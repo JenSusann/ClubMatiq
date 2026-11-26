@@ -832,3 +832,23 @@ Quellcodeabgleich der regulären Bestandsänderungen inklusive Retouren und Best
 ### Technischer Abschluss #65
 
 CI [45906588822](https://github.com/JenSusann/ClubMatiq/actions/runs/45906588822) erfolgreich. Vollständige Wareneingang-Übergabe-Kette, Vereinsisolation und echter MongoDB-Rollback bei simuliertem Journalfehler nachgewiesen (c785a50). Unit-Grenzfälle Bestand 0 und 1 ergänzt (43a7dff); Teilübergabe und Fremdreservierungen bereits in bestehender Suite. 10/10 manuelle Tests, kumuliert 430/430. Abschluss bereit.
+
+
+### Issue #63 – Vereinsbezogene E-Mail-Einstellungen
+
+Manuelle Abnahme am 27.11.2026 gemäss Rückmeldung der Entwicklerin.
+
+| Test-ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-63-01 | Admin-Zugriff | Bestanden |
+| ST-63-02 | Zugriffsschutz | Bestanden |
+| ST-63-03 | Konfiguration laden | Bestanden |
+| ST-63-04 | Konfiguration speichern | Bestanden |
+| ST-63-05 | Microsoft-365-Testversand | Bestanden |
+| ST-63-06 | Einladung | Bestanden |
+| ST-63-07 | Erneuter Versand | Bestanden |
+| ST-63-08 | Einladungslink | Bestanden |
+| ST-63-09 | SMTP-Validierung | Bestanden |
+| ST-63-10 | Persistenz | Bestanden |
+
+**Ergebnis:** 10/10 bestanden. CI nach Sicherheitskorrektur und Regressionstest (14e48dd) gemäss Rückmeldung erfolgreich. Microsoft-365-Testversand, Einladung und erneuter Versand manuell bestätigt. SMTP-Validierung bestanden; realer SMTP-Versand und produktive Deployment-Abnahme nicht separat nachgewiesen. Entra-/Exchange-Konfiguration und Postfachbeschränkung wurden bereits früher gemäss Entwicklerin erfolgreich geprüft. Keine unabhängige Wiederholung dieser externen Prüfungen.
