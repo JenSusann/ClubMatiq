@@ -42,6 +42,7 @@
   let rueckgabeId = $state('');
   let rueckgabeMenge = $state(1);
   let rueckgabeSpeichert = $state(false);
+  let rueckgabeFehler = $state('');
 
   let aktuelleRueckgabe = $derived(
     ausleihen.find((a) => a._id === rueckgabeId)
@@ -152,6 +153,7 @@
   // ========================================
 
   function rueckgabeOeffnen(ausleihe: Ausleihe) {
+    rueckgabeFehler = '';
     rueckgabeId = ausleihe._id;
 
     rueckgabeMenge =
@@ -162,6 +164,7 @@
   }
 
   function rueckgabeSchliessen() {
+    rueckgabeFehler = '';
     rueckgabeId = '';
     rueckgabeMenge = 1;
   }
@@ -178,7 +181,7 @@
       rueckgabeMenge < 1 ||
       rueckgabeMenge > nochOffen
     ) {
-      fehlermeldung =
+      rueckgabeFehler =
         `Bitte eine Rückgabemenge zwischen 1 und ${nochOffen} eingeben.`;
       return;
     }
@@ -187,6 +190,7 @@
     const gespeicherteMenge = rueckgabeMenge;
 
     rueckgabeSpeichert = true;
+    rueckgabeFehler = '';
     fehlermeldung = '';
     erfolgsmeldung = '';
 
@@ -219,7 +223,7 @@
       erfolgsmeldung =
         `${gespeicherteMenge} Stück erfolgreich zurückgegeben.`;
     } catch (error) {
-      fehlermeldung =
+      rueckgabeFehler =
         error instanceof Error
           ? error.message
           : 'Rückgabe konnte nicht gespeichert werden.';
@@ -462,7 +466,10 @@
           max={aktuelleRueckgabe.menge -
             (aktuelleRueckgabe.zurueckgegeben ?? 0)}
           step="1"
+          aria-invalid={!!rueckgabeFehler}
+          aria-describedby={rueckgabeFehler ? 'rueckgabe-fehler' : undefined}
           bind:value={rueckgabeMenge}
+          oninput={() => rueckgabeFehler = ''}
         />
       </div>
 
@@ -470,6 +477,10 @@
         Du kannst die gesamte Menge oder nur einen Teil
         des Materials zurückgeben.
       </p>
+
+      {#if rueckgabeFehler}
+        <p id="rueckgabe-fehler" class="fehlermeldung" role="alert">{rueckgabeFehler}</p>
+      {/if}
 
       <div class="rueckgabe-aktionen">
         <button
@@ -709,6 +720,8 @@
     background: white;
     width: 100%;
     max-width: 430px;
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
     padding: 28px;
     border-radius: 12px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
