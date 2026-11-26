@@ -45,7 +45,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #37 | Materialsuche, Filter und Weiterleitung | 11/11 | Manuelle Sammelbestätigung 26.11.2026 |
 | #44 | Materialausleihe und Rückgabe | 18/18 | Nach Korrektur ffbed03 |
 | #39 | Benutzerfeedback und Datenaktualisierung | 26/26 | Sammelbestätigung nach Korrektur |
-| Gesamt | Quantifizierte manuelle Prüfungen | 188/188 | Dokumentierte Durchläufe |
+| #46 | Lieferantenverwaltung und Sammelbestellungen | 16/16 | Einzelbestätigung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 204/204 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -405,9 +406,34 @@ Testdatum: 26.11.2026. Manuelle Sammelbestätigung der Entwicklerin nach Korrekt
 
 **Abnahme:** 26/26 gemäss Sammelbestätigung; ursprüngliche Löschfälle nicht als bestanden gezählt. Nach der Abnahme wurden die restlichen identifizierten redundanten allgemeinen Meldungsboxen bereinigt (u.a. 8184e23, 837f219). Abschliessender npm run check gemäss Entwicklerin ohne Fehler. Keine erneute vollständige Browser- oder Coverage-Prüfung nach der letzten Bereinigung belegt.
 
+### Issue #46 – Lieferantenverwaltung und Sammelbestellungen
+
+Testdatum: 26.11.2026. Manuelle Browser-Abnahme, alle 16 Fälle einzeln durch die Entwicklerin bestätigt. Testdaten und getesteter Commit nicht separat angegeben.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-46-01 | Lieferant erstellen | Bestanden |
+| ST-46-02 | Lieferant bearbeiten | Bestanden |
+| ST-46-03 | Unbenutzten Lieferanten löschen | Bestanden |
+| ST-46-04 | Verwendeten Lieferanten löschen | Bestanden |
+| ST-46-05 | Standardlieferant zuordnen | Bestanden |
+| ST-46-06 | Artikel ohne Lieferant | Bestanden |
+| ST-46-07 | Nachbestellbedarf | Bestanden |
+| ST-46-08 | Sammelbestellung erstellen | Bestanden |
+| ST-46-09 | Bestellung auslösen | Bestanden |
+| ST-46-10 | Erneuter Nachbestellbedarf | Bestanden |
+| ST-46-11 | Teilwareneingang | Bestanden |
+| ST-46-12 | Offene Liefermenge | Bestanden |
+| ST-46-13 | Vollständiger Wareneingang | Bestanden |
+| ST-46-14 | Doppelter Wareneingang | Bestanden |
+| ST-46-15 | Wareneingangshistorie | Bestanden |
+| ST-46-16 | Bestehende Verkaufsprozesse | Bestanden |
+
+**Abnahme:** 16/16 bestanden. Keine Fehler gemeldet. Bestehende automatisierte Nachweise siehe Issue #46; kein neuer isolierter Testlauf bestätigt. Letzter allgemeiner technischer Check gemäss Rückmeldung zu #39 ohne Fehler; Warnungszahl nicht separat angegeben.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 188 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 204 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
