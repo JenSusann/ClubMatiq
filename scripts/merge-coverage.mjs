@@ -94,6 +94,22 @@ try {
     `\nBerichte erstellt: ${path.relative(root, outputDirectory)}`
   );
 
+  const minimum = 95;
+  const metrics = ['statements', 'branches', 'functions', 'lines'];
+  const failed = metrics.filter((metric) => {
+    const { covered, total } = summary[metric];
+    return total === 0 || covered * 100 < minimum * total;
+  });
+
+  if (failed.length > 0) {
+    throw new Error(
+      `Quality Gate (mindestens ${minimum} % je Kennzahl) nicht erfüllt: ` +
+      failed.map((metric) => `${metric}: ${summary[metric].pct} %`).join(', ')
+    );
+  }
+
+  console.log(`Quality Gate bestanden: alle vier Kennzahlen mindestens ${minimum} %.`);
+
 } catch (error) {
   console.error('\nCoverage-Zusammenführung fehlgeschlagen:');
   console.error(error.message);
