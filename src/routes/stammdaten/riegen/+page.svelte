@@ -50,7 +50,7 @@
 <main>
   <a href="/stammdaten">← Stammdaten</a>
   <h1>Riegen und ClubDesk-Gruppen</h1>
-  {#if fehler}<p class="fehler">{fehler}</p>{/if}
+  
   <section>
     <h2>Riegenverwaltung</h2>
     <form onsubmit={(e) => { e.preventDefault(); void neueRiege(); }}>
