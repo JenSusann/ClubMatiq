@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   find: vi.fn(),
   countDocuments: vi.fn(),
   updateOne: vi.fn(),
+  journal: vi.fn(),
   updateMany: vi.fn(),
   deleteOne: vi.fn(),
   deleteMany: vi.fn(),
@@ -22,6 +23,7 @@ vi.mock('../../../src/lib/server/mongodb', () => ({
       countDocuments: mocks.countDocuments,
       updateOne: (...args: unknown[]) => mocks.updateOne(name, ...args),
       updateMany: mocks.updateMany,
+      insertOne: mocks.journal,
       deleteOne: (...args: unknown[]) => mocks.deleteOne(name, ...args),
       deleteMany: mocks.deleteMany
     }))
@@ -102,6 +104,7 @@ beforeEach(() => {
     toArray: vi.fn().mockResolvedValue([])
   });
 
+  mocks.journal.mockResolvedValue({ acknowledged: true });
   mocks.countDocuments.mockResolvedValue(1);
   mocks.updateOne.mockResolvedValue({ matchedCount: 1 });
   mocks.deleteOne.mockResolvedValue({ deletedCount: 1 });
@@ -158,6 +161,7 @@ describe('ClubMatiq Artikel-Detailverwaltung', () => {
     expect(response.status).toBe(200);
     expect(daten.erfolg).toBe(true);
     expect(daten.gesamtmenge).toBe(15);
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ artikelId, vereinId, art: 'korrektur', mengeDelta: 5, groesseId: null }), expect.objectContaining({ session: expect.anything() }));
     expect(mocks.updateOne).toHaveBeenCalled();
     expect(mocks.endSession).toHaveBeenCalled();
   });
@@ -342,6 +346,7 @@ describe('ClubMatiq Artikel-Detailverwaltung', () => {
 
     expect(response.status).toBe(200);
     expect(daten.gesamtmenge).toBe(8);
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ artikelId, groesseId, mengeDelta: 8 }), expect.objectContaining({ session: expect.anything() }));
     expect(mocks.updateMany).toHaveBeenCalled();
     expect(mocks.updateOne).toHaveBeenCalledWith(
       'artikelvarianten',
