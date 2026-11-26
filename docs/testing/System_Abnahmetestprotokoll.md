@@ -633,7 +633,7 @@ Technische Nachabsicherung: Benutzer- und Session-Löschung in gemeinsamer Trans
 | ST-68-24 | Bestehende Verkäufe | Bestanden |
 | ST-68-25 | Berechtigungen | Bestanden |
 
-Keine Fehler gemeldet; keine Codeänderung für diese Abnahme erforderlich. Bestehender CI-Lauf 45824480865 erfolgreich; spezifische automatisierte Testzuordnung noch zu prüfen.
+Keine Fehler gemeldet; keine Codeänderung für diese Abnahme erforderlich. Abschliessender CI-Lauf 45825936609 erfolgreich; siehe technischer Abschluss #68.
 
 ## 3. Geplanter Regressionstestkatalog
 
@@ -679,3 +679,7 @@ Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachwe
 6. Vor Abgabe aus Markdown ein Word-Dokument erstellen und als PDF exportieren.
 
 Historische Ergebnisse nicht ohne Nachweis ergänzen. Bei Regressionen frühere Ergebnisse erhalten und neue Durchläufe separat erfassen. Die funktionale Abnahme durch die Entwicklerin ersetzt keine unabhängige Usability-Evaluation.
+
+
+### Technischer Abschluss #68 – 26.11.2026
+25/25 manuelle Tests bestanden. 31 bestehende mockbasierte Integrationstests geprüft; drei zusätzliche echte MongoDB-Parallelitätstests (Preisfestlegung, Restzahlung vor Verrechnung, Vollrechnung) in `preisfestlegung.integration.test.ts`, Commit 9d80fd5. Gezielter Lauf und TypeScript-Check gemäss Entwicklerin erfolgreich. [CI 45825936609](https://github.com/JenSusann/ClubMatiq/actions/runs/45825936609) erfolgreich; kombinierte Coverage 98,19 % Statements, 95,04 % Branches, 96,20 % Functions, 98,90 % Lines. Quality Gate bestanden. Nicht sämtliche möglichen parallelen Teilrechnungskombinationen mit echter MongoDB geprüft.
