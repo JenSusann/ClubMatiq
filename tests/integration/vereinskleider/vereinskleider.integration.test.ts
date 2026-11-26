@@ -410,7 +410,7 @@ describe('Issue #34 – Verrechnung von Erstbezügen', () => {
     const response = await route11.GET(event('GET') as never);
     expect(response.status).toBe(200);
     expect(mocks.find).toHaveBeenCalledWith({
-      vereinId, rechnungId: { $exists: false },
+      vereinId, rechnungId: { $exists: false }, status: { $ne: 'storniert' },
       $nor: [{ endbetrag: 0, preisOffen: { $ne: true }, 'erstbezugsIds.0': { $exists: true } }]
     });
   });
