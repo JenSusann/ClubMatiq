@@ -236,7 +236,7 @@
     aufnahmenLaden().catch(error => { aufnahmeFehler = error.message; });
   });
 </script>
-<Aktionsmeldung fehler={aufnahmeFehler || fehler} erfolg={aufnahmeErfolg} fehlerSchliessen={() => { aufnahmeFehler = ''; fehler = ''; }} erfolgSchliessen={() => aufnahmeErfolg = ''} />
+<Aktionsmeldung fehler={aufnahmeFehler} erfolg={aufnahmeErfolg} fehlerSchliessen={() => aufnahmeFehler = ''} erfolgSchliessen={() => aufnahmeErfolg = ''} />
 
 <svelte:head>
   <title>Inventarbewertung – ClubMatiq</title>
@@ -260,9 +260,7 @@
     Gespeicherte Bewertungsaufnahmen sind separat verfügbar.
   </p>
 
-  {#if aufnahmeFehler}
-    <p class="fehler" role="alert">{aufnahmeFehler}</p>
-  {/if}
+  
   {#if aufnahmeErlaubt}
     <section class="bereich">
       <div class="export-zeile">
