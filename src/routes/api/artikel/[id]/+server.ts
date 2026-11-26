@@ -2,6 +2,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { db, client } from '../../../../lib/server/mongodb';
+import { protokolliereLagerbewegung } from '../../../../lib/server/lagerbewegungen';
 import { pruefeBerechtigung } from '../../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
@@ -220,7 +221,7 @@ export const PATCH: RequestHandler = async ({
         typeof variante.groesseId !== 'string' ||
         !ObjectId.isValid(variante.groesseId) ||
         typeof variante.menge !== 'number' ||
-        !Number.isInteger(variante.menge) ||
+        !Number.isSafeInteger(variante.menge) ||
         variante.menge < 0 ||
         (variante.einzelwert !== null && (typeof variante.einzelwert !== 'number' || !Number.isFinite(variante.einzelwert) || variante.einzelwert < 0)) ||
         typeof variante.mindestbestand !== 'number' || !Number.isSafeInteger(variante.mindestbestand) || variante.mindestbestand < 0
@@ -255,7 +256,7 @@ export const PATCH: RequestHandler = async ({
   } else {
     if (
       typeof menge !== 'number' ||
-      !Number.isInteger(menge) ||
+      !Number.isSafeInteger(menge) ||
       menge < 0
     ) {
       return json(
@@ -267,6 +268,7 @@ export const PATCH: RequestHandler = async ({
     gesamtmenge = menge;
   }
 
+  if (!Number.isSafeInteger(gesamtmenge)) return json({ fehler: 'Ungültige Gesamtmenge.' }, { status: 400 });
   try {
     const objektId = new ObjectId(artikelId);
 
@@ -397,6 +399,12 @@ export const PATCH: RequestHandler = async ({
 
     try {
       await session.withTransaction(async () => {
+        const vorher = await db.collection('artikel').findOne({ _id: objektId, vereinId }, { session });
+        if (!vorher) throw new Error('Artikel nicht gefunden.');
+        const alteVarianten = hatGroessen
+          ? await db.collection('artikelvarianten').find({ artikelId, vereinId }, { session }).toArray()
+          : [];
+        const alteMengen = new Map(alteVarianten.map(v => [String(v.groesseId), Number(v.menge ?? 0)]));
         const aktualisierung = await db
           .collection('artikel')
           .updateOne(
@@ -480,6 +488,16 @@ export const PATCH: RequestHandler = async ({
               { upsert: true, session }
             );
           }
+        }
+        for (const v of hatGroessen ? gepruefteVarianten : [{ groesseId: null, menge: gesamtmenge }]) {
+          const alt = v.groesseId === null ? Number(vorher.menge ?? 0) : (alteMengen.get(v.groesseId) ?? 0);
+          const delta = v.menge - alt;
+          if (delta === 0) continue;
+          await protokolliereLagerbewegung({
+            vereinId, artikelId, groesseId: v.groesseId, art: 'korrektur',
+            mengeDelta: delta, benutzerId: locals.benutzer!.id,
+            referenzId: artikelId, referenzTyp: 'artikel'
+          }, session);
         }
       });
     } finally {
