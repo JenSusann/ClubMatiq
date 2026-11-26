@@ -44,3 +44,45 @@ describe('Issue #66 – Suche vor Vorschaugrenze', () => {
     expect(limitAufgerufen).toBe(false);
   });
 });
+
+describe('Gesamtjournal – Vorschau und Stammdaten',()=>{
+  const aid=new ObjectId(), gid=new ObjectId(), uid=new ObjectId();
+  const event=(query='')=>({locals:{benutzer:{vereinId:'verein-1',rolle:'admin'}},url:new URL('http://localhost/?'+query)}) as never;
+  function setup(count=1){
+    const movement={_id:new ObjectId(),artikelId:aid.toString(),groesseId:gid.toString(),benutzerId:uid.toString(),art:'verkauf',mengeDelta:-1,zeitpunkt:new Date()};
+    const cursor={sort:vi.fn().mockReturnThis(),limit:vi.fn().mockReturnThis(),async *[Symbol.asyncIterator](){for(let i=0;i<count;i++)yield movement;}};
+    const find=vi.fn(()=>cursor);
+    const findOne=vi.fn(async()=>({_id:aid}));
+    const rows:Record<string,unknown[]>={artikel:[{_id:aid,name:'Shirt'},{_id:new ObjectId()}],groessen:[{_id:gid,bezeichnung:'M'},{_id:new ObjectId()}],benutzer:[{_id:uid,nachname:'Test'}]};
+    mocks.collection.mockImplementation((name:string)=>name==='lagerbewegungen'?{find}:{findOne,find:()=>({project:()=>({toArray:async()=>rows[name]??[]})})});
+    return {cursor,find,findOne};
+  }
+  it('begrenzt Vorschau auf 200 Einträge und löst Namen auf',async()=>{
+    const {cursor,find}=setup(201);
+    const r=await GET(event());expect(r.status).toBe(200);
+    const data=await r.json();expect(data.bewegungen).toHaveLength(200);
+    expect(data.bewegungen[0]).toMatchObject({artikel:'Shirt',groesse:'M',benutzer:'Test',referenzTyp:'',referenzId:''});
+    expect(cursor.limit).toHaveBeenCalledWith(200);expect(find).toHaveBeenCalledWith({vereinId:'verein-1'});
+  });
+  it('verweigert fremden Artikel',async()=>{
+    const {findOne,find}=setup();findOne.mockResolvedValueOnce(null as never);
+    expect((await GET(event('artikelId='+aid))).status).toBe(404);expect(find).not.toHaveBeenCalled();
+    expect(findOne).toHaveBeenCalledWith({vereinId:'verein-1',_id:aid});
+  });
+  it('filtert vorhandenen Artikel',async()=>{
+    const {find}=setup();expect((await GET(event('artikelId='+aid))).status).toBe(200);
+    expect(find).toHaveBeenCalledWith({vereinId:'verein-1',artikelId:aid.toString()});
+  });
+  it.each(['shirt','m','verkauf','test'])('findet Treffer über Stammdaten %s',async suche=>{
+    const {cursor}=setup();const r=await GET(event('suche='+suche));
+    expect((await r.json()).bewegungen).toHaveLength(1);expect(cursor.limit).not.toHaveBeenCalled();
+  });
+  it('begrenzt auch Suchtreffer auf 200',async()=>{
+    const {cursor}=setup(201);const r=await GET(event('suche=shirt'));
+    expect((await r.json()).bewegungen).toHaveLength(200);expect(cursor.limit).not.toHaveBeenCalled();
+  });
+  it('verweigert fehlende Berechtigung',async()=>{
+    mocks.permission.mockReturnValue(new Response(null,{status:403}));
+    expect((await GET(event())).status).toBe(403);expect(mocks.collection).not.toHaveBeenCalled();
+  });
+});
