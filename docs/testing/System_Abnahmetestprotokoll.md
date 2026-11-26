@@ -313,7 +313,7 @@ Testdatum: 26.11.2026. Manuelle Abnahme gemäss Sammelbestätigung der Entwickle
 | ST-36-07 | Als Mitglied eigene Meldung öffnen | Historie sichtbar, Bearbeitung nicht möglich | Bestanden |
 | ST-36-08 | Ältere Meldung ohne Historie bearbeiten | Neuer Historieneintrag wird korrekt angelegt | Bestanden |
 
-**Manuelle Abnahme:** 8/8 bestanden. Automatisierte Prüfungen der neuen Änderungen und gezielter Nachweis der atomaren Speicherung mit echter MongoDB noch nicht bestätigt. Bereits überschriebene historische Schritte können nicht rekonstruiert werden.
+**Manuelle Abnahme:** 8/8 bestanden. Unit- und Integrationstests für Schadensmeldungen gemäss Bestätigung der Entwicklerin am 26.11.2026 ohne Fehler. Gezielter Nachweis paralleler Änderungen mit echter MongoDB noch nicht bestätigt. Bereits überschriebene historische Schritte können nicht rekonstruiert werden.
 
 ## 3. Geplanter Regressionstestkatalog
 
