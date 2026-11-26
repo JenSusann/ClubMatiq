@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   pruefeBerechtigung: vi.fn(), startSession: vi.fn(), withTransaction: vi.fn(), endSession: vi.fn(),
   sammelFindOne: vi.fn(), sammelUpdateOne: vi.fn(), artikelUpdateOne: vi.fn(), artikelFindOne: vi.fn(),
   variantenUpdateOne: vi.fn(), variantenFindOne: vi.fn(), verkaufFind: vi.fn(), verkaufUpdateOne: vi.fn(),
-  sort: vi.fn(), toArray: vi.fn(), journalInsertOne: vi.fn()
+  sort: vi.fn(), toArray: vi.fn(), journalInsertOne: vi.fn(), groessenFindOne: vi.fn()
 }));
 vi.mock('../../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: mocks.pruefeBerechtigung }));
 vi.mock('../../../src/lib/server/mongodb', () => ({
@@ -15,6 +15,7 @@ vi.mock('../../../src/lib/server/mongodb', () => ({
     if (name === 'artikel') return { updateOne: mocks.artikelUpdateOne, findOne: mocks.artikelFindOne };
     if (name === 'artikelvarianten') return { updateOne: mocks.variantenUpdateOne, findOne: mocks.variantenFindOne };
     if (name === 'vereinskleider_verkaeufe') return { find: mocks.verkaufFind, updateOne: mocks.verkaufUpdateOne };
+    if (name === 'groessen') return { findOne: mocks.groessenFindOne };
     if (name === 'lagerbewegungen') return { insertOne: mocks.journalInsertOne };
     throw new Error(`Unbekannte Collection ${name}`);
   }) }
@@ -50,7 +51,8 @@ beforeEach(() => {
   mocks.sammelUpdateOne.mockResolvedValue({ modifiedCount: 1 });
   mocks.artikelUpdateOne.mockResolvedValue({ matchedCount: 1 });
   mocks.variantenUpdateOne.mockResolvedValue({ matchedCount: 1 });
-  mocks.artikelFindOne.mockResolvedValue({ menge: 6 });
+  mocks.artikelFindOne.mockResolvedValue({ menge: 6, name: 'Vereinsshirt' });
+  mocks.groessenFindOne.mockResolvedValue({ bezeichnung: 'M' });
   mocks.variantenFindOne.mockResolvedValue({ menge: 6 });
   mocks.verkaufFind.mockReturnValue({ sort: mocks.sort });
   mocks.sort.mockReturnValue({ toArray: mocks.toArray });
@@ -190,6 +192,7 @@ describe('PATCH Sammelbestellung – Wareneingang und Lager', () => {
     mocks.sammelFindOne.mockResolvedValue(bestellung({ positionen: [position({ groesseId })] }));
     const res = await call(eingang({ artikelId, groesseId, menge: 2 }));
     expect(res.status).toBe(200);
+    expect(mocks.journalInsertOne).toHaveBeenCalledWith(expect.objectContaining({ artikelName: 'Vereinsshirt', groesseName: 'M' }), expect.objectContaining({ session: expect.anything() }));
     expect(mocks.variantenUpdateOne).toHaveBeenCalledWith(
       expect.objectContaining({ vereinId, artikelId, groesseId }), { $inc: { menge: 2 } }, expect.anything());
     expect(mocks.artikelUpdateOne).toHaveBeenCalledWith(
