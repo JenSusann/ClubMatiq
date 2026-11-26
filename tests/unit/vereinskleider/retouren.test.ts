@@ -65,8 +65,8 @@ import { ObjectId } from 'mongodb';
 import { PATCH as Abgleich } from '../../../src/routes/api/vereinskleider/clubdesk-abgleich/+server';
 import { GET as Export } from '../../../src/routes/api/vereinskleider/gutschriften/export/+server';
 import { GET as Historie } from '../../../src/routes/api/vereinskleider/retouren/historie/+server';
-const m=vi.hoisted(()=>({permission:vi.fn(),collection:vi.fn(),find:vi.fn(),sort:vi.fn(),limit:vi.fn(),toArray:vi.fn(),updateOne:vi.fn(),findOne:vi.fn(),aggregate:vi.fn()}));
-vi.mock('../../../src/lib/server/mongodb',()=>({db:{collection:m.collection}}));
+const m=vi.hoisted(()=>({permission:vi.fn(),collection:vi.fn(),find:vi.fn(),sort:vi.fn(),limit:vi.fn(),toArray:vi.fn(),updateOne:vi.fn(),findOne:vi.fn(),aggregate:vi.fn(),insertOne:vi.fn(),startSession:vi.fn(),withTransaction:vi.fn(),endSession:vi.fn(),lager:vi.fn()}));
+vi.mock('../../../src/lib/server/mongodb',()=>({db:{collection:m.collection},client:{startSession:m.startSession}}));
 vi.mock('../../../src/lib/server/berechtigungen',()=>({pruefeBerechtigung:m.permission}));
 describe('Vereinskleider – Abgleich, Export und Retourenhistorie',()=>{
   const id='507f1f77bcf86cd799439011', oid=new ObjectId(id);
@@ -123,4 +123,36 @@ describe('Vereinskleider – Abgleich, Export und Retourenhistorie',()=>{
     const pipeline=m.aggregate.mock.calls[0][0];expect(pipeline[0]).toEqual({$match:{vereinId:'verein-a','retouren.0':{$exists:true}}});expect(pipeline[3].$facet.daten.slice(0,2)).toEqual([{$skip:25},{$limit:25}]);
   });
   it('meldet Historienfehler',async()=>{m.toArray.mockRejectedValue(new Error('db'));expect((await Historie(event())).status).toBe(500);});
+});
+
+import { GET as RetourenGET, POST as RetourenPOST } from '../../../src/routes/api/vereinskleider/retouren/+server';
+vi.mock('../../../src/lib/server/lagerbewegungen',()=>({protokolliereLagerbewegung:m.lager}));
+describe('Retouren-API – Validierung und Finanzkonsistenz (#38)',()=>{
+ const id='507f1f77bcf86cd799439011', rid='507f1f77bcf86cd799439012';
+ const input={verkaufId:id,positionsIndex:0,menge:1,grund:'defekt',wiederverkaufbar:false,bemerkung:' Test ',datum:'2026-11-26'};
+ const p={artikelId:id,groesseId:null,menge:2,einzelpreis:28,verkaufsart:'direkt'};
+ const sale={positionen:[p],retouren:[],uebergaben:[]};
+ const invoice={_id:new ObjectId(rid),positionen:[{positionsIndex:0,menge:2,einzelpreis:28}],gesamtbetrag:56,bezahltBetrag:0,rechnungsnummer:'R1'};
+ const event=(body:unknown=input,query='verkaufId='+id)=>({locals:{benutzer:{id,vereinId:'verein-a'}},url:new URL('http://localhost/?'+query),request:new Request('http://localhost',{method:'POST',body:JSON.stringify(body)})}) as never;
+ beforeEach(()=>{
+  vi.resetAllMocks();m.permission.mockReturnValue(null);m.collection.mockReturnValue(m);m.find.mockReturnValue(m);
+  m.findOne.mockResolvedValue(sale);m.toArray.mockResolvedValueOnce([invoice]).mockResolvedValue([]);
+  m.updateOne.mockResolvedValue({modifiedCount:1});m.insertOne.mockResolvedValue({insertedId:new ObjectId()});
+  m.startSession.mockReturnValue({withTransaction:m.withTransaction,endSession:m.endSession});
+  m.withTransaction.mockImplementation(async(fn)=>fn());
+ });
+ it.each([RetourenGET,RetourenPOST])('verweigert fehlendes Recht',async handler=>{m.permission.mockReturnValue(new Response(null,{status:403}));expect((await handler(event())).status).toBe(403);});
+ it.each(['','verkaufId=bad'])('verwirft GET-ID',async q=>{expect((await RetourenGET(event(input,q))).status).toBe(400);});
+ it('meldet fehlenden Verkauf',async()=>{m.findOne.mockResolvedValue(null);expect((await RetourenGET(event())).status).toBe(404);expect((await RetourenPOST(event())).status).toBe(404);});
+ it('zeigt Direktverkauf ohne Finanzfreigabe',async()=>{const r=await RetourenGET(event());expect((await r.json()).positionen[0]).toMatchObject({maximal:2,freigegeben:false,artikelname:'',groesseId:null});});
+ it('zeigt Rabattkonflikt und bereits retournierte Mengen',async()=>{m.findOne.mockResolvedValue({...sale,rabattTotal:1,retouren:[{positionsIndex:0,menge:1}]});const r=await RetourenGET(event());expect((await r.json()).positionen[0]).toMatchObject({maximal:1,hinweis:expect.stringContaining('nicht eindeutig')});});
+ it('liefert leere Übersicht bei fehlenden Positionen',async()=>{m.findOne.mockResolvedValue({});expect((await (await RetourenGET(event())).json()).positionen).toEqual([]);});
+ it('meldet GET-Datenbankfehler',async()=>{m.findOne.mockRejectedValue(Error('DB'));expect((await RetourenGET(event())).status).toBe(500);});
+ it.each([{body:null},{body:[]},...[{verkaufId:1},{positionsIndex:-1},{positionsIndex:1.5},{menge:0},{menge:10001},{menge:1.5},{grund:'bad'},{wiederverkaufbar:1},{bemerkung:1},{bemerkung:'x'.repeat(1001)},{datum:1},{datum:'bad'},{datum:'2026-02-30'},{datum:'2026-13-01'}].map(p=>({body:{...input,...p}}))])('verwirft Eingabe %j',async({body})=>{expect((await RetourenPOST(event(body))).status).toBe(400);expect(m.startSession).not.toHaveBeenCalled();});
+ it.each([{artikelId:1},{groesseId:'bad'},{einzelpreis:0},{einzelpreis:1.001},{preisOffen:true}])('verweigert inkonsistente Position %j',async patch=>{m.findOne.mockResolvedValue({...sale,positionen:[{...p,...patch}]});expect((await RetourenPOST(event())).status).toBe(409);expect(m.updateOne).not.toHaveBeenCalled();});
+ it.each([{menge:'2'},{menge:1.5},{menge:0},{einzelpreis:'28'},{einzelpreis:Infinity},{einzelpreis:29}])('verweigert abweichende Rechnungsposition %j',async patch=>{m.toArray.mockReset().mockResolvedValueOnce([{...invoice,positionen:[{...invoice.positionen[0],...patch}]}]);expect((await RetourenPOST(event())).status).toBe(409);expect(m.updateOne).not.toHaveBeenCalled();});
+ it.each([{gesamtbetrag:-1},{gesamtbetrag:NaN},{bezahltBetrag:-1},{bezahltBetrag:57},{gutgeschriebenBetrag:-1},{gutgeschriebenBetrag:1},{gesamtbetrag:10},{rueckerstattungOffen:1}])('verweigert inkonsistente Rechnung %j',async patch=>{m.toArray.mockReset().mockResolvedValueOnce([{...invoice,...patch}]).mockResolvedValue([]);expect((await RetourenPOST(event())).status).toBe(409);expect(m.updateOne).not.toHaveBeenCalled();});
+ it.each([{bezahltBetrag:0,status:'offen'},{bezahltBetrag:10,status:'teilweise_bezahlt'},{bezahltBetrag:56,status:'bezahlt'}])('berechnet Rechnungsstatus %j',async({bezahltBetrag,status})=>{m.toArray.mockReset().mockResolvedValueOnce([{...invoice,bezahltBetrag}]).mockResolvedValue([]);expect((await RetourenPOST(event())).status).toBe(201);expect(m.updateOne.mock.calls[0][1].$set).toMatchObject({status,gutgeschriebenBetrag:28,rueckerstattungOffen:Math.max(0,bezahltBetrag-28)});expect(m.lager).not.toHaveBeenCalled();});
+ it.each([1,2,3,4])('verhindert konkurrierende Änderung bei Update %s',async n=>{m.findOne.mockResolvedValue({...sale,positionen:[{...p,groesseId:id}]});for(let i=1;i<n;i++)m.updateOne.mockResolvedValueOnce({modifiedCount:1});m.updateOne.mockResolvedValueOnce({modifiedCount:0});expect((await RetourenPOST(event({...input,wiederverkaufbar:true}))).status).toBe(409);expect(m.insertOne).not.toHaveBeenCalled();expect(m.endSession).toHaveBeenCalled();});
+ it('meldet Transaktionsfehler',async()=>{m.withTransaction.mockRejectedValue(Error('DB'));expect((await RetourenPOST(event())).status).toBe(500);expect(m.endSession).toHaveBeenCalled();});
 });
