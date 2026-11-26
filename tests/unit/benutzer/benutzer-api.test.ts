@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
-const mocks = vi.hoisted(() => ({ permission: vi.fn(), collection: vi.fn(), find: vi.fn(), project: vi.fn(), sort: vi.fn(), toArray: vi.fn(), findOne: vi.fn(), updateOne: vi.fn(), countDocuments: vi.fn(), deleteMany: vi.fn(), insertOne: vi.fn(), hash: vi.fn() }));
-vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: (...args: unknown[]) => mocks.collection(...args) } }));
+const mocks = vi.hoisted(() => ({ permission: vi.fn(), collection: vi.fn(), find: vi.fn(), project: vi.fn(), sort: vi.fn(), toArray: vi.fn(), findOne: vi.fn(), updateOne: vi.fn(), countDocuments: vi.fn(), deleteMany: vi.fn(), insertOne: vi.fn(), hash: vi.fn(), listCollections: vi.fn(), deleteOne: vi.fn() }));
+vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: (...args: unknown[]) => mocks.collection(...args), listCollections: mocks.listCollections } }));
 vi.mock('../../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: (...args: unknown[]) => mocks.permission(...args) }));
 import { GET } from '../../../src/routes/api/benutzer/+server';
 import { PATCH } from '../../../src/routes/api/benutzer/[id]/+server';
@@ -207,4 +207,33 @@ describe('Manuelle Benutzeranlage', () => {
     mocks.insertOne.mockRejectedValueOnce(error);
     expect((await run()).status).toBe(500);
   });
+});
+
+import { DELETE } from '../../../src/routes/api/benutzer/[id]/+server';
+describe('Benutzerverwaltung – sichere Löschung und Randfälle (#38)',()=>{
+ beforeEach(()=>{
+  mocks.collection.mockReturnValue({findOne:mocks.findOne,updateOne:mocks.updateOne,countDocuments:mocks.countDocuments,deleteMany:mocks.deleteMany,deleteOne:mocks.deleteOne,find:mocks.find});
+  mocks.findOne.mockResolvedValue(ziel);mocks.updateOne.mockResolvedValue({matchedCount:1});mocks.countDocuments.mockResolvedValue(1);
+  mocks.deleteOne.mockResolvedValue({deletedCount:1});mocks.deleteMany.mockResolvedValue({deletedCount:1});
+  mocks.listCollections.mockReturnValue({toArray:async()=>[]});
+ });
+ it.each([{body:null},{body:[]},{body:42},{body:{}},...['vorname','nachname'].flatMap(f=>[42,' ','x'.repeat(101)].map(v=>({body:{[f]:v}}))),... [42,'bad','x'.repeat(255)+'@a.ch'].map(email=>({body:{email}}))])('verwirft ungültige Änderung %j',async({body})=>{expect((await PATCH(eventBearbeiten(body))).status).toBe(400);expect(mocks.updateOne).not.toHaveBeenCalled();});
+ it('verwirft ungültige ID',async()=>{expect((await PATCH(eventBearbeiten({aktiv:true},'bad'))).status).toBe(400);});
+ it('verwirft defektes JSON',async()=>{const e=eventBearbeiten({}) as any;e.request=new Request('http://localhost',{method:'PATCH',body:'{'});expect((await PATCH(e)).status).toBe(400);});
+ it('verhindert eigene Deaktivierung',async()=>{expect((await PATCH(eventBearbeiten({aktiv:false},adminId))).status).toBe(409);});
+ it('widerruft Sessions bei Deaktivierung',async()=>{expect((await PATCH(eventBearbeiten({aktiv:false}))).status).toBe(200);expect(mocks.deleteMany).toHaveBeenCalledWith({benutzerId:id,vereinId:'verein-1'});});
+ it('behält Sessions bei unveränderter Rolle',async()=>{expect((await PATCH(eventBearbeiten({rolle:'mitglied',aktiv:true}))).status).toBe(200);expect(mocks.deleteMany).not.toHaveBeenCalled();});
+ it('erkennt zwischenzeitlich entfernten Benutzer',async()=>{mocks.updateOne.mockResolvedValue({matchedCount:0});expect((await PATCH(eventBearbeiten({aktiv:true}))).status).toBe(409);});
+ it.each([null,'DB',{}, {code:123}])('meldet sonstige Änderungsfehler %j',async e=>{mocks.updateOne.mockRejectedValue(e);expect((await PATCH(eventBearbeiten({aktiv:true}))).status).toBe(500);});
+ const del=(person=id)=>DELETE(eventBearbeiten({},person));
+ it('verweigert fehlendes Recht',async()=>{mocks.permission.mockReturnValue(new Response(null,{status:403}));expect((await del()).status).toBe(403);});
+ it.each(['bad',adminId])('verweigert ungültige oder eigene ID',async person=>{expect((await del(person)).status).toBe(person==='bad'?400:409);});
+ it('meldet fehlenden Benutzer',async()=>{mocks.findOne.mockResolvedValue(null);expect((await del()).status).toBe(404);});
+ it('schützt letzten aktiven Administrator',async()=>{mocks.findOne.mockResolvedValue({...ziel,rolle:'admin'});mocks.countDocuments.mockResolvedValue(0);expect((await del()).status).toBe(409);});
+ function refs(docs:unknown[]){mocks.listCollections.mockReturnValue({toArray:async()=>['benutzer','sessions','einladungen','system.test','artikel'].map(name=>({name}))});mocks.find.mockReturnValue({async *[Symbol.asyncIterator](){yield* docs;}});}
+ it.each([{ref:id},{ref:new ObjectId(id)},{ref:[{nested:id}]}])('schützt fachliche Referenz %j',async doc=>{refs([doc]);expect((await del()).status).toBe(409);expect(mocks.deleteOne).not.toHaveBeenCalled();});
+ it('löscht nur referenzfreien Benutzer und dessen Sessions',async()=>{refs([{ref:[null,42,new Date(),new ObjectId(), 'fremd']}]);expect((await del()).status).toBe(200);expect(mocks.find).toHaveBeenCalledWith({vereinId:'verein-1'});expect(mocks.deleteOne).toHaveBeenCalledWith({_id:new ObjectId(id),vereinId:'verein-1'});expect(mocks.deleteMany).toHaveBeenCalledWith({vereinId:'verein-1',benutzerId:id});});
+ it('verweigert zu umfangreiche Referenzprüfung',async()=>{refs(Array(10001).fill({}));expect((await del()).status).toBe(500);expect(mocks.deleteOne).not.toHaveBeenCalled();});
+ it('erkennt konkurrierende Löschung',async()=>{mocks.deleteOne.mockResolvedValue({deletedCount:0});expect((await del()).status).toBe(409);});
+ it.each([Error('DB'),'DB'])('meldet Löschfehler',async e=>{mocks.deleteOne.mockRejectedValue(e);expect((await del()).status).toBe(500);});
 });
