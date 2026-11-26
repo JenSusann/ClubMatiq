@@ -54,3 +54,22 @@ describe('Issue #71 – Mitgliedersuche im Verkauf', () => {
     expect(await (await get()).json()).toHaveLength(50);
   });
 });
+
+describe('Mitgliedersuche – historische Felder und Grenzen (#38)', () => {
+  it('vermeidet Abfrage ohne Suchparameter', async () => {
+    const r=await GET({locals:{benutzer},url:new URL('http://localhost/api/vereinskleider/mitglieder')} as never);
+    expect(await r.json()).toEqual([]); expect(m.members).not.toHaveBeenCalled();
+  });
+  it('liefert Standardwerte für historische Mitglieder ohne Rabatt und Status', async () => {
+    m.members.mockReturnValue({sort:()=>({toArray:async()=>[{_id:'alt',clubdeskId:'123',vorname:'Anna',nachname:''}]})});
+    expect(await (await get()).json()).toEqual([{_id:'alt',clubdeskId:'123',vorname:'Anna',nachname:'',anzeigename:'Anna',status:'',erstbezugsRabattIds:[],riegen:[]}]);
+  });
+  it('erhält vorhandenen Status', async () => {
+    m.members.mockReturnValue({sort:()=>({toArray:async()=>[{...member,status:'Aktiv'}]})});
+    expect((await (await get()).json())[0].status).toBe('Aktiv');
+  });
+  it('akzeptiert exakt 120 Zeichen', async () => {
+    expect((await get('a'.repeat(120))).status).toBe(200);
+    expect(m.members).toHaveBeenCalled();
+  });
+});
