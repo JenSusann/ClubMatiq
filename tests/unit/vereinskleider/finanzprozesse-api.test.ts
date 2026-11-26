@@ -413,9 +413,9 @@ describe('Preisfestlegung – offene Bestellpositionen', () => {
     expect((await call(postPreisfestlegung,body)).status).toBe(400);expect(m.startSession).not.toHaveBeenCalled();
   });
   it('meldet fehlende Bestellung',async()=>{expect((await call(postPreisfestlegung,input)).status).toBe(404);});
-  it.each([
+  it.each<[Record<string, unknown>, number]>([
     [{rechnungId:RID},409],[{positionen:null},404],[{positionen:[]},404],[{status:'storniert'},409],
-    ...[{verkaufsart:'direkt'},{preisOffen:false},{einzelpreis:1},{menge:0},{menge:1.5},{storniertMenge:1},{uebergebenMenge:1}].map(p=>[{positionen:[{...offen,...p}]},409]),
+    ...[{verkaufsart:'direkt'},{preisOffen:false},{einzelpreis:1},{menge:0},{menge:1.5},{storniertMenge:1},{uebergebenMenge:1}].map((p): [Record<string, unknown>, number] => [{positionen:[{...offen,...p}]},409]),
     [{zahlungen:'bad'},409],[{zahlungen:[null]},409],[{zahlungen:[{betrag:0,zahlungsart:'bar'}]},409],
     [{zahlungen:[{betrag:1,zahlungsart:'karte'}]},409],[{rabattTotal:1},409]
   ])('verhindert inkonsistente Preisfestlegung %j',async(patch,status)=>{
