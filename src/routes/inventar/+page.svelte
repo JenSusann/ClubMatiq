@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { verwendeBestaetigung } from '../../lib/bestaetigung';
+  const bestaetigen = verwendeBestaetigung();
   import { onMount } from 'svelte';
   import { page } from '$app/state';
   import { verwendeRollenVorschau } from '../../lib/rollenVorschau.svelte';
@@ -91,9 +93,9 @@
 
   async function artikelLoeschen(a: Artikel) {
     if (!darfBearbeiten) return;
-    const bestaetigt = confirm(
+    const bestaetigt = await bestaetigen(
       `Möchtest du den Artikel "${a.name}" wirklich löschen?\n\n` +
-      'Der Artikel und seine Grössenbestände werden dauerhaft gelöscht.'
+      'Der Artikel und seine Grössenbestände werden dauerhaft gelöscht.', 'Löschen', true
     );
     if (!bestaetigt) return;
     wirdGeloescht = a._id;
@@ -114,9 +116,9 @@
   async function archivStatusAendern(a: Artikel) {
     if (!darfBearbeiten) return;
     const archivieren = a.archiviert !== true;
-    if (!confirm(archivieren
+    if (!(await bestaetigen(archivieren
       ? `Artikel "${a.name}" archivieren? Der Bestand bleibt gespeichert, der Artikel wird aus der aktiven Ansicht ausgeblendet.`
-      : `Artikel "${a.name}" wieder aktivieren?`)) return;
+      : `Artikel "${a.name}" wieder aktivieren?`, archivieren ? 'Archivieren' : 'Aktivieren'))) return;
     wirdGeloescht = a._id;
     fehlermeldung = '';
     try {
