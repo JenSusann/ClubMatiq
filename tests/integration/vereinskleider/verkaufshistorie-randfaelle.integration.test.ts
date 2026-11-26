@@ -12,7 +12,7 @@ const article = (overrides = {}) => ({ _id: new ObjectId(id), vereinId, name: 'V
 const price = (overrides = {}) => ({ preistyp: 'fix', verkaufspreis: 20, ...overrides });
 function setup(data: { artikel?: unknown; variante?: unknown; preis?: unknown; rabattregeln?: unknown[]; bestand?: unknown; aggregate?: unknown[]; invoices?: unknown[] } = {}) {
  const collections: Record<string, any> = {};
- for (const name of ['artikel','artikelvarianten','vereinskleider_preise','rabattregeln','vereinskleider_verkaeufe','vereinskleider_rechnungen']) collections[name] = {
+ for (const name of ['artikel','artikelvarianten','vereinskleider_preise','rabattregeln','vereinskleider_verkaeufe','vereinskleider_rechnungen','lagerbewegungen']) collections[name] = {
   findOne: vi.fn(async () => name === 'artikel' ? (data.artikel === undefined ? article() : data.artikel) : name === 'artikelvarianten' ? (data.variante ?? null) : name === 'vereinskleider_preise' ? (data.preis === undefined ? price() : data.preis) : null),
   find: vi.fn(() => ({ project: () => ({ toArray: async () => data.invoices ?? [] }) })),
   aggregate: vi.fn(() => ({ toArray: async () => data.aggregate ?? [{ eintraege: [], zaehler: [] }] })),
