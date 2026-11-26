@@ -522,10 +522,10 @@ export const GET: RequestHandler = async ({ locals, url }) => {
           ] } } },
           { $project: { rechnungsnummer: 1, status: 1, gesamtbetrag: 1, bezahltBetrag: 1,
             gutgeschriebenBetrag: 1, rueckerstattungOffen: 1 } },
-          { $limit: 1 }
+          { $sort: { _id: 1 } }
         ], as: 'rechnungsTreffer'
       } },
-      { $set: { rechnung: { $arrayElemAt: ['$rechnungsTreffer', 0] } } },
+      { $set: { rechnung: { $arrayElemAt: ['$rechnungsTreffer', 0] }, rechnungen: '$rechnungsTreffer' } },
       { $set: {
         nettoFilter: { $max: [0, { $subtract: [
           { $ifNull: ['$rechnung.gesamtbetrag', '$endbetrag'] },
@@ -559,7 +559,8 @@ export const GET: RequestHandler = async ({ locals, url }) => {
       return {
         ...v,
         _id: String(v._id),
-        rechnung: rechnung ? { ...rechnung, _id: String(rechnung._id) } : null
+        rechnung: rechnung ? { ...rechnung, _id: String(rechnung._id) } : null,
+        rechnungen: Array.isArray(v.rechnungen) ? v.rechnungen.map((r: Record<string, unknown>) => ({ ...r, _id: String(r._id) })) : []
       };
     });
     return json({ verkaeufe, seite, proSeite: limit, gesamt, seiten: Math.ceil(gesamt / limit) });
