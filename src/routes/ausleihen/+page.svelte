@@ -536,16 +536,6 @@
     color: #1e40af;
   }
 
-  .fehler {
-    background: #fee2e2;
-    color: #991b1b;
-  }
-
-  .erfolg {
-    background: #dcfce7;
-    color: #166534;
-  }
-
   @media (max-width: 700px) {
     .kopf {
       flex-direction: column;
