@@ -43,6 +43,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const bestellungen = await db.collection<Bestellung>('vereinskleider_sammelbestellungen')
       .find({ vereinId, _id: { $in: eindeutig.map((id) => new ObjectId(id)) } }).toArray();
     if (bestellungen.length !== eindeutig.length) throw error(404, 'Mindestens eine Bestellung wurde nicht gefunden.');
+    if (bestellungen.some((b) => b.status === 'geliefert'))
+      throw error(409, 'Gelieferte Bestellungen können nicht gemeinsam exportiert werden.');
     const lieferantIds = new Set(bestellungen.map((b) => b.lieferantId ?? ''));
     if (lieferantIds.size !== 1 || !bestellungen[0].lieferantId || !gueltigeId(bestellungen[0].lieferantId))
       throw error(409, 'Für eine Gesamt-PDF müssen alle Bestellungen denselben gültigen Lieferanten haben.');
