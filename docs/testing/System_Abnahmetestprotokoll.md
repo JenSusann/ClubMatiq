@@ -512,7 +512,7 @@ Testdatum: 26.11.2026. Manuelle Browser-Abnahme, alle 16 Fälle einzeln durch di
 | ST-49-37 | Excel: Forderungen und Rückerstattungen | Bestanden |
 | ST-49-38 | Excel: Filterübernahme | Bestanden |
 
-38/38 nach Korrekturen. Belegverknüpfungen: c4bc3a8, 81d2cc7, 5d103c2; Finanzberechnung: be5e287; Filter: 2c8d536; Export: 69095d6. Drei Beleg-Regressionstests (17f465d) bestanden. Vollständiger Integrationslauf: 2594/2599 bestanden; fünf veraltete Abfrageerwartungen korrigiert (9c7b4b8, 96fbde9, 20badc0), anschliessender gezielter Nachtest und npm run check gemäss Rückmeldung ohne Fehler. Vollständiger erneuter CI-Lauf noch nicht bestätigt.
+38/38 nach Korrekturen. Belegverknüpfungen: c4bc3a8, 81d2cc7, 5d103c2; Finanzberechnung: be5e287; Filter: 2c8d536; Export: 69095d6. Drei Beleg-Regressionstests (17f465d) bestanden. Vollständiger Integrationslauf: 2594/2599 bestanden; fünf veraltete Abfrageerwartungen korrigiert (9c7b4b8, 96fbde9, 20badc0), anschliessender gezielter Nachtest und npm run check gemäss Rückmeldung ohne Fehler. Vollständiger erneuter [CI-Lauf 45816880404](https://github.com/JenSusann/ClubMatiq/actions/runs/45816880404) erfolgreich (eec4def): 2437 Unit- und 2599 Integrationstests, 5036/5036, 159 Dateien. Kombinierte Coverage: Statements 98,17 %, Branches 95,01 %, Functions 96,18 %, Lines 98,88 %. Quality Gate bestanden.
 
 ## 3. Geplanter Regressionstestkatalog
 
