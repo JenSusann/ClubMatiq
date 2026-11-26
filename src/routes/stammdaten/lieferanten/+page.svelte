@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
   import { onMount } from 'svelte';
 
   type Lieferant = {
@@ -134,6 +135,7 @@
 
   onMount(() => { void ladenAusApi(); });
 </script>
+<Aktionsmeldung fehler={fehler} erfolg={erfolg} fehlerSchliessen={() => fehler = ''} erfolgSchliessen={() => erfolg = ''} />
 
 <svelte:head><title>Lieferanten – ClubMatiq</title></svelte:head>
 
@@ -144,8 +146,8 @@
     <button class="primaer" type="button" onclick={neu}>+ Lieferant erfassen</button>
   </header>
 
-  {#if fehler}<p class="warnung" role="alert">{fehler}</p>{/if}
-  {#if erfolg}<p class="erfolg" role="status">{erfolg}</p>{/if}
+  {#if fehler}<p class="warnung" >{fehler}</p>{/if}
+  {#if erfolg}<p class="erfolg" >{erfolg}</p>{/if}
 
   <section class="karte">
     <label for="suche">Lieferanten suchen</label>
