@@ -262,6 +262,7 @@ describe('23-artikel-update-erfolg', () => {
     m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false });
     m.findOne.mockResolvedValueOnce({ _id: new ObjectId(kategorieId) });
     m.findOne.mockResolvedValueOnce({ _id: new ObjectId(lagerortId) });
+    m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), menge: 0 });
     const response = await route7.PATCH(event('PATCH', payload()) as never);
     expect(response.status).toBe(200);
     expect(m.updateOne).toHaveBeenCalledOnce();
@@ -392,6 +393,7 @@ describe('23-artikel-update-varianten', () => {
     m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: true });
     m.findOne.mockResolvedValueOnce({ _id: new ObjectId(kategorieId) });
     m.findOne.mockResolvedValueOnce({ _id: new ObjectId(lagerortId) });
+    m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), menge: 0 });
     const response = await route18.PATCH(event('PATCH', { ...payload(), hatGroessen: true, varianten: [{ groesseId, menge: 3, einzelwert: 15, mindestbestand: 1 }] }) as never);
     expect(response.status).toBe(200);
     expect(m.updateMany).toHaveBeenCalledOnce();
@@ -686,8 +688,9 @@ describe('Artikel-API: zusätzliche Validierungszweige', () => {
     const response = await POST(event({ ...base(), hatGroessen: true,
       varianten: [{ groesseId, menge: 1, einzelwert: 10, mindestbestand: 0 }] }) as never);
     expect(response.status).toBe(500);
-    expect(mocks.deleteMany).toHaveBeenCalledOnce();
-    expect(mocks.deleteOne).toHaveBeenCalledOnce();
+    expect(mocks.insertMany).toHaveBeenCalledOnce();
+    expect(mocks.deleteMany).not.toHaveBeenCalled();
+    expect(mocks.deleteOne).not.toHaveBeenCalled();
   });
   it('GET meldet Datenbankfehler mit Status 500', async () => {
     mocks.find.mockImplementationOnce(() => { throw new Error('Datenbankfehler'); });
