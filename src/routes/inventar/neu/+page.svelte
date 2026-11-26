@@ -1,5 +1,6 @@
 
 <script lang="ts">
+  import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
   import { onMount } from 'svelte';
 
   type Stammdatum = {
@@ -270,6 +271,7 @@
     }
   }
 </script>
+<Aktionsmeldung fehler={fehlermeldung} erfolg={erfolgsmeldung} fehlerSchliessen={() => fehlermeldung = ''} erfolgSchliessen={() => erfolgsmeldung = ''} />
 
 <svelte:head>
   <title>Artikel erfassen – ClubMatiq</title>
@@ -284,11 +286,11 @@
   <p>Erfasse Vereinsmaterial und Vereinskleider zentral über die Stammdaten.</p>
 
   {#if fehlermeldung}
-    <p class="meldung fehler" role="alert">{fehlermeldung}</p>
+    <p class="meldung fehler" >{fehlermeldung}</p>
   {/if}
 
   {#if erfolgsmeldung}
-    <p class="meldung erfolg" role="status">{erfolgsmeldung}</p>
+    <p class="meldung erfolg" >{erfolgsmeldung}</p>
   {/if}
 
   {#if wirdGeladen}
