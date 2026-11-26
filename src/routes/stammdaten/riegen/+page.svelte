@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { verwendeBestaetigung } from '../../../lib/bestaetigung';
+  const bestaetigen = verwendeBestaetigung();
   import { onMount } from 'svelte';
   type Riege = { _id: string; name: string; bereich: 'juko' | 'aktive'; aktiv: boolean };
   type Zuordnung = { _id: string; gruppe: string; funktion: string | null; riegeId: string };
@@ -67,7 +69,7 @@
     </form>
     {#each zuordnungen as z (z._id)}
       <div class="eintrag"><span>{z.gruppe}{z.funktion ? ' (' + z.funktion + ')' : ''} → {riegen.find(r => r._id === z.riegeId)?.name ?? 'Unbekannte Riege'}</span>
-      <button disabled={beschaeftigt} onclick={() => { if (confirm('Zuordnung entfernen?')) void ausfuehren(async () => { await api('/api/gruppenzuordnungen?id=' + encodeURIComponent(z._id), 'DELETE'); }); }}>Entfernen</button></div>
+      <button disabled={beschaeftigt} onclick={async () => { if (await bestaetigen('Zuordnung entfernen?', 'Entfernen', true)) void ausfuehren(async () => { await api('/api/gruppenzuordnungen?id=' + encodeURIComponent(z._id), 'DELETE'); }); }}>Entfernen</button></div>
     {:else}<p>Keine Zuordnungen vorhanden.</p>{/each}
   </section>
 </main>
