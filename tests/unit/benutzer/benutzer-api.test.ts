@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
-const mocks = vi.hoisted(() => ({ permission: vi.fn(), collection: vi.fn(), find: vi.fn(), project: vi.fn(), sort: vi.fn(), toArray: vi.fn(), findOne: vi.fn(), updateOne: vi.fn(), countDocuments: vi.fn(), deleteMany: vi.fn() }));
+const mocks = vi.hoisted(() => ({ permission: vi.fn(), collection: vi.fn(), find: vi.fn(), project: vi.fn(), sort: vi.fn(), toArray: vi.fn(), findOne: vi.fn(), updateOne: vi.fn(), countDocuments: vi.fn(), deleteMany: vi.fn(), insertOne: vi.fn(), hash: vi.fn() }));
 vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: (...args: unknown[]) => mocks.collection(...args) } }));
 vi.mock('../../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: (...args: unknown[]) => mocks.permission(...args) }));
 import { GET } from '../../../src/routes/api/benutzer/+server';
@@ -129,4 +129,82 @@ describe('Issue #15 – Benutzer bearbeiten', () => {
   });
 });
 
+});
+
+vi.mock('argon2', () => ({ hash: mocks.hash, argon2id: 2 }));
+import { POST as POSTManuell } from '../../../src/routes/api/benutzer/manuell/+server';
+
+describe('Manuelle Benutzeranlage', () => {
+  const valid = { vorname: ' Ada ', nachname: ' Test ', email: ' ADA@EXAMPLE.CH ', passwort: 'Startpasswort123!', rolle: 'mitglied' };
+  const run = (data: unknown = valid, locals: object = { benutzer }) => POSTManuell({
+    locals, request: new Request('http://localhost/api/benutzer/manuell', { method: 'POST', body: JSON.stringify(data) })
+  } as never);
+
+  beforeEach(() => {
+    mocks.collection.mockReturnValue({ findOne: mocks.findOne, insertOne: mocks.insertOne });
+    mocks.findOne.mockResolvedValue(null);
+    mocks.insertOne.mockResolvedValue({ insertedId: new ObjectId(id) });
+    mocks.hash.mockResolvedValue('start-hash');
+  });
+
+  it.each([401, 403])('verweigert Zugriff mit Status %i', async status => {
+    mocks.permission.mockReturnValue(new Response(null, { status }));
+    expect((await run(valid, status === 401 ? {} : { benutzer })).status).toBe(status);
+    expect(mocks.permission).toHaveBeenCalledWith(status === 401 ? undefined : benutzer, 'benutzer:verwalten');
+    expect(mocks.collection).not.toHaveBeenCalled();
+  });
+
+  it.each([null, [], 42, 'text'])('weist ungültige Eingabe ab: %j', async data => {
+    expect((await run(data)).status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+
+  it('weist fehlerhaftes JSON ab', async () => {
+    expect((await POSTManuell({ locals: { benutzer }, request: new Request('http://localhost', { method: 'POST', body: '{' }) } as never)).status).toBe(400);
+  });
+
+  it.each([
+    { vorname: '' }, { vorname: 42 }, { nachname: '' }, { nachname: 42 },
+    { vorname: 'x'.repeat(101) }, { nachname: 'x'.repeat(101) },
+    { email: 42 }, { email: 'ungueltig' }, { email: 'x'.repeat(250) + '@a.ch' },
+    { passwort: 42 }, { passwort: 'x'.repeat(11) }, { passwort: 'x'.repeat(1025) },
+    { rolle: 42 }, { rolle: 'superadmin' }
+  ])('weist ungültiges Feld ab: %j', async patch => {
+    expect((await run({ ...valid, ...patch })).status).toBe(400);
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+
+  it.each(['admin', 'materialverantwortlich', 'leiter', 'mitglied'])('erstellt Benutzer mit Rolle %s im eigenen Verein', async rolle => {
+    const r = await run({ ...valid, rolle, vereinId: 'fremd', aktiv: false, passwortwechselErforderlich: false });
+    expect(r.status).toBe(201);
+    expect(await r.json()).toMatchObject({ erfolg: true, id });
+    expect(mocks.findOne).toHaveBeenCalledWith({ email: 'ada@example.ch' });
+    expect(mocks.hash).toHaveBeenCalledWith(valid.passwort, { type: 2 });
+    expect(mocks.insertOne).toHaveBeenCalledWith({
+      vereinId: benutzer.vereinId, vorname: 'Ada', nachname: 'Test', email: 'ada@example.ch',
+      rolle, passwortHash: 'start-hash', aktiv: true, passwortwechselErforderlich: true, erstelltAm: expect.any(Date)
+    });
+  });
+
+  it('verhindert global doppelte E-Mail-Adressen', async () => {
+    mocks.findOne.mockResolvedValue({ vereinId: 'fremd' });
+    expect((await run()).status).toBe(409);
+    expect(mocks.hash).not.toHaveBeenCalled();
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+
+  it('behandelt konkurrierende Anlage mit Duplicate Key', async () => {
+    mocks.insertOne.mockRejectedValueOnce({ code: 11000 });
+    expect((await run()).status).toBe(409);
+  });
+
+  it.each(['findOne', 'hash', 'insertOne'] as const)('behandelt Fehler in %s', async method => {
+    mocks[method].mockRejectedValueOnce(new Error('DB'));
+    expect((await run()).status).toBe(500);
+  });
+
+  it.each([null, 'Fehler', { code: 123 }])('behandelt sonstigen Fehler: %j', async error => {
+    mocks.insertOne.mockRejectedValueOnce(error);
+    expect((await run()).status).toBe(500);
+  });
 });
