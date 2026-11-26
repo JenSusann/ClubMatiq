@@ -49,7 +49,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #47 | Bestell-PDF inkl. #116/#117 | 20/20 | Nachprüfung 26.11.2026 |
 | #48 | Stornierungen und Gutschriften inkl. #118 | 20/20 | Nachprüfung 26.11.2026 |
 | #49 | Verkaufshistorie inkl. #119 | 38/38 | Nachprüfung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 282/282 | Dokumentierte Durchläufe |
+| #32 | Admin-Dashboard | 10/10 | Sammelbestätigung 26.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 292/292 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -514,9 +515,30 @@ Testdatum: 26.11.2026. Manuelle Browser-Abnahme, alle 16 Fälle einzeln durch di
 
 38/38 nach Korrekturen. Belegverknüpfungen: c4bc3a8, 81d2cc7, 5d103c2; Finanzberechnung: be5e287; Filter: 2c8d536; Export: 69095d6. Drei Beleg-Regressionstests (17f465d) bestanden. Vollständiger Integrationslauf: 2594/2599 bestanden; fünf veraltete Abfrageerwartungen korrigiert (9c7b4b8, 96fbde9, 20badc0), anschliessender gezielter Nachtest und npm run check gemäss Rückmeldung ohne Fehler. Vollständiger erneuter [CI-Lauf 45816880404](https://github.com/JenSusann/ClubMatiq/actions/runs/45816880404) erfolgreich (eec4def): 2437 Unit- und 2599 Integrationstests, 5036/5036, 159 Dateien. Kombinierte Coverage: Statements 98,17 %, Branches 95,01 %, Functions 96,18 %, Lines 98,88 %. Quality Gate bestanden.
 
+Ergänzung #49: Mobile Darstellung und Benutzerberechtigungen ebenfalls erfolgreich geprüft (Sammelbestätigung, ohne zusätzliche nummerierte Fälle).
+
+### Issue #32 – Admin-Dashboard
+
+26.11.2026: Alle zehn manuellen Tests gemäss Sammelbestätigung bestanden.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-32-01 | Administratoransicht | Bestanden |
+| ST-32-02 | Thematische Gruppierung | Bestanden |
+| ST-32-03 | Materialverantwortliche | Bestanden |
+| ST-32-04 | Leiter/in | Bestanden |
+| ST-32-05 | Mitglied | Bestanden |
+| ST-32-06 | Rollenvorschau | Bestanden |
+| ST-32-07 | Vorschau beenden | Bestanden |
+| ST-32-08 | Direkter Seitenaufruf mit Nicht-Admin-Konto | Bestanden |
+| ST-32-09 | Administrative API: HTTP 403 | Bestanden |
+| ST-32-10 | Mobile Darstellung | Bestanden |
+
+Keine Codeänderung erforderlich. Automatisierter Nachweis: bestehender erfolgreicher CI-Lauf 45816880404; keine neue isolierte Ausführung.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 282 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 292 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
