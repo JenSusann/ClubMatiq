@@ -573,7 +573,7 @@ Commit 4bdb41f, Nachprüfung gemäss Sammelbestätigung bestanden.
 | ST-62-19 | Fehlgeschlagener Wechsel erhält Sitzungen | Bestanden |
 | ST-62-20 | Fremde Benutzersitzung unverändert | Bestanden |
 
-Gezielter Integrationstest (5c7cef3) und npm run check gemäss Rückmeldung erfolgreich. Vollständiger CI-Lauf 45820817892 noch laufend.
+Gezielter Integrationstest (5c7cef3) und npm run check gemäss Rückmeldung erfolgreich. CI-Lauf 45821258149 (3fe6cbc) erfolgreich: 2441 Unit- und 2600 Integrationstests, 5041/5041; kombinierte Coverage 98,18 % Statements, 95,01 % Branches, 96,19 % Functions, 98,88 % Lines. Quality Gate bestanden. 19 veraltete Unit-Test-Fixtures korrigiert, vier zusätzliche Unit-Tests.
 
 ## 3. Geplanter Regressionstestkatalog
 
