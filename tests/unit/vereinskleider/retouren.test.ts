@@ -194,3 +194,15 @@ describe('Retourenprüfung – zusätzliche Grenzwerte', () => {
     expect(pruefeRetourenmenge(v, 0, 3)).toEqual({ maximal: 3, einzelpreisRappen: 0 });
   });
 });
+
+describe('Retouren – historische Daten (#38)', () => {
+  it('erlaubt Direktverkauf ohne optionale Historienfelder', () => {
+    expect(pruefeRetourenmenge({positionen:[{menge:2,verkaufsart:'direkt',einzelpreis:12.35}]},0,1)).toEqual({maximal:2,einzelpreisRappen:1235});
+  });
+  it('verweigert Direktverkauf ohne Mengenfeld', () => {
+    expect(() => pruefeRetourenmenge({positionen:[{verkaufsart:'direkt',einzelpreis:12}]},0,1)).toThrow('Keine dokumentierte Übergabe');
+  });
+  it('verwendet dokumentierte Übergaben auch beim Direktverkauf', () => {
+    expect(pruefeRetourenmenge({positionen:[{menge:4,verkaufsart:'direkt',einzelpreis:12}],uebergaben:[{positionsIndex:0,menge:2}]},0,1).maximal).toBe(2);
+  });
+});
