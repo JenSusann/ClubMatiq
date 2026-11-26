@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
   import { verwendeBestaetigung } from '../../../lib/bestaetigung';
   const bestaetigen = verwendeBestaetigung();
   import { onMount } from 'svelte';
@@ -12,6 +13,7 @@
   let gruppenAuswahl = $state('');
   let riegeId = $state('');
   let fehler = $state('');
+  let erfolg = $state('');
   let beschaeftigt = $state(false);
 
   async function api(url: string, method = 'GET', daten?: unknown) {
@@ -26,15 +28,16 @@
     riegen = r;
     zuordnungen = z;
   }
-  async function ausfuehren(aktion: () => Promise<void>) {
+  async function ausfuehren(aktion: () => Promise<void>, initial = false) {
     if (beschaeftigt) return;
     beschaeftigt = true;
     fehler = '';
-    try { await aktion(); await laden(); }
+    erfolg = '';
+    try { await aktion(); if (!initial) erfolg = 'Änderung gespeichert.'; await laden(); }
     catch (e) { fehler = e instanceof Error ? e.message : 'Unbekannter Fehler.'; }
     finally { beschaeftigt = false; }
   }
-  onMount(() => { void ausfuehren(async () => {}); });
+  onMount(() => { void ausfuehren(async () => {}, true); });
   function neueRiege() {
     return ausfuehren(async () => { await api('/api/riegen', 'POST', { name, bereich }); name = ''; });
   }
@@ -42,11 +45,12 @@
     return ausfuehren(async () => { await api('/api/gruppenzuordnungen', 'POST', { ...JSON.parse(gruppenAuswahl), riegeId }); gruppenAuswahl = ''; riegeId = ''; });
   }
 </script>
+<Aktionsmeldung fehler={fehler} erfolg={erfolg} fehlerSchliessen={() => fehler = ''} erfolgSchliessen={() => erfolg = ''} />
 <svelte:head><title>Riegen – ClubMatiq</title></svelte:head>
 <main>
   <a href="/stammdaten">← Stammdaten</a>
   <h1>Riegen und ClubDesk-Gruppen</h1>
-  {#if fehler}<p role="alert" class="fehler">{fehler}</p>{/if}
+  {#if fehler}<p class="fehler">{fehler}</p>{/if}
   <section>
     <h2>Riegenverwaltung</h2>
     <form onsubmit={(e) => { e.preventDefault(); void neueRiege(); }}>
