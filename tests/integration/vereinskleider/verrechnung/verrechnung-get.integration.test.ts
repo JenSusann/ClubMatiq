@@ -35,7 +35,7 @@ describe('Verrechnung GET – Grenzwerte und Fehlerzweige', () => {
     expect((await call()).status).toBe(200);
     expect(mocks.find).toHaveBeenCalledWith('vereinskleider_rechnungen', { vereinId: benutzer.vereinId });
     expect(mocks.find).toHaveBeenCalledWith('vereinskleider_verkaeufe', {
-      vereinId: benutzer.vereinId, rechnungId: { $exists: false },
+      vereinId: benutzer.vereinId, rechnungId: { $exists: false }, status: { $ne: 'storniert' },
       $nor: [{ endbetrag: 0, preisOffen: { $ne: true }, 'erstbezugsIds.0': { $exists: true } }]
     });
     expect(mocks.limit).toHaveBeenCalledWith('vereinskleider_rechnungen', 1000);
