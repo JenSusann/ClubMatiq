@@ -399,8 +399,8 @@
     </button>
   </header>
 
-  {#if fehler}<p class="warnung" >{fehler}</p>{/if}
-  {#if erfolg}<p class="erfolg" >{erfolg}</p>{/if}
+  
+  
   {#if groessenFehler}<p class="warnung" role="status">{groessenFehler}</p>{/if}
 
   {#if laden}
@@ -616,7 +616,7 @@
   .status.bestellt { color: #1d4ed8; background: #dbeafe; }
   .status.geliefert { color: #166534; background: #dcfce7; }
   .warnung { background: #fffbeb; color: #92400e; border-radius: 8px; padding: 12px; }
-  .erfolg { background: #ecfdf5; color: #166534; border-radius: 8px; padding: 12px; }
+
   .leer { text-align: center; padding: 25px 0; }
   .hinweis h2 { font-size: 17px; }
   .hinweis p { font-size: 13px; line-height: 1.6; color: #64748b; }
