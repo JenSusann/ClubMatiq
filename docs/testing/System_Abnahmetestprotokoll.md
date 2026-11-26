@@ -43,7 +43,8 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #35 | Inventarbewertung (Teilabnahme) | 27/27 | Einzelbestätigung, Stichtagsfilter und Netlify-Funktionstest |
 | #36 | Schadensmeldungen und Bearbeitungshistorie | 8/8 | Manuelle Sammelbestätigung 26.11.2026 |
 | #37 | Materialsuche, Filter und Weiterleitung | 11/11 | Manuelle Sammelbestätigung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 144/144 | Dokumentierte Durchläufe |
+| #44 | Materialausleihe und Rückgabe | 18/18 | Nach Korrektur ffbed03 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 162/162 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -335,6 +336,38 @@ Testdatum: 26.11.2026. Manuelle Sammelbestätigung der Entwicklerin. Implementie
 | ST-37-11 | Mobile Ansicht | Filter bleiben bedienbar | Bestanden |
 
 **Manuelle Abnahme:** 11/11 bestanden. TypeScript-Check und Unit-Tests einschliesslich der fünf zusätzlichen Tests zur Weiterleitung und Authentifizierung gemäss Bestätigung der Entwicklerin am 26.11.2026 ohne Fehler. Funktionale Abnahme abgeschlossen.
+
+### Issue #44 – Materialausleihe und Rückgabe
+
+Testdatum: 26.11.2026. Manuelle Sammelbestätigung der Entwicklerin.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-44-01 | Material ausleihen | Bestanden |
+| ST-44-02 | Bestandsänderung 10 auf 7 | Bestanden |
+| ST-44-03 | Ausleihübersicht | Bestanden |
+| ST-44-04 | Ungültige Ausleihmenge | Bestanden |
+| ST-44-05 | Ungültiges Rückgabedatum | Bestanden |
+| ST-44-06 | Teilrückgabe | Bestanden |
+| ST-44-07 | Zu hohe Rückgabemenge | Bestanden nach Korrektur |
+| ST-44-08 | Vollständige Rückgabe | Bestanden |
+| ST-44-09 | Ausleihstatus | Bestanden |
+| ST-44-10 | Doppelte Rückgabe | Bestanden |
+| ST-44-11 | Artikel mit Grössen | Bestanden |
+| ST-44-12 | Berechtigungen | Bestanden |
+| ST-44-13 | Vereinsisolation | Bestanden |
+| ST-44-14 | Datenpersistenz | Bestanden |
+
+Erstprüfung: 13/14 bestanden. ST-44-07: Validierung wirksam, Fehlermeldung jedoch hinter dem Rückgabedialog. Korrektur in `src/lib/AusleihenUebersicht.svelte`, Commit ffbed03.
+
+| ID | Nachprüfung | Ergebnis |
+|---|---|---|
+| ST-44-07a | Fehlermeldung im Dialog sichtbar | Bestanden |
+| ST-44-07b | Meldung verschwindet bei Mengenkorrektur | Bestanden |
+| ST-44-07c | Gültige Rückgabe weiterhin möglich | Bestanden |
+| ST-44-07d | Dialog erneut öffnen ohne alte Meldung | Bestanden |
+
+**Manuelle Abnahme:** 18/18 nach Korrektur bestanden. Automatisierte Ausleih-Tests und TypeScript-Check nach der UI-Korrektur nicht separat bestätigt.
 
 ## 3. Geplanter Regressionstestkatalog
 
