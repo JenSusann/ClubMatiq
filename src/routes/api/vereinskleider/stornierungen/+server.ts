@@ -1,3 +1,5 @@
+import { korrigiereRabattAbschnitte } from '../../../../lib/rabattstornierung';
+import type { RabattAbschnitt } from '../../../../lib/rabattverteilung';
 import { json } from '@sveltejs/kit';
 import { ObjectId, type Document } from 'mongodb';
 import { client, db } from '../../../../lib/server/mongodb';
@@ -27,6 +29,7 @@ type Verkauf = Document & {
   rabattTotal: number;
   mitgliedId?: string;
   erstbezugsIds?: string[];
+  rabattAbschnitte?: RabattAbschnitt[];
   direktMenge?: number;
   bestellMenge?: number;
   bezahltBetrag?: number;
@@ -283,7 +286,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       }
       // Positionsbezogene Erstbezüge: reguläre Stücke zuerst stornieren.
       const zuordnungen = verkauf.erstbezugsPositionen as { anspruch: string; rabattId: string; positionsIndex: number; rabattBetrag: number }[] | undefined;
-      if (verkauf.erstbezugsIds?.length && Array.isArray(zuordnungen) && (verkauf.rechnungId ||
+      const abschnitte = verkauf.rabattAbschnitte;
+      const gemischt = Array.isArray(abschnitte);
+      if ((verkauf.erstbezugsIds?.length || gemischt) && Array.isArray(zuordnungen) && (verkauf.rechnungId ||
           ((verkauf.bezahltBetrag ?? 0) === 0 && !(verkauf.zahlungen ?? []).some(z => z.betrag > 0)))) {
         const p = verkauf.positionen[index];
         const rabatte = verkauf.rabatte as { rabattId: string; betrag: number; einmaligProMitglied?: boolean }[] | undefined;
@@ -294,18 +299,33 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             (p.reserviertMenge ?? 0) > p.menge - (p.uebergebenMenge ?? 0) ||
             !gueltigeRappen(p.einzelpreis) || rappen(p.positionsbetrag) !== rappen(p.einzelpreis) * p.menge ||
             (verkauf.zusaetzlicherRabatt ?? 0) !== 0 || !rabatte ||
-            rabatte.length !== zuordnungen.length || rabatte.some(r => !r.einmaligProMitglied) ||
-            zuordnungen.length !== verkauf.erstbezugsIds.length ||
+            (!gemischt && (rabatte.length !== zuordnungen.length || rabatte.some(r => !r.einmaligProMitglied))) ||
+            zuordnungen.length !== (verkauf.erstbezugsIds ?? []).length ||
             new Set(zuordnungen.map(z => z.anspruch)).size !== zuordnungen.length ||
             zuordnungen.some(z => !verkauf.erstbezugsIds!.includes(z.anspruch) ||
               !Number.isSafeInteger(z.positionsIndex) || !verkauf.positionen[z.positionsIndex]?.menge ||
               !gueltigeRappen(z.rabattBetrag) ||
               !rabatte.some(r => r.rabattId === z.rabattId && r.betrag === z.rabattBetrag)) ||
-            zuordnungen.reduce((s,z) => s + rappen(z.rabattBetrag),0) !== rappen(verkauf.rabattTotal)) {
+            (!gemischt && zuordnungen.reduce((s,z) => s + rappen(z.rabattBetrag),0) !== rappen(verkauf.rabattTotal))) {
           throw new Stornierungsfehler('Erstbezugszuordnung oder Bestellmenge ist nicht eindeutig.', 409);
         }
         const freigaben = menge === p.menge ? zuordnungen.filter(z => z.positionsIndex === index) : [];
-        const rabattKorrektur = freigaben.reduce((s,z) => s + rappen(z.rabattBetrag),0);
+        let korrektur: ReturnType<typeof korrigiereRabattAbschnitte> | undefined;
+        if (gemischt) {
+          try {
+            if (abschnitte.reduce((s,a)=>s+a.rabattRappen,0) !== rappen(verkauf.rabattTotal) ||
+                abschnitte.some(a => !verkauf.positionen[a.positionsIndex] || !rabatte.some(r=>r.rabattId===a.regelId)) ||
+                rabatte.some(r=>abschnitte.filter(a=>a.regelId===r.rabattId).reduce((s,a)=>s+a.rabattRappen,0)!==rappen(r.betrag)) ||
+                zuordnungen.some(z=>!abschnitte.some(a=>a.regelId===z.rabattId && a.positionsIndex===z.positionsIndex && a.abStueck===0 && a.menge===1 && a.rabattRappen===rappen(z.rabattBetrag)))) throw new Error('Inkonsistente Rabattzuordnung.');
+            for (const [i,pos] of verkauf.positionen.entries()) {
+              if (pos.menge > 0) korrigiereRabattAbschnitte(abschnitte,i,pos.menge,pos.menge);
+              else if (abschnitte.some(a=>a.positionsIndex===i)) throw new Error('Rabatt auf stornierter Position.');
+              if (abschnitte.some(a=>a.positionsIndex===i && a.rabattRappen > rappen(pos.einzelpreis)*a.menge)) throw new Error('Rabatt über Warenwert.');
+            }
+            korrektur = korrigiereRabattAbschnitte(abschnitte,index,p.menge,menge);
+          } catch { throw new Stornierungsfehler('Rabattabschnitte sind nicht eindeutig.',409); }
+        }
+        const rabattKorrektur = korrektur?.rabattKorrektur ?? freigaben.reduce((s,z) => s + rappen(z.rabattBetrag),0);
         const brutto = rappen(p.einzelpreis) * menge;
         const netto = brutto - rabattKorrektur;
         if (netto < 0 || netto > rappen(verkauf.endbetrag) || brutto > rappen(verkauf.zwischentotal)) {
@@ -360,9 +380,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         const update = await sammlung.updateOne({ _id: verkaufId, vereinId, aktualisiertAm: verkauf.aktualisiertAm }, { $set: {
           positionen, status, endbetrag, restbetragBekannt: Math.max(0, rappen(endbetrag)-bezahlt)/100, zahlungsstatus: bezahlt >= rappen(endbetrag) ? 'bezahlt' : bezahlt > 0 ? 'teilweise_bezahlt' : 'offen',
           zwischentotal: (rappen(verkauf.zwischentotal)-brutto)/100, rabattTotal: (rappen(verkauf.rabattTotal)-rabattKorrektur)/100,
-          erstbezugsIds: verkauf.erstbezugsIds.filter(id => !ids.includes(id)),
+          erstbezugsIds: (verkauf.erstbezugsIds ?? []).filter(id => !ids.includes(id)),
           erstbezugsPositionen: zuordnungen.filter(z => !ids.includes(z.anspruch)),
-          rabatte: rabatte.filter(r => !freigaben.some(z => z.rabattId === r.rabattId)),
+          rabatte: korrektur ? rabatte.filter(r=>korrektur!.abschnitte.some(a=>a.regelId===r.rabattId)).map(r=>({...r,betrag:(rappen(r.betrag)-(korrektur!.korrekturen[r.rabattId] ?? 0))/100})) : rabatte.filter(r => !freigaben.some(z => z.rabattId === r.rabattId)),
+          ...(korrektur ? { rabattAbschnitte: korrektur.abschnitte } : {}),
           bestellMenge: positionen.filter(p => p.verkaufsart === 'bestellung').reduce((s,p) => s+p.menge,0),
           aktualisiertAm: jetzt, stornierungen: [...(verkauf.stornierungen ?? []), { positionsIndex: index, menge, grund,
             storniertAm: jetzt, storniertVon: locals.benutzer!.id, storniertVonName: [locals.benutzer!.vorname, locals.benutzer!.nachname].filter(Boolean).join(' ').trim() || undefined,
