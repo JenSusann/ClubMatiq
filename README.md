@@ -106,9 +106,11 @@
 - **Annahmen:** Eine gemeinsame Datenbasis verringert doppelte Erfassung und erleichtert die Suche nach Material. Verständliche Abläufe und eine rollenbezogene Darstellung verbessern die Nutzbarkeit. Grössen- und Preisvarianten sind für Vereinskleider erforderlich.
 - **Abgrenzung:** ClubMatiq ist ein Prototyp und kein nachgewiesen produktiv abgesichertes Vereins-ERP. Eine vollständige Finanzbuchhaltung und eine nachgewiesene ClubDesk-Integration gehören nicht zum belegten Umfang. Implementierte Funktionen bedeuten nicht automatisch, dass sämtliche fachlichen Randfälle oder Sicherheitsanforderungen erfolgreich getestet wurden.
 
+**Hauptworkflow (Mindestumfang gemäss Übung 11):** Materialartikel erfassen und in der datenbankgestützten Inventarübersicht anzeigen, Material suchen, eine Ausleihe erfassen und durch Rückgabe abschliessen. Die Bestandsänderungen werden persistent gespeichert. Weitere Workflows und zusätzliche Qualitätsmassnahmen sind in Kapitel 4 abgegrenzt. Die Live-Abnahme des konkreten Abgabedeployments ist separat nachzuweisen.
+
 ## 3. Vorgehen & Artefakte
 
-Das Projekt folgt dem phasenorientierten Prototyping-Prozess. Die nachfolgenden Angaben verbinden die bisherigen Projektunterlagen mit dem am 17.11.2026 eingesehenen Repository-Stand.
+Das Projekt folgt dem phasenorientierten Prototyping-Prozess. Die nachfolgenden Angaben verbinden die bisherigen Projektunterlagen mit der laufend gepflegten technischen Dokumentation. Historische Nachweise sind mit ihrem jeweiligen Stand gekennzeichnet.
 
 ### 3.1 Understand & Define – Problemraumanalyse
 
@@ -353,7 +355,7 @@ Im Projekt ClubMatiq wurde ChatGPT (OpenAI) als zentraler KI-Assistent über meh
 | GitHub-Anbindung in ChatGPT | Einsicht in Repository-Dateien, Analyse von Issues und Commits sowie direkte Aktualisierung ausgewählter Dokumentationsdateien |
 | Projektbezogener ChatGPT-Kontext | Fortführung des Entwicklungsprozesses über mehrere Gespräche mit gemeinsamen Anforderungen, Entscheidungen und Testergebnissen |
 
-GitHub, Vitest, MongoDB, Netlify und die lokale Entwicklungsumgebung sind technische Werkzeuge des Projekts und werden nicht allein aufgrund ihrer Verwendung als KI-Werkzeuge eingestuft. Weitere KI-Produkte werden nur ergänzt, sofern ihre tatsächliche Verwendung im Projekt bestätigt ist. Die genaue Modellversion sämtlicher historischer KI-Interaktionen wurde nicht durchgehend protokolliert.
+GitHub, Vitest, MongoDB, Netlify und die lokale Entwicklungsumgebung sind technische Werkzeuge des Projekts und werden nicht allein aufgrund ihrer Verwendung als KI-Werkzeuge eingestuft. Weitere KI-Produkte werden nur ergänzt, sofern ihre tatsächliche Verwendung im Projekt bestätigt ist. Die genaue Modellversion sämtlicher historischer KI-Interaktionen wurde nicht durchgehend protokolliert. Bei der Dokumentationsüberarbeitung am 27.11.2026 wurde GPT-6.2 eingesetzt.
 
 ### 6.2 Vorgehen mit KI
 
@@ -395,6 +397,8 @@ Der Workflow ist nicht mit einem vollständig autonomen Entwicklungsagenten glei
 
 **Verweise:** [GitHub-Issues](https://github.com/JenSusann/ClubMatiq/issues) · [Commit-Historie](https://github.com/JenSusann/ClubMatiq/commits/main/) · [Kapitel 4.2.2](#422-strukturierter-ki-gestützter-entwicklungsworkflow)
 
+Seit dem 27.11.2026 bündelt die [AGENTS.md](AGENTS.md) die aus der bisherigen Zusammenarbeit abgeleiteten Regeln zu Planung, Sicherheit, Tests, Freigaben und Dokumentation. Sie dient als verbindlicher Projektkontext für künftige Agentenaufgaben und ist kein rückwirkender Nachweis ihrer Verwendung.
+
 ### 6.3 Reflexion
 
 Die KI-Unterstützung ermöglichte eine schnelle Einarbeitung in den technischen Stack und die Umsetzung eines umfangreichen, fachlich zusammenhängenden Prototyps. Besonders hilfreich waren die iterative Fehlersuche, die Übersetzung fachlicher Anforderungen in technische Lösungsansätze und die Ergänzung von Testfällen.
@@ -426,7 +430,7 @@ KI-generierter Code wird anhand statischer Prüfungen, automatisierter Unit- und
 
 Manuelle Tests werden durch die entwickelnde Person ausgeführt. Die Ergebnisse werden erst nach entsprechender Rückmeldung als bestanden dokumentiert. Historisch rekonstruierte Testbeschreibungen werden gekennzeichnet. Die unabhängige Usability-Evaluation ergänzt diese funktionalen Prüfungen.
 
-Zum dokumentierten Zwischenstand vom 25.11.2026 liegen 58 abschliessend bestandene manuelle Testfälle aus fünf Issue-Abnahmen vor. Der aktuelle automatisierte Nachweis vom 26.11.2026 ist in Kapitel 9.4 dokumentiert.
+Die Übersicht im System- und Abnahmetestprotokoll weist 430/430 quantifizierte manuelle Prüfungen aus (eingesehen am 27.11.2026). Neuere Einzelabnahmen sind dort separat dokumentiert; die Übersicht ist keine abschliessende Gesamtzählung. Der aktuelle automatisierte Nachweis vom 26.11.2026 ist in Kapitel 9.4 dokumentiert.
 
 **Nachweise:** [System- und Abnahmetestprotokoll](docs/testing/System_Abnahmetestprotokoll.md) · [Testdateien](tests) · [Kapitel 9](#9-lokale-installation-und-tests)
 
@@ -598,7 +602,7 @@ Die laufende Dokumentation enthält pro Issue Test-IDs, Aufgaben, erwartete Erge
 
 **Artefakt:** [System- und Abnahmetestprotokoll](docs/testing/System_Abnahmetestprotokoll.md)
 
-Dokumentierter Zwischenstand vom 25.11.2026:
+Historischer Auszug vom 25.11.2026 (nicht der aktuelle Gesamtstand):
 
 | Issue | Prüfbereich | Abschliessend bestanden |
 |---|---|---:|
@@ -611,7 +615,7 @@ Dokumentierter Zwischenstand vom 25.11.2026:
 | [#34](https://github.com/JenSusann/ClubMatiq/issues/34) | Vereinskleider, Erstbezüge und Stornierungen | 20/20 |
 | **Gesamt** | | **98/98** |
 
-Die Ergebnisse beziehen sich auf die jeweiligen dokumentierten Abnahmen, nicht auf eine vollständige Prüfung des aktuellen Gesamtstands. Der zunächst festgestellte Grössenfehler bei #21 wurde korrigiert und erfolgreich nachgeprüft. Historisch rekonstruierte Aufgaben sind im Protokoll gekennzeichnet. Weitere 56 Regressionstestfälle sind dort als geplant erfasst und nicht in der Erfolgsquote enthalten. Massgeblich für den laufenden Stand ist das verlinkte Protokoll.
+Die Ergebnisse beziehen sich auf die jeweiligen dokumentierten Abnahmen, nicht auf eine vollständige Prüfung des aktuellen Gesamtstands. Der zunächst festgestellte Grössenfehler bei #21 wurde korrigiert und erfolgreich nachgeprüft. Historisch rekonstruierte Aufgaben sind im Protokoll gekennzeichnet. Weitere 56 Regressionstestfälle sind dort als geplant erfasst und nicht in der Erfolgsquote enthalten. Massgeblich für den laufenden Stand ist das verlinkte Protokoll. Dessen Übersicht weist bei Einsicht am 27.11.2026 430/430 quantifizierte Prüfungen aus; neuere Einzelabnahmen sind separat aufgeführt.
 
 ### 9.6 Usability-Tests und Evaluation
 
@@ -751,7 +755,7 @@ Stand der Dokumentationsüberarbeitung: 25.11.2026. Die Funktionsübersicht basi
 | Fachliche Module | Oberflächen und API-Routen gemäss Kapitel 10.2 vorhanden |
 | Externe Dienste | Implementierungen gemäss Kapitel 10.3 und 10.4 vorhanden; Live-Nachweise je Dienst separat erforderlich |
 | Automatisierte Tests | 5'013/5'013 bestanden; kombiniertes 95-%-Quality-Gate bestanden (26.11.2026, Kapitel 9.4) |
-| Manuelle Abnahmen | 58/58 abschliessend bestanden in fünf dokumentierten Issue-Abnahmen (Zwischenstand 25.11.2026) |
+| Manuelle Abnahmen | 430/430 quantifizierte Prüfungen gemäss Übersicht im Testprotokoll (eingesehen am 27.11.2026); weitere Einzelabnahmen separat dokumentiert |
 | Regressionstests | Weitere 56 Fälle geplant; laufende Issue-Abnahmen ergänzen den Katalog |
 | Usability | Unabhängige Evaluation noch durchzuführen bzw. auszuwerten |
 | Abgabedokumentation | Laufende Pflege; finaler Abgabestand noch festzulegen |
