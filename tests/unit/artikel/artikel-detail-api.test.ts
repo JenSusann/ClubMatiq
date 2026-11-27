@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   find: vi.fn(),
   countDocuments: vi.fn(),
   updateOne: vi.fn(),
+  journal: vi.fn(),
   updateMany: vi.fn(),
   deleteOne: vi.fn(),
   deleteMany: vi.fn(),
@@ -22,6 +23,7 @@ vi.mock('../../../src/lib/server/mongodb', () => ({
       countDocuments: mocks.countDocuments,
       updateOne: (...args: unknown[]) => mocks.updateOne(name, ...args),
       updateMany: mocks.updateMany,
+      insertOne: mocks.journal,
       deleteOne: (...args: unknown[]) => mocks.deleteOne(name, ...args),
       deleteMany: mocks.deleteMany
     }))
@@ -102,6 +104,7 @@ beforeEach(() => {
     toArray: vi.fn().mockResolvedValue([])
   });
 
+  mocks.journal.mockResolvedValue({ acknowledged: true });
   mocks.countDocuments.mockResolvedValue(1);
   mocks.updateOne.mockResolvedValue({ matchedCount: 1 });
   mocks.deleteOne.mockResolvedValue({ deletedCount: 1 });
@@ -113,6 +116,52 @@ beforeEach(() => {
 });
 
 describe('ClubMatiq Artikel-Detailverwaltung', () => {
+  it.each([3, 8, 12, undefined])('berechnet Korrektur aus bestehender Variante %s', async (alt) => {
+    mocks.findOne.mockImplementation(async (name: string) => name === 'artikel' ? { ...artikel(), hatGroessen: true } : { _id: new ObjectId() });
+    const vorhandene = [{ groesseId, menge: alt }];
+    mocks.find.mockReturnValue({ toArray: vi.fn().mockResolvedValueOnce(vorhandene).mockResolvedValueOnce(vorhandene).mockResolvedValueOnce([]) });
+    const response = await PATCH(kontext(admin, artikelId, { ...eingabe(), hatGroessen: true,
+      varianten: [{ groesseId, menge: 8, einzelwert: 35, mindestbestand: 2 }] }));
+    expect(response.status).toBe(200);
+    if (alt === 8) expect(mocks.journal).not.toHaveBeenCalled();
+    else expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ groesseId, mengeDelta: 8 - (alt ?? 0) }), expect.anything());
+  });
+  it('verwendet Null als Altbestand bei fehlendem Mengenfeld', async () => {
+    mocks.findOne.mockImplementation(async (name: string) => name === 'artikel' ? { ...artikel(), menge: undefined } : { _id: new ObjectId() });
+    expect((await PATCH(kontext())).status).toBe(200);
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ mengeDelta: 15 }), expect.anything());
+  });
+  it('verhindert Entfernen einer Variante mit neuem Bestand innerhalb der Transaktion', async () => {
+    mocks.findOne.mockImplementation(async (name: string) => name === 'artikel' ? { ...artikel(), hatGroessen: true } : { _id: new ObjectId() });
+    mocks.find.mockReturnValue({ toArray: vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]).mockResolvedValueOnce([{ groesseId: new ObjectId().toString(), menge: 2 }]) });
+    expect((await PATCH(kontext(admin, artikelId, { ...eingabe(), hatGroessen: true, varianten: [{ groesseId, menge: 8, einzelwert: 35, mindestbestand: 2 }] }))).status).toBe(500);
+    expect(mocks.journal).not.toHaveBeenCalled();
+    expect(mocks.endSession).toHaveBeenCalledOnce();
+  });
+
+
+  it('protokolliert keine Bewegung bei unverändertem Bestand', async () => {
+    expect((await PATCH(kontext(admin, artikelId, { ...eingabe(), menge: 10 }))).status).toBe(200);
+    expect(mocks.journal).not.toHaveBeenCalled();
+  });
+  it('verhindert Überlauf der Variantensumme', async () => {
+    const response = await PATCH(kontext(admin, artikelId, { ...eingabe(), hatGroessen: true,
+      varianten: [groesseId, new ObjectId().toString()].map(groesseId => ({ groesseId, menge: Number.MAX_SAFE_INTEGER, einzelwert: 1, mindestbestand: 0 })) }));
+    expect(response.status).toBe(400);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('bricht ab wenn der Artikel innerhalb der Transaktion fehlt', async () => {
+    let aufrufe = 0;
+    mocks.findOne.mockImplementation(async (name: string) => name === 'artikel' ? (++aufrufe === 1 ? artikel() : null) : { _id: new ObjectId() });
+    expect((await PATCH(kontext())).status).toBe(500);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+    expect(mocks.endSession).toHaveBeenCalledOnce();
+  });
+  it('protokolliert negative Bestandskorrekturen', async () => {
+    expect((await PATCH(kontext(admin, artikelId, { ...eingabe(), menge: 3 }))).status).toBe(200);
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ mengeDelta: -7 }), expect.anything());
+  });
+
 
   it('lädt einen einzelnen Artikel', async () => {
     const response = await GET(kontext());
@@ -158,6 +207,7 @@ describe('ClubMatiq Artikel-Detailverwaltung', () => {
     expect(response.status).toBe(200);
     expect(daten.erfolg).toBe(true);
     expect(daten.gesamtmenge).toBe(15);
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ artikelId, vereinId, art: 'korrektur', mengeDelta: 5, groesseId: null }), expect.objectContaining({ session: expect.anything() }));
     expect(mocks.updateOne).toHaveBeenCalled();
     expect(mocks.endSession).toHaveBeenCalled();
   });
@@ -342,6 +392,7 @@ describe('ClubMatiq Artikel-Detailverwaltung', () => {
 
     expect(response.status).toBe(200);
     expect(daten.gesamtmenge).toBe(8);
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ artikelId, groesseId, mengeDelta: 8 }), expect.objectContaining({ session: expect.anything() }));
     expect(mocks.updateMany).toHaveBeenCalled();
     expect(mocks.updateOne).toHaveBeenCalledWith(
       'artikelvarianten',
@@ -714,4 +765,36 @@ describe('ClubMatiq Artikel-Detailverwaltung', () => {
   });
 
 
+});
+
+describe('Issue #51 – Artikellöschung im Journal', () => {
+  it('protokolliert den Restbestand vor der Löschung', async () => {
+    expect((await DELETE(kontext())).status).toBe(200);
+    expect(mocks.journal).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      vereinId, artikelId, groesseId: null, mengeDelta: -10,
+      artikelName: 'Trainingsball', referenzTyp: 'artikel-loeschung'
+    }), expect.objectContaining({ session: expect.anything() }));
+    expect(mocks.journal.mock.invocationCallOrder[0]).toBeLessThan(mocks.deleteOne.mock.invocationCallOrder[0]);
+  });
+  it('protokolliert Varianten ohne doppelte Gesamtmenge', async () => {
+    const zweite = new ObjectId().toString();
+    mocks.findOne.mockImplementation(async (name: string) => name === 'artikel' ? { ...artikel(), hatGroessen: true } : null);
+    mocks.find.mockReturnValue({ toArray: vi.fn().mockResolvedValue([{ groesseId, menge: 4 }, { groesseId: zweite, menge: 6 }]) });
+    expect((await DELETE(kontext())).status).toBe(200);
+    expect(mocks.journal).toHaveBeenCalledTimes(2);
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ groesseId, mengeDelta: -4 }), expect.anything());
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ groesseId: zweite, mengeDelta: -6 }), expect.anything());
+  });
+  it('erzeugt bei Nullbestand keine Bewegung', async () => {
+    mocks.findOne.mockImplementation(async (name: string) => name === 'artikel' ? { ...artikel(), menge: 0 } : null);
+    expect((await DELETE(kontext())).status).toBe(200);
+    expect(mocks.journal).not.toHaveBeenCalled();
+  });
+  it('bricht bei Journalfehler vor der Löschung ab', async () => {
+    mocks.journal.mockRejectedValueOnce(new Error('Journalfehler'));
+    expect((await DELETE(kontext())).status).toBe(500);
+    expect(mocks.deleteMany).not.toHaveBeenCalled();
+    expect(mocks.deleteOne).not.toHaveBeenCalled();
+    expect(mocks.endSession).toHaveBeenCalledOnce();
+  });
 });

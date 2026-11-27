@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { verteileRabatte } from '../../../lib/rabattverteilung';
   import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
   import { onMount } from 'svelte';
 
@@ -86,7 +87,7 @@
     ausgewaehltesMitglied = null;
     riegen = [];
     erstbezug = false;
-    rabattId = '';
+    rabattIds = [];
     mitgliederSucheFehler = '';
     speichernErfolg = '';
     const suchtext = kaeufer.trim();
@@ -118,7 +119,7 @@
     ausgewaehltesMitglied = mitglied;
     riegen = (mitglied.riegen ?? []).filter(r => riegenOptionen.includes(r));
     erstbezug = false;
-    rabattId = '';
+    rabattIds = [];
     kaeufer = mitglied.anzeigename;
     mitgliederVorschlaege = [];
     mitgliederListeOffen = false;
@@ -136,7 +137,7 @@
   let speichernErfolg = $state('');
   let zusaetzlicherRabatt = $state('0');
   let rabattregeln = $state<Rabattregel[]>([]);
-  let rabattId = $state('');
+  let rabattIds = $state<string[]>([]);
   let erstbezug = $state(false);
 
   const gesamtpreis = $derived(positionen.reduce((summe, p) => summe + p.menge * (p.einzelpreis ?? 0), 0));
@@ -167,10 +168,38 @@
       r.artikelIds.some(id => ids.includes(id)) ||
       artikel.some(a => r.kategorieIds.includes(a.kategorieId) && ids.includes(a._id)));
   }));
-  const ausgewaehlterRabatt = $derived(passendeRegeln.find((r) => r._id === rabattId));
+  const ausgewaehlteRabatte = $derived(passendeRegeln.filter(r => rabattIds.includes(r._id)));
+  function betrifft(r: Rabattregel, p: Position): boolean {
+    return r.geltungsbereich === 'warenkorb' ||
+      (r.geltungsbereich === 'artikel' && r.artikelIds.includes(p.artikelId)) ||
+      (r.geltungsbereich === 'kategorie' && r.kategorieIds.includes(artikel.find(a => a._id === p.artikelId)?.kategorieId ?? ''));
+  }
+  function kompatibel(a: Rabattregel, b: Rabattregel): boolean {
+    return a.kombinierbar && b.kombinierbar && !(
+      (a.einmaligProMitglied && b.einmaligProMitglied) &&
+      (positionen.some(p => betrifft(a,p) && betrifft(b,p)) ||
+       (a.einmaligProMitglied && b.einmaligProMitglied && a.anspruchsgruppe && a.anspruchsgruppe === b.anspruchsgruppe))
+    );
+  }
+  function gemischteVerteilung(regeln: Rabattregel[]) {
+    if (!regeln.some(r => r.einmaligProMitglied) || !regeln.some(r => !r.einmaligProMitglied)) return null;
+    return verteileRabatte(positionen, regeln.map(r => ({
+      id: r._id, einmalig: r.einmaligProMitglied === true, kombinierbar: r.kombinierbar,
+      art: r.rabattart, wert: r.wert, maximaleMenge: r.maximaleMenge,
+      passendeIndizes: positionen.flatMap((p,i) => betrifft(r,p) ? [i] : [])
+    })));
+  }
+  function kombinationGueltig(regeln: Rabattregel[]): boolean {
+    if (!regeln.every((a,i) => regeln.slice(i+1).every(b => kompatibel(a,b)))) return false;
+    try { gemischteVerteilung(regeln); return true; } catch { return false; }
+  }
+  const verteilung = $derived.by(() => {
+    try { return gemischteVerteilung(ausgewaehlteRabatte); } catch { return null; }
+  });
   function rappen(wert: number): number { return Math.round((wert + Number.EPSILON) * 100); }
   function rabattBerechnen(regel: Rabattregel | undefined): number {
     if (!regel) return 0;
+    if (verteilung) return (verteilung.summen[regel._id] ?? 0) / 100;
     const passend = positionen.filter((p) => p.einzelpreis !== null && (regel.geltungsbereich === 'warenkorb' ||
       (regel.geltungsbereich === 'artikel' && regel.artikelIds.includes(p.artikelId)) ||
       (regel.geltungsbereich === 'kategorie' && regel.kategorieIds.includes(
@@ -195,8 +224,8 @@
         : fixpreisRabatt;
     return Math.min(wert, rappen(gesamtpreis)) / 100;
   }
-  const regelRabatt = $derived(rabattBerechnen(ausgewaehlterRabatt));
-  const rabattAuswahlGueltig = $derived(rabattId === '' || ausgewaehlterRabatt !== undefined);
+  const regelRabatt = $derived(Math.min(rappen(gesamtpreis), ausgewaehlteRabatte.reduce((summe,r) => summe + rappen(rabattBerechnen(r)), 0)) / 100);
+  const rabattAuswahlGueltig = $derived(rabattIds.length === ausgewaehlteRabatte.length && kombinationGueltig(ausgewaehlteRabatte));
   const restNachSonderrabatt = $derived(Math.max(0, Math.round((gesamtpreis - regelRabatt) * 100) / 100));
   const rabattGueltig = $derived(Number.isFinite(rabattZahl) && rabattZahl >= 0 && rabattZahl <= restNachSonderrabatt && Math.abs(rabattZahl * 100 - Math.round(rabattZahl * 100)) < 0.000001);
   const endbetrag = $derived(Math.max(0, Math.round((restNachSonderrabatt - (rabattGueltig ? rabattZahl : 0)) * 100) / 100));
@@ -388,7 +417,7 @@
   }
 
   async function vorgangSpeichern(): Promise<void> {
-    if (speichernLaeuft || !bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart === 'direkt' || rabattId !== '' || rabattZahl !== 0))) return;
+    if (speichernLaeuft || !bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart === 'direkt' || rabattIds.length > 0 || rabattZahl !== 0))) return;
     speichernLaeuft = true;
     speichernFehler = '';
     speichernErfolg = '';
@@ -405,7 +434,7 @@
           bemerkung,
           riegen,
           positionen: positionen.map((p) => p.preisOffen ? { artikelId: p.artikelId, groesseId: p.groesseId, menge: p.menge, preisOffen: true } : p),
-          rabattIds: rabattId ? [rabattId] : [],
+          rabattIds: rabattIds,
           zusaetzlicherRabatt: rabattZahl
         })
       });
@@ -429,7 +458,7 @@
       bemerkung = '';
       zahlungErhalten = false;
       zusaetzlicherRabatt = '0';
-      rabattId = '';
+      rabattIds = [];
       erstbezug = false;
       positionsFehler = '';
       speichernErfolg = `Vorgang erfolgreich gespeichert: ${ergebnis.verkauf?.direktMenge ?? 0} direkt verkauft, ${ergebnis.verkauf?.bestellMenge ?? 0} bestellt${ergebnis.verkauf?._id ? ` (ID: ${ergebnis.verkauf._id})` : ''}.`;
@@ -649,15 +678,17 @@
           {/if}
           <div class="rabattbereich">
             <h3>Rabatt</h3>
-            <label><input type="checkbox" bind:checked={erstbezug} disabled={!ausgewaehltesMitglied || hatOffenePreise} onchange={() => { rabattId = ''; }} /> Vergünstigter Erstbezug</label>
+            <label class="checkzeile"><input type="checkbox" bind:checked={erstbezug} disabled={!ausgewaehltesMitglied || hatOffenePreise} onchange={() => { rabattIds = []; }} /> Vergünstigter Erstbezug</label>
             {#if erstbezug && ausgewaehltesMitglied}<p class="hinweis">Bereits beanspruchte Erstbezugsregeln werden ausgeblendet. Der Server prüft den Anspruch beim Speichern erneut.</p>{/if}
-            <label for="rabattregel">Gespeicherte Rabattregel (optional)</label>
-            <select id="rabattregel" bind:value={rabattId}>
-              <option value="">Keine Rabattregel</option>
-              {#each passendeRegeln as regel (regel._id)}
-                <option value={regel._id}>{regel.name} ({regel.rabattart === 'prozent' ? `${regel.wert} %` : formatCHF(regel.wert)})</option>
-              {/each}
-            </select>
+            <p>Gespeicherte Rabattregeln (optional)</p>
+             {#each passendeRegeln as regel (regel._id)}
+               <label class="checkzeile rabattoption"><input type="checkbox" checked={rabattIds.includes(regel._id)}
+                 disabled={!rabattIds.includes(regel._id) && (hatOffenePreise || !kombinationGueltig([...ausgewaehlteRabatte, regel]))}
+                 onchange={(e) => { rabattIds = e.currentTarget.checked ? [...rabattIds, regel._id] : rabattIds.filter(id => id !== regel._id); }} />
+                 {regel.name} ({regel.rabattart === 'prozent' ? `${regel.wert} %` : formatCHF(regel.wert)})
+               </label>
+             {/each}
+             {#if rabattIds.length}<button class="rabatt-reset" type="button" onclick={() => { rabattIds = []; }}>Rabattauswahl zurücksetzen</button>{/if}
             {#if rabattregeln.length === 0}
               <p class="hinweis">Noch keine Rabattregeln hinterlegt. Du kannst sie in den <a href="/stammdaten/rabatte">Rabatt-Stammdaten</a> erstellen.</p>
             {:else if passendeRegeln.length === 0}
@@ -666,7 +697,7 @@
             {#if !rabattAuswahlGueltig}
               <p class="warnung" role="alert">Die ausgewählte Rabattregel ist nicht mehr gültig. Bitte neu auswählen.</p>
             {/if}
-            <p class="hinweis">Pro Vorgang ist eine gespeicherte Rabattregel auswählbar. Für Erstbezüge muss ein ClubDesk-Mitglied ausgewählt werden.</p>
+            <p class="hinweis">Mehrere Regeln sind bei erlaubter Kombination auswählbar. Erstbezüge haben Vorrang; weitere Regeln gelten für verbleibende Stücke. Für Erstbezüge muss ein ClubDesk-Mitglied ausgewählt werden.</p>
             <label for="zusatzrabatt">Weiterer Rabatt in CHF (optional)</label>
             <input id="zusatzrabatt" type="text" inputmode="decimal" bind:value={zusaetzlicherRabatt} />
             {#if !rabattGueltig}<p class="warnung" role="alert">Bitte einen gültigen Rabatt zwischen CHF 0 und {formatCHF(restNachSonderrabatt)} eingeben.</p>{/if}
@@ -676,8 +707,39 @@
           <div class="zeile"><span>Direktverkauf</span><strong>{direktTotal} Stück</strong></div>
           <div class="zeile"><span>Bestellung</span><strong>{bestellTotal} Stück</strong></div>
           <div class="zeile"><span>Zwischentotal</span><strong>{formatCHF(gesamtpreis)}</strong></div>
-          {#if ausgewaehlterRabatt}<div class="zeile"><span>{ausgewaehlterRabatt.name}</span><strong>− {formatCHF(regelRabatt)}</strong></div>{/if}
+          {#if ausgewaehlteRabatte.length}
+            <h3 class="abrechnungstitel">Angewendete Rabattregeln</h3>
+            {#each ausgewaehlteRabatte as regel (regel._id)}
+              <div class="rabattdetail">
+                <div class="zeile"><span>{regel.name}</span><strong>− {formatCHF(rabattBerechnen(regel))}</strong></div>
+                {#if regel.rabattart === 'fixpreis'}
+                  <p class="preisdetail">Sonderpreis: {formatCHF(regel.wert)} pro rabattiertem Stück</p>
+                {/if}
+                {#each verteilung?.abschnitte.filter(a => a.regelId === regel._id) ?? [] as abschnitt}
+                  {@const p = positionen[abschnitt.positionsIndex]}
+                  <p class="preisdetail">{abschnitt.menge} × {artikel.find(a => a._id === p.artikelId)?.name ?? 'Artikel'}: {formatCHF((p.einzelpreis ?? 0) * abschnitt.menge)} → {formatCHF(((p.einzelpreis ?? 0) * abschnitt.menge) - abschnitt.rabattRappen / 100)}</p>
+                {/each}
+              </div>
+            {/each}
+          {/if}
           {#if rabattGueltig && rabattZahl > 0}<div class="zeile"><span>Weiterer Rabatt</span><strong>− {formatCHF(rabattZahl)}</strong></div>{/if}
+          {#if ausgewaehlteRabatte.length || (rabattGueltig && rabattZahl > 0)}
+            <div class="zeile"><span>Rabatte total</span><strong>− {formatCHF(regelRabatt + (rabattGueltig ? rabattZahl : 0))}</strong></div>
+          {/if}
+          {#if verteilung && rabattAuswahlGueltig}
+            <h3 class="abrechnungstitel">Effektive Verkaufspreise</h3>
+            {#each positionen as p, i}
+              {@const teile = verteilung.abschnitte.filter(a => a.positionsIndex === i)}
+              {#each teile as teil}
+                <div class="zeile preiszeile"><span>{teil.menge} × {artikel.find(a => a._id === p.artikelId)?.name ?? 'Artikel'}<small>{ausgewaehlteRabatte.find(r => r._id === teil.regelId)?.name}</small></span><strong>{formatCHF((p.einzelpreis ?? 0) * teil.menge - teil.rabattRappen / 100)}</strong></div>
+              {/each}
+              {@const rest = p.menge - teile.reduce((s,t) => s+t.menge,0)}
+              {#if rest > 0}
+                <div class="zeile preiszeile"><span>{rest} × {artikel.find(a => a._id === p.artikelId)?.name ?? 'Artikel'}<small>Regulärer Preis</small></span><strong>{formatCHF((p.einzelpreis ?? 0) * rest)}</strong></div>
+              {/if}
+            {/each}
+            {#if rabattGueltig && rabattZahl > 0}<div class="zeile"><span>Weiterer Rabatt</span><strong>− {formatCHF(rabattZahl)}</strong></div>{/if}
+          {/if}
           <div class="zeile gesamt"><span>{hatOffenePreise ? 'Bereits bekannter Betrag' : 'Zu bezahlen'}</span><strong>{formatCHF(endbetrag)}</strong></div>
         {/if}
         {#if verkaufsart === 'bestellung'}
@@ -689,7 +751,7 @@
         {/if}
         
         
-        {#if !speichernLaeuft && (!bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart === 'direkt' || rabattId !== '' || rabattZahl !== 0)))}
+        {#if !speichernLaeuft && (!bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart === 'direkt' || rabattIds.length > 0 || rabattZahl !== 0)))}
           <p class="warnung" role="status">
             Speichern gesperrt:
             {#if !bereit} Käufer oder Warenkorb fehlt. {/if}
@@ -698,11 +760,11 @@
             {#if !rabattAuswahlGueltig} Ausgewählte Rabattregel ist nicht gültig. {/if}
             {#if riegen.length === 0} Bitte mindestens eine Riege auswählen. {/if}
             {#if hatOffenePreise && verkaufsart === 'direkt'} Artikel mit offenem Preis benötigen «Automatisch» oder «Nur Bestellung». {/if}
-            {#if hatOffenePreise && (rabattId !== '' || rabattZahl !== 0)} Bei offenen Preisen sind Rabatte nicht möglich. {/if}
+            {#if hatOffenePreise && (rabattIds.length > 0 || rabattZahl !== 0)} Bei offenen Preisen sind Rabatte nicht möglich. {/if}
           </p>
         {/if}
         <button type="button" class="speichern" onclick={vorgangSpeichern}
-          disabled={speichernLaeuft || !bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart === 'direkt' || rabattId !== '' || rabattZahl !== 0))}>
+          disabled={speichernLaeuft || !bereit || !warenkorbGueltig || !rabattGueltig || !rabattAuswahlGueltig || riegen.length === 0 || (hatOffenePreise && (verkaufsart === 'direkt' || rabattIds.length > 0 || rabattZahl !== 0))}>
           {speichernLaeuft ? 'Wird gespeichert ...' : 'Gesamten Vorgang speichern'}
         </button>
         <p class="hinweis">Die API speichert den Vorgang. Nur direkt übergebene Stücke reduzieren den Lagerbestand. Bestellte Stücke bleiben offen. Die Zahlungsbestätigung wird nach Anpassung der Verkaufs-API dauerhaft gespeichert.</p>
@@ -739,6 +801,8 @@
   .checkzeile input { width: auto; flex: 0 0 auto; }
   .zahlung-bestaetigung { margin-bottom: 4px; }
   .rabattbereich { border-top: 1px solid #e2e8f0; padding: 12px 0; }
+  .rabattoption { padding: 9px 10px; border: 1px solid #e2e8f0; border-radius: 8px; }
+  .rabatt-reset { background: #eff6ff; color: #2563eb; border: 0; border-radius: 6px; padding: 8px 12px; cursor: pointer; font: inherit; font-size: 13px; }
   .rabattbereich h3 { font-size: 15px; color: #172b4d; }
   .felder { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
   .volle-breite { grid-column: 1 / -1; }
@@ -756,6 +820,11 @@
   .zeile { padding: 12px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
   .zeile span { color: #64748b; }
   .zeile strong { color: #172b4d; }
+  .abrechnungstitel { font-size: 14px; color: #172b4d; margin: 16px 0 4px; }
+  .rabattdetail { border-bottom: 1px solid #e2e8f0; padding: 8px 0; }
+  .rabattdetail .zeile { border: 0; padding: 3px 0; }
+  .preisdetail, .preiszeile small { display: block; font-size: 12px; color: #64748b; margin: 4px 0; }
+  .preiszeile strong { white-space: nowrap; }
   .gesamt { font-size: 18px; border-bottom: 0; }
   .warnung { color: #92400e; background: #fffbeb; padding: 12px; border-radius: 8px; font-size: 14px; }
   .fehler { color: #b91c1c; background: #fef2f2; }

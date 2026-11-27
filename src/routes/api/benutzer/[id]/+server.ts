@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import type { RequestHandler } from './$types';
-import { db } from '../../../../lib/server/mongodb';
+import { client, db } from '../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../lib/server/berechtigungen';
 
 export const PATCH: RequestHandler = async ({ params, request, locals }) => {
@@ -149,11 +149,16 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
       }, { status: 409 });
     }
 
-    const ergebnis = await collection.deleteOne({ _id, vereinId });
-    if (!ergebnis.deletedCount) return json({ fehler: 'Benutzer wurde zwischenzeitlich geändert.' }, { status: 409 });
-    await db.collection('sessions').deleteMany({ vereinId, benutzerId: params.id });
+    await client.withSession(async (session) => {
+      await session.withTransaction(async () => {
+        const ergebnis = await collection.deleteOne({ _id, vereinId, rolle: ziel.rolle, aktiv: ziel.aktiv }, { session });
+        if (!ergebnis.deletedCount) throw new Error('BENUTZER_KONFLIKT');
+        await db.collection('sessions').deleteMany({ vereinId, benutzerId: params.id }, { session });
+      });
+    });
     return json({ erfolg: true, nachricht: 'Benutzer endgültig gelöscht.' });
   } catch (error) {
+    if (error instanceof Error && error.message === 'BENUTZER_KONFLIKT') return json({ fehler: 'Benutzer wurde zwischenzeitlich geändert.' }, { status: 409 });
     console.error('Benutzer löschen fehlgeschlagen:', error instanceof Error ? error.name : 'Unbekannter Fehler');
     return json({
       fehler: 'Benutzer konnte nicht sicher gelöscht werden. Bitte stattdessen deaktivieren.'

@@ -96,6 +96,7 @@ describe('SMTP-Testversand: Berechtigungen, Isolation und Versand', () => {
       const antwort = await POST(kontext());
       expect(antwort.status).toBe(502);
       expect(JSON.stringify(await antwort.json())).not.toContain('sensitive-token');
+      expect(JSON.stringify(log.mock.calls)).not.toContain('sensitive-token');
     } finally {
       log.mockRestore();
     }
@@ -115,5 +116,29 @@ describe('SMTP-Testversand: Berechtigungen, Isolation und Versand', () => {
     expect(JSON.stringify(await antwort.json())).not.toContain('geheim');
     expect(mocks.close).toHaveBeenCalledOnce();
     expect(mocks.sendMail).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined,{}, {geheimnis:''}])('verweigert unvollständige SMTP-Konfiguration', async smtp => {
+    mocks.laden.mockResolvedValue({methode:'smtp',smtp});
+    expect((await POST(kontext())).status).toBe(400);
+    expect(mocks.createTransport).not.toHaveBeenCalled();
+  });
+  it('verwendet implizites TLS bei Port 465', async () => {
+    mocks.laden.mockResolvedValue({methode:'smtp',smtp:{host:'smtp.example.ch',port:465,secure:true,benutzername:'test',absender:'test@example.ch',geheimnis:'encrypted'}});
+    expect((await POST(kontext())).status).toBe(200);
+    expect(mocks.createTransport).toHaveBeenCalledWith(expect.objectContaining({port:465,secure:true,requireTLS:false}));
+  });
+  it('schliesst Verbindung auch bei Sendefehler', async () => {
+    mocks.sendMail.mockRejectedValue(new Error('send'));
+    expect((await POST(kontext())).status).toBe(502); expect(mocks.close).toHaveBeenCalledOnce();
+  });
+  it('verweigert Versand bei Entschlüsselungsfehler', async () => {
+    mocks.entschluesseln.mockImplementation(()=>{throw new Error('secret');});
+    expect((await POST(kontext())).status).toBe(502); expect(mocks.createTransport).not.toHaveBeenCalled();
+  });
+  it('meldet Microsoft-365-Fehler ohne Error-Objekt', async () => {
+    mocks.laden.mockResolvedValue({methode:'microsoft365',microsoft365:{}});
+    mocks.versendeMicrosoft365Mail.mockRejectedValue('secret');
+    const r=await POST(kontext()); expect(r.status).toBe(502); expect(JSON.stringify(await r.json())).not.toContain('secret');
   });
 });

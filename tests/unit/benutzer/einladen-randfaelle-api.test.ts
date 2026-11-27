@@ -115,3 +115,27 @@ describe('Einladung erneut versenden', () => {
 });
 
 });
+
+import { DELETE as widerrufen } from '../../../src/routes/api/benutzer/einladen/[id]/+server';
+describe('Einladungswiderruf – Status und Fehlerpfade (#38)', () => {
+  const del = (id = insertedId.toString()) => widerrufen({locals,params:{id}} as never);
+  it('verweigert fehlende Berechtigung', async () => {
+    m.permission.mockReturnValue(new Response(null,{status:403}));
+    expect((await del()).status).toBe(403); expect(m.collection).not.toHaveBeenCalled();
+  });
+  it('verwirft ungültige ID', async () => { expect((await del('bad')).status).toBe(400); expect(m.collection).not.toHaveBeenCalled(); });
+  it('findet fremde Einladung nicht', async () => { expect((await del()).status).toBe(404); expect(invites.findOne).toHaveBeenCalledWith({_id:insertedId,vereinId}); });
+  it.each(['angenommen','widerrufen'])('verweigert Status %s', async status => {
+    invites.findOne.mockResolvedValue({status}); expect((await del()).status).toBe(409); expect(invites.updateOne).not.toHaveBeenCalled();
+  });
+  it('widerruft offene Einladung atomar', async () => {
+    invites.findOne.mockResolvedValue({status:'offen'}); expect((await del()).status).toBe(200);
+    expect(invites.updateOne).toHaveBeenCalledWith({_id:insertedId,vereinId,status:'offen'},{$set:{status:'widerrufen',widerrufenAm:expect.any(Date)}});
+  });
+  it('verhindert konkurrierenden Widerruf', async () => {
+    invites.findOne.mockResolvedValue({status:'offen'}); invites.updateOne.mockResolvedValue({modifiedCount:0}); expect((await del()).status).toBe(409);
+  });
+  it.each([new Error('db'),'db'])('meldet Datenbankfehler', async error => {
+    invites.findOne.mockRejectedValue(error); expect((await del()).status).toBe(500);
+  });
+});

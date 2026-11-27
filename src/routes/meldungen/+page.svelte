@@ -53,7 +53,7 @@
   let artikel = $state<Artikel[]>([]);
   let meldungen = $state<Schadensmeldung[]>([]);
   let statusFilter = $state('');
-  let gefilterteMeldungen = $derived(meldungen.filter(m => !statusFilter || m.status === statusFilter));
+  let gefilterteMeldungen = $derived(meldungen.filter(m => !statusFilter || (statusFilter === 'aktiv' ? ['offen', 'in_bearbeitung'].includes(m.status) : m.status === statusFilter)));
 
   let artikelId = $state('');
   let beschreibung = $state('');
@@ -261,6 +261,7 @@
   }
 
   onMount(() => {
+    if (new URLSearchParams(window.location.search).get('status') === 'aktiv') statusFilter = 'aktiv';
     datenLaden();
     return () => {
       for (const foto of ausgewaehlteFotos) URL.revokeObjectURL(foto.vorschauUrl);
@@ -487,6 +488,7 @@
         <label for="status-filter">Status filtern</label>
         <select id="status-filter" bind:value={statusFilter}>
           <option value="">Alle Status</option>
+          <option value="aktiv">Offen und in Bearbeitung</option>
           <option value="offen">Offen</option>
           <option value="in_bearbeitung">In Bearbeitung</option>
           <option value="erledigt">Erledigt</option>

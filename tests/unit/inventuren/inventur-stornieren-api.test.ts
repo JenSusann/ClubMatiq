@@ -12,9 +12,11 @@ function setup(status='abgeschlossen', positions:any[]=[pos()], corrections:any[
  const inventuren={findOne:vi.fn().mockResolvedValue({status,version:2,anzahlPositionen:positions.length,anzahlNachtraeglicheKorrekturen:corrections.length}),updateOne:vi.fn().mockResolvedValue({modifiedCount:1})};
  const inventurpositionen={find:vi.fn(() => ({toArray:vi.fn().mockResolvedValue(positions)}))};
  const inventurprotokoll={find:vi.fn(() => ({sort:vi.fn(() => ({toArray:vi.fn().mockResolvedValue(corrections)}))})),insertOne:vi.fn().mockResolvedValue({})};
- const artikel={updateOne:vi.fn().mockResolvedValue({matchedCount:1})};
+ const artikel={updateOne:vi.fn().mockResolvedValue({matchedCount:1}),findOne:vi.fn().mockResolvedValue({name:'Testartikel'})};
+ const groessen={findOne:vi.fn().mockResolvedValue({bezeichnung:'M'})};
  const artikelvarianten={updateOne:vi.fn().mockResolvedValue({matchedCount:1})};
- m.collections={inventuren,inventurpositionen,inventurprotokoll,artikel,artikelvarianten};return {inventuren,inventurpositionen,inventurprotokoll,artikel,artikelvarianten};
+ const lagerbewegungen={insertOne:vi.fn().mockResolvedValue({})};
+ m.collections={inventuren,inventurpositionen,inventurprotokoll,artikel,artikelvarianten,lagerbewegungen,groessen};return {inventuren,inventurpositionen,inventurprotokoll,artikel,artikelvarianten,lagerbewegungen};
 }
 beforeEach(()=>{vi.clearAllMocks();m.allowed=true;m.session.withTransaction.mockImplementation(async(fn:()=>Promise<void>)=>fn());m.session.endSession.mockResolvedValue(undefined)});
 const run=async(body?:unknown)=>POST(context(body));
@@ -24,11 +26,11 @@ describe('Inventur stornieren',()=>{
  it('verwirft ungültige ID',async()=>{setup();expect((await POST(context({begruendung:'gültiger Grund'},'invalid'))).status).toBe(400)});
  it.each([null,[],3,'text',{}, {begruendung:'kurz'}, {begruendung:'a'.repeat(1001)}])('verwirft ungültige Begründung %j',async body=>{setup();expect((await run(body)).status).toBe(400)});
  it('storniert offene Inventur ohne Bestandsänderung',async()=>{const c=setup('offen');const r=await run();expect(r.status).toBe(200);expect((await r.json()).anzahlRueckbuchungen).toBe(0);expect(c.artikel.updateOne).not.toHaveBeenCalled();expect(c.inventurprotokoll.insertOne.mock.calls[0][0]).toMatchObject({aktion:'storniert',statusVorher:'offen',versionVorher:2,versionNachher:3});expect(m.session.endSession).toHaveBeenCalledOnce()});
- it('bucht abgeschlossene Inventur zurück',async()=>{const c=setup();const r=await run();expect(r.status).toBe(200);expect((await r.json()).anzahlRueckbuchungen).toBe(1);expect(c.artikel.updateOne.mock.calls[0][1]).toEqual({$inc:{menge:3}})});
+ it('bucht abgeschlossene Inventur zurück',async()=>{const c=setup();const r=await run();expect(r.status).toBe(200);expect((await r.json()).anzahlRueckbuchungen).toBe(1);expect(c.artikel.updateOne.mock.calls[0][1]).toEqual({$inc:{menge:3}});expect(c.lagerbewegungen.insertOne).toHaveBeenCalledWith(expect.objectContaining({art:'storno',mengeDelta:3,groesseId:null,referenzId:id,artikelName:'Testartikel'}),{session:m.session})});
  it('überspringt Null-Deltas',async()=>{const c=setup('abgeschlossen',[pos({istBestand:10})]);expect((await run()).status).toBe(200);expect(c.artikel.updateOne).not.toHaveBeenCalled()});
  it('bucht negative Deltas nur bei genügend Bestand',async()=>{const c=setup('abgeschlossen',[pos({sollBestand:4,istBestand:7})]);expect((await run()).status).toBe(200);expect(c.artikel.updateOne.mock.calls[0][0].menge).toEqual({$gte:3})});
  it('bucht Grössenvarianten und Artikel zurück',async()=>{const c=setup('abgeschlossen',[pos({groesseId:size})]);expect((await run()).status).toBe(200);expect(c.artikelvarianten.updateOne).toHaveBeenCalledOnce();expect(c.artikel.updateOne).toHaveBeenCalledOnce()});
- it('summiert Deltas derselben Variante',async()=>{const c=setup('abgeschlossen',[pos({groesseId:size}),pos({_id:new ObjectId(),groesseId:size,sollBestand:8,istBestand:6})]);expect((await run()).status).toBe(200);expect(c.artikelvarianten.updateOne).toHaveBeenCalledOnce();expect(c.artikelvarianten.updateOne.mock.calls[0][1].$inc.menge).toBe(5)});
+ it('summiert Deltas derselben Variante',async()=>{const c=setup('abgeschlossen',[pos({groesseId:size}),pos({_id:new ObjectId(),groesseId:size,sollBestand:8,istBestand:6})]);expect((await run()).status).toBe(200);expect(c.artikelvarianten.updateOne).toHaveBeenCalledOnce();expect(c.artikelvarianten.updateOne.mock.calls[0][1].$inc.menge).toBe(5);expect(c.lagerbewegungen.insertOne).toHaveBeenCalledOnce();expect(c.lagerbewegungen.insertOne).toHaveBeenCalledWith(expect.objectContaining({groesseId:size,mengeDelta:5,groesseName:'M'}),{session:m.session})});
  it('storniert nachträglich korrigierte Inventur',async()=>{const correction={positionId:positionId.toString(),alterIstBestand:8,neuerIstBestand:7,differenz:-1};const c=setup('abgeschlossen',[pos()],[correction]);expect((await run()).status).toBe(200);expect(c.inventurprotokoll.insertOne).toHaveBeenCalledOnce()});
  it('meldet fehlende Inventur',async()=>{const c=setup();c.inventuren.findOne.mockResolvedValue(null);await fail('nicht gefunden')});
  it('meldet bereits stornierte Inventur',async()=>{setup('storniert');await fail('nicht mehr storniert')});

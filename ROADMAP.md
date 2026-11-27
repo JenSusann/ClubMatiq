@@ -1,11 +1,22 @@
 # ClubMatiq – Produkt-Roadmap
 
-Stand: 25.11.2026. Zielversionen sind Planungswerte, keine Lieferzusagen. GitHub-Issues sind führend für den Umsetzungsstatus.
+Stand: 26.11.2026. Zielversionen sind Planungswerte, keine Lieferzusagen. GitHub-Issues sind führend für den Umsetzungsstatus. Die technische Umsetzung und Veröffentlichung richten sich nach der [Entwicklungs- und Release-Strategie](RELEASE-STRATEGIE.md).
 
 ## Evaluation und Abgabe
 
 - v0.9.0: aktuelle interne Entwicklungsversion; eingefrorener Evaluationsstand, separater Deployment-Link und Commit/Tag erst nach tatsächlicher Freigabe.
 - v1.0.0: ZHAW-Abgabe; Issues #1–71 als vorläufiger Abgabekandidatenpool, nicht als pauschale Freigabezusage. Offene Kriterien und Umfang vor Freeze prüfen.
+
+## Entwicklungsreihenfolge und Veröffentlichung
+
+Die Roadmap beschreibt den geplanten Funktionsumfang der Releases, nicht die Reihenfolge der Implementierung. Issues dürfen versionsübergreifend vorgezogen werden, sofern ihre fachlichen und technischen Abhängigkeiten erfüllt sind. Beispielsweise kann #104 für v3.0.0 bereits vor Abschluss von v1.1.0 entwickelt werden, ohne den Zielmeilenstein zu ändern.
+
+- `main` bleibt der stabile Stand; die ZHAW-Abgabe und der Evaluationsstand werden nicht durch vorgezogene Funktionen erweitert.
+- Versionsbranches folgen dem Muster `develop/vX.Y.Z` und werden bei Bedarf erstellt. `develop/v2.0.0` und `develop/v3.0.0` sind bereits eingerichtet.
+- Einzelne Issues werden in Feature Branches umgesetzt, getestet und nach manueller Abnahme in den vorgesehenen Versionsbranch integriert.
+- Die Statuslabels `In Development`, `Ready for Testing`, `Ready for Release` und `Released` bilden den Fortschritt ab. Ein abgenommenes, aber noch nicht veröffentlichtes Issue bleibt offen und behält seinen Zielmeilenstein.
+- Vor der Veröffentlichung werden freigegebene Vorgängerversionen und Hotfixes integriert und Regressionstests durchgeführt. Erst nach Freigabe erfolgt die Übernahme in `main`, das Tagging und der Abschluss der zugehörigen Issues.
+- Eine frühere Veröffentlichung einer Funktion erfordert eine bewusste Anpassung ihres Zielmeilensteins und der Roadmap.
 
 ## Versionsmeilensteine
 
@@ -95,5 +106,5 @@ Alle 43 optionalen Issues sind zugeordnet. v1.0.0 bleibt ohne eigene Issues, da 
 - #72 und #87 vor #92/#112; #85/#106/#107 mit Shop abstimmen.
 - #108/#90 vor #96; #79/#95 vor Finanzautomatisierung; #104 vor #114.
 - Major-Nummern sind Produktplanungsziele; bei strikt kompatiblen Änderungen wird die tatsächliche SemVer-Nummer vor Freigabe angepasst.
-- Bestehende Projektmilestones bleiben erhalten; Release-Labels bilden die zweite Planungsdimension. Die eingerichteten Release-Meilensteine übernehmen die 43 optionalen Issues; GitHub erlaubt nur einen Meilenstein pro Issue.
-- Keine geplante Funktion gilt ohne Umsetzung und Testnachweis als abgeschlossen.
+- Bestehende Projektmeilensteine M1–M5 bleiben erhalten. Die 43 optionalen Issues sind den Release-Meilensteinen zugeordnet; GitHub erlaubt nur einen Meilenstein pro Issue. Statuslabels ergänzen die Versionszuordnung, ersetzen sie aber nicht.
+- Keine geplante Funktion gilt ohne Umsetzung, Testnachweis und manuelle Abnahme als bereit zur Veröffentlichung. Der Issue-Abschluss erfolgt erst bei Veröffentlichung der Zielversion gemäss Release-Strategie.

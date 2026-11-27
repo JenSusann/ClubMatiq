@@ -242,3 +242,72 @@ describe('Inventarübersicht',()=>{
 });
 
 });
+
+
+import { load as dashboardLoad } from '../../../src/routes/dashboard/+page.server';
+
+describe('Issue #50 – Dashboard-Kennzahlen', () => {
+  function dashboardSetup(daten: Record<string, unknown[]> = {}) {
+    const cols: Record<string, any> = {};
+    for (const name of ['artikel','artikelvarianten','ausleihen','schadensmeldungen','vereinskleider_verkaeufe']) {
+      cols[name] = {
+        find: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue(daten[name] ?? []) }),
+        countDocuments: vi.fn().mockResolvedValue((daten[name] ?? []).length)
+      };
+    }
+    m.collections = cols;
+    return cols;
+  }
+  const laden = async (rolle = 'admin') => {
+    const result = await dashboardLoad({ locals: { benutzer: user(rolle) }, depends: vi.fn() } as never);
+    if (!result) throw new Error('Dashboard liefert keine Daten');
+    return result;
+  };
+  it('liefert ohne Anmeldung keine Kennzahlen', async () => {
+    expect(await dashboardLoad({ locals: {}, depends: vi.fn() } as never)).toMatchObject({ kennzahlen: null, kennzahlenFehler: null });
+  });
+  it('summiert aktive Artikel und Varianten, Mindestbestand pro Artikel', async () => {
+    const cols = dashboardSetup({
+      artikel: [{ _id:'a', menge:2, mindestbestand:3 }, { _id:'b', hatGroessen:true }, { _id:'c', menge:5, mindestBestand:5 }, { _id:'d', hatGroessen:true }],
+      artikelvarianten: [{ artikelId:'b', menge:3, mindestbestand:4 }, { artikelId:'b', menge:1, mindestbestand:2 }, { artikelId:'b', menge:99, aktiv:false }]
+    });
+    expect((await laden()).kennzahlen).toMatchObject({ artikel:4, bestand:11, unterMindestbestand:2 });
+    expect(cols.artikel.find).toHaveBeenCalledWith({ vereinId:'v1', archiviert:{$ne:true} },expect.anything());
+    expect(cols.artikelvarianten.find).toHaveBeenCalledWith({ vereinId:'v1', aktiv:{$ne:false} },expect.anything());
+  });
+  it('zählt nur gültige offene Bestellpositionen ohne doppelten Stornoabzug', async () => {
+    const p = { verkaufsart:'bestellung', menge:2 };
+    dashboardSetup({ vereinskleider_verkaeufe: [{}, { positionen:[
+      p, {...p, menge:1, storniertMenge:3}, {...p, uebergebenMenge:1},
+      {...p, menge:0, storniertMenge:2}, {...p, uebergebenMenge:2},
+      {...p, verkaufsart:'direkt'}, {...p, menge:1.5}, {...p, storniertMenge:-1},
+      {...p, uebergebenMenge:-1}, {...p, reserviertMenge:3}, {...p, reserviertMenge:-1},
+      {...p, reserviertMenge:0.5}, {...p, uebergebenMenge:0.5},
+      {...p, storniertMenge:Number.MAX_SAFE_INTEGER}
+    ] }] });
+    expect((await laden()).kennzahlen).toMatchObject({ bestellungen:3 });
+  });
+  it.each(['admin','materialverantwortlich'])('liefert verwaltende Kennzahlen für %s', async rolle => {
+    const cols = dashboardSetup({ ausleihen:[{}], schadensmeldungen:[{},{}] });
+    expect((await laden(rolle)).kennzahlen).toMatchObject({ ausleihen:1, meldungen:2, bestellungen:0 });
+    expect(cols.schadensmeldungen.countDocuments).toHaveBeenCalledWith({ vereinId:'v1', status:{$in:['offen','in_bearbeitung']} });
+    expect(cols.ausleihen.find).toHaveBeenCalledWith({ vereinId:'v1',status:'offen' },expect.anything());
+    expect(cols.vereinskleider_verkaeufe.find).toHaveBeenCalledWith({ vereinId:'v1','positionen.verkaufsart':'bestellung' },expect.anything());
+  });
+  it.each(['mitglied','leiter'])('beschränkt Kennzahlen für %s', async rolle => {
+    const cols = dashboardSetup();
+    expect((await laden(rolle)).kennzahlen).toMatchObject({ bestellungen:null, ausleihen:rolle==='mitglied'?null:0 });
+    expect(cols.vereinskleider_verkaeufe.find).not.toHaveBeenCalled();
+    if (rolle==='mitglied') expect(cols.ausleihen.find).not.toHaveBeenCalled();
+    expect(cols.schadensmeldungen.countDocuments).toHaveBeenCalledWith({ vereinId:'v1',gemeldetVonId:'u1',status:{$in:['offen','in_bearbeitung']} });
+  });
+  it('liefert Nullwerte für leeren Verein', async () => {
+    dashboardSetup();
+    expect((await laden()).kennzahlen).toEqual({ artikel:0,bestand:0,ausleihen:0,meldungen:0,unterMindestbestand:0,bestellungen:0 });
+  });
+  it('meldet Datenbankfehler ohne erfundene Nullwerte', async () => {
+    const cols = dashboardSetup();
+    cols.artikel.find.mockImplementation(()=>{throw Error('DB')});
+    expect(await laden()).toMatchObject({ kennzahlen:null,kennzahlenFehler:'Kennzahlen konnten nicht geladen werden.' });
+  });
+});

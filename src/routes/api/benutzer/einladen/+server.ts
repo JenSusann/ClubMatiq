@@ -180,9 +180,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         { $set: { versendetAm: new Date(), resendId: versand.id } }
       );
       versendet = true;
-    } catch (error) {
+    } catch {
       versandFehler = true;
-      console.error('Einladungs-E-Mail fehlgeschlagen:', error);
+      console.error('Einladungs-E-Mail fehlgeschlagen.');
     }
 
     return json(

@@ -19,8 +19,8 @@ export const POST: RequestHandler = async ({ locals }) => {
           text: 'Der Microsoft-365-E-Mail-Versand für deinen Verein wurde erfolgreich getestet.'
         });
         return json({ erfolg: true, nachricht: 'Microsoft-365-Test-E-Mail wurde an deine eigene Adresse versendet.' });
-      } catch (error) {
-        console.error('Microsoft-365-Testversand fehlgeschlagen:', error instanceof Error ? error.message : 'Unbekannter Fehler');
+      } catch {
+        console.error('Microsoft-365-Testversand fehlgeschlagen.');
         return json({ fehler: 'Microsoft-365-Test fehlgeschlagen. Bitte Zertifikat, Entra-Anmeldung und Exchange-Berechtigung prüfen.' }, { status: 502 });
       }
     }

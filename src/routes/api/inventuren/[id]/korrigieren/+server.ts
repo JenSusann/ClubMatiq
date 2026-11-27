@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { db, client } from '../../../../../lib/server/mongodb';
+import { protokolliereLagerbewegung } from '../../../../../lib/server/lagerbewegungen';
 import { pruefeBerechtigung } from '../../../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
@@ -113,6 +114,12 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
       if (artikelErgebnis.matchedCount !== 1) {
         throw new Error('Artikel fehlt oder hat zu wenig Bestand.');
       }
+
+      await protokolliereLagerbewegung({
+        vereinId, artikelId: position.artikelId, groesseId: position.groesseId,
+        art: 'korrektur', mengeDelta: differenz, benutzerId: locals.benutzer!.id,
+        referenzId: inventurId, referenzTyp: 'inventur-korrektur'
+      }, session);
 
       const positionErgebnis = await positionen.updateOne(
         { _id: new ObjectId(positionId), inventurId, vereinId, istBestand: alterIstBestand },

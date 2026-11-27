@@ -44,8 +44,8 @@ describe('Artikelbearbeitung zusätzliche Fälle',()=>{
  it('DELETE Artikel fehlt',async()=>{expect((await DELETE(ctx('DELETE'))).status).toBe(404)});
  it('DELETE durch Ausleihe blockiert',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id)}).mockResolvedValueOnce({_id:new ObjectId()});expect((await DELETE(ctx('DELETE'))).status).toBe(409)});
  it('DELETE durch Meldung blockiert',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id)}).mockResolvedValueOnce(null).mockResolvedValueOnce({_id:new ObjectId()});expect((await DELETE(ctx('DELETE'))).status).toBe(409)});
- it('DELETE erfolgreich',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id)});expect((await DELETE(ctx('DELETE'))).status).toBe(200);expect(m.deleteMany).toHaveBeenCalled();expect(m.endSession).toHaveBeenCalled()});
- it('DELETE fehlgeschlagene Löschung',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id)});m.deleteOne.mockResolvedValueOnce({deletedCount:0});expect((await DELETE(ctx('DELETE'))).status).toBe(500)});
+ it('DELETE erfolgreich',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id)}).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce({_id:new ObjectId(id)});expect((await DELETE(ctx('DELETE'))).status).toBe(200);expect(m.deleteMany).toHaveBeenCalled();expect(m.endSession).toHaveBeenCalled()});
+ it('DELETE fehlgeschlagene Löschung',async()=>{m.findOne.mockResolvedValueOnce({_id:new ObjectId(id)}).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce({_id:new ObjectId(id)});m.deleteOne.mockResolvedValueOnce({deletedCount:0});expect((await DELETE(ctx('DELETE'))).status).toBe(500)});
 });
 });
 
@@ -179,7 +179,7 @@ describe('23-artikel-delete-ausleihe', () => {
 // Ursprüngliche Datei: 23-artikel-delete-erfolg.integration.test.ts
 describe('23-artikel-delete-erfolg', () => {
   it('Artikel und Varianten werden gelöscht', async () => {
-    m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false });
+    m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false }).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false });
     const response = await route1.DELETE(event('DELETE', undefined) as never);
     expect(response.status).toBe(200);
     expect(m.deleteMany).toHaveBeenCalledOnce();
@@ -192,7 +192,7 @@ describe('23-artikel-delete-erfolg', () => {
 // Ursprüngliche Datei: 23-artikel-delete-fehler.integration.test.ts
 describe('23-artikel-delete-fehler', () => {
   it('Fehlgeschlagenes Löschen liefert Fehler', async () => {
-    m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false });
+    m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false }).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false });
     m.deleteOne.mockResolvedValueOnce({ deletedCount: 0 });
     const response = await route2.DELETE(event('DELETE', undefined) as never);
     expect(response.status).toBe(500);
@@ -262,6 +262,7 @@ describe('23-artikel-update-erfolg', () => {
     m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: false });
     m.findOne.mockResolvedValueOnce({ _id: new ObjectId(kategorieId) });
     m.findOne.mockResolvedValueOnce({ _id: new ObjectId(lagerortId) });
+    m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), menge: 0 });
     const response = await route7.PATCH(event('PATCH', payload()) as never);
     expect(response.status).toBe(200);
     expect(m.updateOne).toHaveBeenCalledOnce();
@@ -392,6 +393,7 @@ describe('23-artikel-update-varianten', () => {
     m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), hatGroessen: true });
     m.findOne.mockResolvedValueOnce({ _id: new ObjectId(kategorieId) });
     m.findOne.mockResolvedValueOnce({ _id: new ObjectId(lagerortId) });
+    m.findOne.mockResolvedValueOnce({ _id: new ObjectId(id), menge: 0 });
     const response = await route18.PATCH(event('PATCH', { ...payload(), hatGroessen: true, varianten: [{ groesseId, menge: 3, einzelwert: 15, mindestbestand: 1 }] }) as never);
     expect(response.status).toBe(200);
     expect(m.updateMany).toHaveBeenCalledOnce();
@@ -453,7 +455,7 @@ describe('23-sammel-status-konflikt', () => {
 describe('23-sammel-wareneingang-erfolg', () => {
   it('Wareneingang erhöht Bestand und schliesst Bestellung ab', async () => {
     m.findOne.mockResolvedValueOnce({ status: 'bestellt', positionen: [{ artikelId: id, groesseId: null, menge: 2, geliefertMenge: 0, artikelname: 'Ball' }] });
-    m.findOne.mockResolvedValueOnce({ menge: 5 });
+    m.findOne.mockResolvedValueOnce({ name: 'Ball' }).mockResolvedValueOnce(null).mockResolvedValueOnce({ menge: 5 });
     const response = await route23.PATCH(event('PATCH', { aktion: 'wareneingang', positionen: [{ artikelId: id, groesseId: null, menge: 2 }] }) as never);
     expect(response.status).toBe(200);
     expect((await response.json()).status).toBe('geliefert');
@@ -527,6 +529,8 @@ beforeEach(() => {
   mocks.countDocuments.mockResolvedValue(1);
   mocks.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
   mocks.insertMany.mockResolvedValue({ acknowledged: true });
+  mocks.withTransaction.mockImplementation(async (fn: () => Promise<unknown>) => fn());
+  mocks.startSession.mockReturnValue({ withTransaction: mocks.withTransaction, endSession: mocks.endSession });
   mocks.deleteMany.mockResolvedValue({ deletedCount: 0 });
   mocks.deleteOne.mockResolvedValue({ deletedCount: 1 });
   mocks.find.mockReturnValue({ sort: () => ({ toArray: async () => [] }) });
@@ -686,8 +690,9 @@ describe('Artikel-API: zusätzliche Validierungszweige', () => {
     const response = await POST(event({ ...base(), hatGroessen: true,
       varianten: [{ groesseId, menge: 1, einzelwert: 10, mindestbestand: 0 }] }) as never);
     expect(response.status).toBe(500);
-    expect(mocks.deleteMany).toHaveBeenCalledOnce();
-    expect(mocks.deleteOne).toHaveBeenCalledOnce();
+    expect(mocks.insertMany).toHaveBeenCalledOnce();
+    expect(mocks.deleteMany).not.toHaveBeenCalled();
+    expect(mocks.deleteOne).not.toHaveBeenCalled();
   });
   it('GET meldet Datenbankfehler mit Status 500', async () => {
     mocks.find.mockImplementationOnce(() => { throw new Error('Datenbankfehler'); });

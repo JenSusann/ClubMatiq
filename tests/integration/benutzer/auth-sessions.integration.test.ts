@@ -12,6 +12,7 @@ vi.mock('../../../src/lib/server/mongodb', async () => {
 import { db, client } from '../../../src/lib/server/mongodb';
 import { POST as login } from '../../../src/routes/api/anmelden/+server';
 import { POST as logout } from '../../../src/routes/api/abmelden/+server';
+import { POST as passwortAendern } from '../../../src/routes/api/passwort-aendern/+server';
 import { handle } from '../../../src/hooks.server';
 async function geschuetzterZugriff(sessionToken: string) {
   const cookies = { get: () => sessionToken, delete: vi.fn() };
@@ -74,4 +75,35 @@ describe('Anmeldung und Session', () => {
     await logout({ cookies: cookie });
   });
   it('erlaubt Abmeldung ohne bestehende Session', async () => { expect((await logout({ cookies: cookie })).status).toBe(200); });
+  it('widerruft nur andere Sitzungen nach erfolgreichem Passwortwechsel (#62)', async () => {
+    const fremdId = new ObjectId();
+    const fremdSession = new ObjectId();
+    const bisher = 'Testpasswort!123';
+    const neu = 'NeuesTestpasswort!456';
+    try {
+      expect((await login(loginEvent(bisher) as never)).status).toBe(200);
+      const erster = token!;
+      expect((await login(loginEvent(bisher) as never)).status).toBe(200);
+      const zweiter = token!;
+      const aktuell = await db.collection('sessions').findOne({ tokenHash: createHash('sha256').update(erster).digest('hex') });
+      await db.collection('sessions').insertOne({ _id: fremdSession, benutzerId: fremdId.toString(), vereinId });
+      const event = (alt: string) => ({
+        locals: { benutzer: { id: id.toString(), vereinId }, sessionId: aktuell!._id.toString() },
+        request: new Request('http://localhost/api/passwort-aendern', { method: 'POST', body: JSON.stringify({ bisher: alt, neu }) })
+      });
+      expect((await passwortAendern(event('falsch') as never)).status).toBe(401);
+      expect((await geschuetzterZugriff(erster)).response.status).toBe(200);
+      expect((await geschuetzterZugriff(zweiter)).response.status).toBe(200);
+      expect((await passwortAendern(event(bisher) as never)).status).toBe(200);
+      expect((await geschuetzterZugriff(erster)).response.status).toBe(200);
+      expect((await geschuetzterZugriff(zweiter)).response.status).toBe(401);
+      expect(await db.collection('sessions').findOne({ _id: fremdSession })).not.toBeNull();
+      expect((await login(loginEvent(bisher) as never)).status).toBe(401);
+      expect((await login(loginEvent(neu) as never)).status).toBe(200);
+    } finally {
+      await db.collection('benutzer').updateOne({ _id: id }, { $set: { passwortHash: await hash(bisher) } });
+      await db.collection('sessions').deleteMany({ vereinId });
+    }
+  });
+
 });

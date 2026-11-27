@@ -43,12 +43,12 @@ export async function erstelleLagerjournalExcel(vereinId: string, url: URL): Pro
   const benutzerNamen = new Map(benutzer.map((b) => [b._id.toString(), [b.vorname, b.nachname].filter(Boolean).join(' ')]));
   const zeilen = bewegungen.map((b) => ({
     zeitpunkt: b.zeitpunkt instanceof Date ? b.zeitpunkt : new Date(b.zeitpunkt),
-    artikel: artikelNamen.get(String(b.artikelId)) ?? 'Artikel nicht mehr vorhanden',
+    artikel: (typeof b.artikelName === 'string' && b.artikelName ? b.artikelName : artikelNamen.get(String(b.artikelId))) ?? 'Artikel nicht mehr vorhanden',
     artikelId: String(b.artikelId),
-    groesse: b.groesseId ? groessenNamen.get(String(b.groesseId)) ?? 'Unbekannte Grösse' : '–',
+    groesse: b.groesseId ? (typeof b.groesseName === 'string' && b.groesseName ? b.groesseName : groessenNamen.get(String(b.groesseId))) ?? 'Unbekannte Grösse' : '–',
     vorgang: bezeichnungen[String(b.art)] ?? String(b.art),
     menge: Number(b.mengeDelta),
-    benutzer: benutzerNamen.get(String(b.benutzerId)) ?? 'Benutzer nicht mehr vorhanden',
+    benutzer: (typeof b.benutzerName === 'string' && b.benutzerName ? b.benutzerName : benutzerNamen.get(String(b.benutzerId))) ?? 'Benutzer nicht mehr vorhanden',
     referenzTyp: String(b.referenzTyp ?? ''),
     referenzId: String(b.referenzId ?? '')
   })).filter((b) => !suche || [b.artikel, b.artikelId, b.groesse, b.vorgang, b.benutzer, b.referenzTyp, b.referenzId].some((wert) => wert.toLocaleLowerCase('de-CH').includes(suche)));

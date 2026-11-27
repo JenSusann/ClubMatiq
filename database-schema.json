@@ -1,0 +1,185 @@
+[
+  {
+    "name": "clubdesk_mitglieder",
+    "indexes": [
+      {
+        "key": {
+          "vereinId": 1,
+          "clubdeskId": 1
+        },
+        "name": "vereinId_1_clubdeskId_1",
+        "unique": true
+      }
+    ]
+  },
+  {
+    "name": "lieferanten",
+    "indexes": []
+  },
+  {
+    "name": "riegen",
+    "indexes": [
+      {
+        "key": {
+          "vereinId": 1,
+          "namensschluessel": 1
+        },
+        "name": "vereinId_1_namensschluessel_1",
+        "unique": true
+      }
+    ]
+  },
+  {
+    "name": "ausleihen",
+    "indexes": []
+  },
+  {
+    "name": "vereine",
+    "indexes": []
+  },
+  {
+    "name": "schadensmeldungen",
+    "indexes": []
+  },
+  {
+    "name": "lagerbewegungen",
+    "indexes": [
+      {
+        "key": {
+          "vereinId": 1,
+          "zeitpunkt": -1,
+          "_id": -1
+        },
+        "name": "journal_verein_zeit"
+      },
+      {
+        "key": {
+          "vereinId": 1,
+          "artikelId": 1,
+          "zeitpunkt": -1,
+          "_id": -1
+        },
+        "name": "journal_verein_artikel_zeit"
+      }
+    ]
+  },
+  {
+    "name": "kategorien",
+    "indexes": []
+  },
+  {
+    "name": "inventarbewertung_aufnahmen",
+    "indexes": [
+      {
+        "key": {
+          "vereinId": 1,
+          "automatischDatum": 1
+        },
+        "name": "automatische_bewertung_pro_tag",
+        "unique": true,
+        "partialFilterExpression": {
+          "automatischDatum": {
+            "$exists": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "artikelvarianten",
+    "indexes": []
+  },
+  {
+    "name": "rabattregeln",
+    "indexes": []
+  },
+  {
+    "name": "vereinskleider_preise",
+    "indexes": [
+      {
+        "key": {
+          "vereinId": 1,
+          "artikelId": 1,
+          "groesseId": 1
+        },
+        "name": "unique_vereinskleider_preis",
+        "unique": true
+      }
+    ]
+  },
+  {
+    "name": "vereinskleider_rechnungen",
+    "indexes": []
+  },
+  {
+    "name": "benutzer",
+    "indexes": []
+  },
+  {
+    "name": "vereinskleider_gutschriften",
+    "indexes": []
+  },
+  {
+    "name": "vereinskleider_verkaeufe",
+    "indexes": []
+  },
+  {
+    "name": "artikel",
+    "indexes": []
+  },
+  {
+    "name": "clubdesk_gruppenzuordnungen",
+    "indexes": [
+      {
+        "key": {
+          "vereinId": 1,
+          "gruppe": 1,
+          "funktion": 1,
+          "riegeId": 1
+        },
+        "name": "vereinId_1_gruppe_1_funktion_1_riegeId_1",
+        "unique": true
+      }
+    ]
+  },
+  {
+    "name": "inventuren",
+    "indexes": []
+  },
+  {
+    "name": "einladungen",
+    "indexes": []
+  },
+  {
+    "name": "vereinskleider_sammelbestellungen",
+    "indexes": []
+  },
+  {
+    "name": "sessions",
+    "indexes": []
+  },
+  {
+    "name": "lagerorte",
+    "indexes": []
+  },
+  {
+    "name": "inventurpositionen",
+    "indexes": []
+  },
+  {
+    "name": "bildUploads",
+    "indexes": []
+  },
+  {
+    "name": "inventurprotokoll",
+    "indexes": []
+  },
+  {
+    "name": "vereinskleider_rechnungsnummern",
+    "indexes": []
+  },
+  {
+    "name": "groessen",
+    "indexes": []
+  }
+]

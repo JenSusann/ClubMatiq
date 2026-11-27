@@ -28,6 +28,22 @@ describe('Lagerbewegungsjournal: Unit und API-Integration', () => {
     }));
   });
 
+  it.each(['vereinId','artikelId','benutzerId','referenzId'] as const)('verweigert fehlende Referenz %s', async feld => {
+    await expect(protokolliereLagerbewegung({...bewegung,[feld]:''},session)).rejects.toThrow('Unvollständige Lagerbewegung');
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it.each(['?von=bad','?bis=2026-13-01','?von=2026-02-30'])('verwirft ungültiges Datum %s', async query => {
+    expect((await GET(kontext('admin',vereinId,query))).status).toBe(400);
+    expect(mocks.find).not.toHaveBeenCalled();
+  });
+  it.each(['?von=2026-11-01','?bis=2026-11-30'])('erlaubt einseitigen Datumsfilter %s', async query => {
+    expect((await GET(kontext('admin',vereinId,query))).status).toBe(200);
+    expect(mocks.find).toHaveBeenCalledWith(expect.objectContaining({zeitpunkt:query.includes('von')?{$gte:new Date('2026-11-01T00:00:00Z')}:{$lt:new Date('2026-12-01T00:00:00Z')}}));
+  });
+  it.each([new Error('DB'), 'DB'])('meldet Datenbankfehler', async fehler => {
+    mocks.findOne.mockRejectedValueOnce(fehler);
+    expect((await GET(kontext())).status).toBe(500);
+  });
   it('schreibt eine Bewegung mit derselben MongoDB-Session', async () => {
     await protokolliereLagerbewegung(bewegung, session);
     expect(mocks.collection).toHaveBeenCalledWith('lagerbewegungen');
