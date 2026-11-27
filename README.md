@@ -335,8 +335,8 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 #### 4.1.6 QR-Code, Materialsuche und Inventarbewertung
 - **Beschreibung & Nutzen:** Zusätzliche Funktionen unterstützen den schnellen Zugriff auf Materialinformationen, das Auffinden von Artikeln und die finanzielle Übersicht des Inventars.
 - **Abgrenzung zum Mindestumfang:** Ergänzt die Basisverwaltung um Such-, Identifikations- und Auswertungsfunktionen, sofern diese nicht verbindlich gefordert sind.
-- **Umsetzung:** Eigene Seiten für QR-Code, Materialsuche und Inventarbewertung; die Abhängigkeit `qrcode` ist im Projekt enthalten.
-- **Nachweise:** [QR-Code](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/qr-code/%2Bpage.svelte) · [Materialsuche](src/routes/inventar) · [Inventarbewertung](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/inventarbewertung/%2Bpage.svelte) · Screenshot der Materialsuche noch ergänzen.
+- **Umsetzung:** Eigene Seiten für QR-Code und Inventarbewertung; die Materialsuche ist in die Inventarübersicht integriert; die Abhängigkeit `qrcode` ist im Projekt enthalten.
+- **Nachweise:** [QR-Code](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/qr-code/%2Bpage.svelte) · [Materialsuche](src/routes/inventar) · [Inventarbewertung](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/inventarbewertung/%2Bpage.svelte) · Die Materialsuche ist direkt in die Inventarübersicht integriert; siehe [Screenshot der Artikelübersicht](docs/images/artikeluebersicht.png) in Kapitel 3.4.1.
 
   ![QR-gestützter Artikelzugriff](docs/images/qr-code.png)
 
