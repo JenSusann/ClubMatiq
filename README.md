@@ -11,7 +11,7 @@
 | Projekttitel | ClubMatiq – Digitale Material-, Inventar- und Vereinskleiderverwaltung |
 | Verfasser/in | Jennifer Mentner, WIN-03-23HS-TZDSRH *(Angabe aus bisheriger README; vor Abgabe prüfen)* |
 | GitHub-Repository | https://github.com/JenSusann/ClubMatiq |
-| Produktive App | https://clubmatiq.netlify.app |
+| Aktuelle App | https://clubmatiq.netlify.app |
 | Getestete Version | https://clubmatiq-demo.netlify.app – separate Demo, Online-Abnahme 27.11.2026; veröffentlichter Stand: [`d2c2d1e`](https://github.com/JenSusann/ClubMatiq/commit/d2c2d1e10c8c381e05bb72088b6138160085dda8), 27.11.2026, 16:45 Uhr; finale Nachprüfung 7/7 bestanden; Reset bestätigt |
 | Testzugänge | Vier Demo-Rollen; Zugangsdaten separat über Moodle, keine Passwörter im Repository |
 | Referenz-Mockup (PowerPoint) | [Interaktives Mockup](docs/konzeption/ClubMatiq_Mockup.pptx) · [Design- und Workflow-Dokumentation](docs/konzeption/ui-prototyping.pdf) |
@@ -42,7 +42,7 @@
 - [1. Ausgangslage](#1-ausgangslage)
 - [2. Lösungsidee](#2-lösungsidee)
 - [3. Vorgehen & Artefakte](#3-vorgehen--artefakte)
-    - [3.1 Understand & Define – Problemraumanalyse](#31-understand--define--problemraumanalyse)
+    - [3.1 Understand & Define](#31-understand--define)
     - [3.2 Sketch](#32-sketch)
     - [3.3 Decide](#33-decide)
     - [3.4 Prototype](#34-prototype)
@@ -60,11 +60,23 @@
     - [4.2 Weitere Erweiterungen](#42-weitere-erweiterungen)
         - [4.2.1 GitHub-basiertes Issue- und Änderungsmanagement](#421-github-basiertes-issue--und-änderungsmanagement)
         - [4.2.2 Strukturierter KI-gestützter Entwicklungsworkflow](#422-strukturierter-ki-gestützter-entwicklungsworkflow)
-        - [4.2.3 Datenmodell](#423-datenmodell)
+        - [4.2.3 Datenmodell und Schema-Referenz](#423-datenmodell-und-schema-referenz)
         - [4.2.4 Systematische Testmatrix und Testprotokolle](#424-systematische-testmatrix-und-testprotokolle)
         - [4.2.5 Anforderungs- und Rückverfolgungsmatrix](#425-anforderungs--und-rückverfolgungsmatrix)
         - [4.2.6 Rollenbasiertes Berechtigungskonzept](#426-rollenbasiertes-berechtigungskonzept)
         - [4.2.7 Strukturiertes Release- und Versionsmanagement](#427-strukturiertes-release--und-versionsmanagement)
+        - [4.2.8 Automatisierte Integrations- und Release-Pipeline](#428-automatisierte-integrations--und-release-pipeline)
+        - [4.2.9 Umgebungskonzept und reproduzierbare Demo-Daten](#429-umgebungskonzept-und-reproduzierbare-demo-daten)
+        - [4.2.10 Backup- und Wiederherstellungskonzept](#4210-backup--und-wiederherstellungskonzept)
+        - [4.2.11 Repository-Hygiene und Dokumentationsarchitektur](#4211-repository-hygiene-und-dokumentationsarchitektur)
+        - [4.2.12 Pilotplanung und gestufte Betriebsabnahme](#4212-pilotplanung-und-gestufte-betriebsabnahme)
+
+
+
+
+
+
+
 - [5. Projektorganisation \[Optional\]](#5-projektorganisation-optional)
 - [6. KI-Deklaration](#6-ki-deklaration)
     - [6.1 KI-Tools](#61-ki-tools)
@@ -126,7 +138,7 @@
 
 Das Projekt folgt dem phasenorientierten Prototyping-Prozess. Die nachfolgenden Angaben verbinden die bisherigen Projektunterlagen mit der laufend gepflegten technischen Dokumentation. Historische Nachweise sind mit ihrem jeweiligen Stand gekennzeichnet.
 
-### 3.1 Understand & Define – Problemraumanalyse
+### 3.1 Understand & Define
 
 - **Zielgruppenverständnis:** Ausgangspunkt war die Verwaltung von Vereinsmaterial im Alltag. Als konkrete Perspektiven wurden eine Kassiererin (Jennifer), eine Leiterin (Nathalie), eine Materialverantwortliche (Laura) und die Zuständigkeit für Rechnungen bzw. Kleiderverrechnung betrachtet. Diese Rollen machen unterschiedliche Informationsbedürfnisse sichtbar.
 - **Wesentliche Erkenntnisse:**
@@ -170,7 +182,7 @@ Das Projekt folgt dem phasenorientierten Prototyping-Prozess. Die nachfolgenden 
 
 #### 3.4.2. Umsetzung (Technik)
 
-**Technologiewahl:** Für die Umsetzung wurde SvelteKit mit Svelte 5 und TypeScript gewählt. Dadurch lassen sich Benutzeroberfläche und serverseitige API innerhalb eines gemeinsamen Projekts entwickeln. MongoDB ermöglicht die flexible Speicherung von Artikeln, Grössenvarianten und vereinsbezogenen Geschäftsdaten. Als Entwicklungswerkzeuge dienen Visual Studio Code, Node.js/npm, GitHub und ChatGPT. Die Webanwendung wird über Netlify bereitgestellt.
+**Technologiewahl:** Für die Umsetzung wurde SvelteKit 3 mit Svelte 5 und TypeScript gewählt. Dadurch lassen sich Benutzeroberfläche und serverseitige API innerhalb eines gemeinsamen Projekts entwickeln. MongoDB ermöglicht die flexible Speicherung von Artikeln, Grössenvarianten und vereinsbezogenen Geschäftsdaten. Als Entwicklungswerkzeuge dienen Visual Studio Code, Node.js/npm, GitHub und ChatGPT. Die Webanwendung wird über Netlify bereitgestellt.
 
 **Vorgehen bei der Implementierung:** Der Prototyp wurde schrittweise aufgebaut und anhand der fachlichen Anforderungen erweitert.
 
@@ -210,7 +222,7 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 
 > Die Evaluation muss mit tatsächlich durchgeführten Tests und anonymisierten Nachweisen ergänzt werden. Die Existenz von Quellcode oder lokalen Fehlermeldungsprüfungen ersetzt keine Nutzerevaluation.
 
-- **Getestete Version:** **Noch offen:** separat deployte Testversion mit URL und Commit/Tag in der Projektübersicht dokumentieren.
+- **Getestete Version:** Separate Demo am 27.11.2026 veröffentlicht und technisch abgenommen; URL und Commit siehe Projektübersicht. Die Nutzerevaluation auf diesem Stand ist noch nicht nachgewiesen.
 - **Ziele der Prüfung:** Verständlichkeit der Navigation; korrekte Erfassung und Suche von Inventarartikeln; Ausleihe und Rückgabe; korrekte Bestandsänderungen; Verständlichkeit der Vereinskleiderbestellung und Verrechnung; rollenbezogene Zugriffsbeschränkungen.
 - **Vorgehen:** **Noch dokumentieren:** tatsächlich eingesetzte Testmethode, Testort und Moderation. Als mögliche Vorgehensweise eignet sich ein moderierter aufgabenbasierter Test mit anschliessendem kurzem Feedbackgespräch.
 - **Stichprobe:** **Noch dokumentieren:** Anzahl, Rollenprofil und anonymisierte Angaben der tatsächlichen Testpersonen.
@@ -276,80 +288,165 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 - **Beschreibung & Nutzen:** Zusätzliche Funktionen unterstützen den schnellen Zugriff auf Materialinformationen, das Auffinden von Artikeln und die finanzielle Übersicht des Inventars.
 - **Abgrenzung zum Mindestumfang:** Ergänzt die Basisverwaltung um Such-, Identifikations- und Auswertungsfunktionen, sofern diese nicht verbindlich gefordert sind.
 - **Umsetzung:** Eigene Seiten für QR-Code, Materialsuche und Inventarbewertung; die Abhängigkeit `qrcode` ist im Projekt enthalten.
-- **Nachweise:** [QR-Code](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/qr-code/%2Bpage.svelte) · [Materialsuche](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/materialsuche/%2Bpage.svelte) · [Inventarbewertung](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/inventarbewertung/%2Bpage.svelte) · **Screenshots und Funktionsprüfungen ergänzen**.
+- **Nachweise:** [QR-Code](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/qr-code/%2Bpage.svelte) · [Materialsuche](src/routes/inventar) · [Inventarbewertung](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/inventarbewertung/%2Bpage.svelte) · **Screenshots und Funktionsprüfungen ergänzen**.
 
 ### 4.2 Weitere Erweiterungen
 
+Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und organisatorische Verbesserungen. Offene Screenshot-Nachweise sind ausdrücklich gekennzeichnet.
+
 #### 4.2.1 GitHub-basiertes Issue- und Änderungsmanagement
-- **Beschreibung & Nutzen:** Anforderungen und Änderungswünsche werden in GitHub Issues gesammelt. Sprechende Commits mit Issue-Referenzen unterstützen die Rückverfolgbarkeit von Implementierungen.
 
-- **Abgrenzung zum Mindestumfang:** Kann über die reine Codeabgabe hinausgehen, wenn ein dokumentierter Issue-/Commit-Prozess nicht bereits Pflicht ist.
+- **Beschreibung & Nutzen:** Anforderungen, Akzeptanzkriterien, Änderungen und Abnahmen werden nachvollziehbar verbunden.
 
-- **Umsetzung:** Verwendung von GitHub Issues und Commit-Nachrichten mit Referenzen wie `Refs #34`; beispielsweise bei den Vereinskleidererweiterungen vom 17.11.2026.
+- **Abgrenzung zum Mindestumfang:** Über die vorgeschriebene GitHub-Codeablage hinaus werden Issues, Pull Requests und sprechende Commits als Steuerungsinstrument verwendet.
 
-- **Nachweise:** [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34) · [Commit-Historie](https://github.com/JenSusann/ClubMatiq/commits/main) · [Referenzierungs-Commit](https://github.com/JenSusann/ClubMatiq/commit/d2bb9add55531cbf6bf880512c96ccb22c3b0af7) · **Screenshot der Issue-Übersicht ergänzen**.
+- **Umsetzung:** Issues fachlich definieren, Änderungen referenzieren, Abnahme dokumentieren und erst danach abschliessen. Beispiel #34; PR #134 dokumentiert die Konsolidierung.
 
-- **Bezug zur Evaluation:** Nein; der Prozess dient bisher der Entwicklungsorganisation, nicht nachweislich der Auswertung einer Nutzerevaluation.
+- **Nachweise:** [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34) · [PR #134](https://github.com/JenSusann/ClubMatiq/pull/134) · [Commit-Historie](https://github.com/JenSusann/ClubMatiq/commits/main). Screenshot der Issue-Übersicht noch ergänzen.
+
+- **Bezug zur Evaluation:** Nein.
 
 #### 4.2.2 Strukturierter KI-gestützter Entwicklungsworkflow
 
-- **Beschreibung & Nutzen:** Während der Entwicklung von ClubMatiq wurde ChatGPT als unterstützendes Werkzeug für die Konzeption, Implementierung, Fehlersuche und Dokumentation eingesetzt. Dadurch konnten technische Lösungsansätze schneller erarbeitet, Fehler systematisch analysiert und neue Funktionen schrittweise umgesetzt werden.
+- **Beschreibung & Nutzen:** Iterative Zusammenarbeit mit ChatGPT und GitHub-Anbindung ermöglicht kontextbezogene Änderungen, Fehleranalyse und dokumentierte menschliche Freigaben.
 
-- **Abgrenzung zum Mindestumfang:** Über die reine Verwendung von KI zur Codegenerierung hinaus wurde ein iterativer Entwicklungsprozess angewendet. KI-generierte Lösungsvorschläge wurden in die bestehende Projektstruktur integriert, lokal überprüft und bei Bedarf angepasst. Die Entwicklungsschritte wurden über Git-Commits und GitHub-Issues nachvollziehbar dokumentiert.
+- **Abgrenzung zum Mindestumfang:** Nicht nur KI-Nutzung deklarieren, sondern einen projektspezifischen Arbeitsablauf mit Regeln, Kontext und Prüfschritten etablieren.
 
-- **Umsetzung:** Neue Funktionen wurden zunächst fachlich definiert und in GitHub-Issues mit Anforderungen und Akzeptanzkriterien festgehalten. Anschliessend wurden mithilfe von ChatGPT Implementierungsvorschläge für SvelteKit, TypeScript und MongoDB erarbeitet. Die vorgeschlagenen Änderungen wurden schrittweise in Visual Studio Code übernommen, auf Fehler überprüft und über Git auf GitHub übertragen. Bei auftretenden Problemen wurden Fehlermeldungen und betroffene Codeabschnitte analysiert und korrigiert. Bereits implementierte Funktionen wurden zudem mit offenen Issues abgeglichen, um Doppelentwicklungen zu vermeiden.
+- **Umsetzung:** Issue und Akzeptanzkriterien prüfen, Code und Tests erarbeiten, lokale Ergebnisse zurückmelden, Korrekturen und Freigaben dokumentieren. AGENTS.md wurde am 27.11. aus der bisherigen Praxis abgeleitet; keine rückwirkende Nutzung behauptet. Kapitel 6 beschreibt Aufgabenverteilung und Grenzen.
 
-- **Nachweise:** [GitHub-Issues](https://github.com/JenSusann/ClubMatiq/issues) · [Commit-Historie](https://github.com/JenSusann/ClubMatiq/commits/main) · [Quellcode](https://github.com/JenSusann/ClubMatiq)
+- **Nachweise:** [AGENTS.md](AGENTS.md) · [Kapitel 6](#6-ki-deklaration) · [PR #134](https://github.com/JenSusann/ClubMatiq/pull/134). Die versionierten Regeln sind der direkte Nachweis; Screenshot des Arbeitsablaufs noch ergänzen.
 
-- **Bezug zur Evaluation:** Nein. Der KI-gestützte Entwicklungsworkflow wurde während der technischen Umsetzung eingesetzt und ist nicht aus einer durchgeführten Nutzerevaluation hervorgegangen.
+- **Bezug zur Evaluation:** Nein.
 
-#### 4.2.3 Datenmodell
+#### 4.2.3 Datenmodell und Schema-Referenz
 
-- **Beschreibung & Nutzen:** Zur Dokumentation der Datenbankarchitektur wurde ein logisches Entity-Relationship-Diagramm (ER-Diagramm) erstellt. Es visualisiert die wichtigsten MongoDB-Collections, deren Attribute und Beziehungen. Dadurch werden die Zusammenhänge zwischen Vereinsverwaltung, Inventar, Ausleihen, Inventuren, Vereinskleiderverkäufen und Rechnungsstellung nachvollziehbar dargestellt.
+- **Beschreibung & Nutzen:** Logisches ER-Diagramm und exportiertes Datenbankschema machen Beziehungen und technische Struktur nachvollziehbar.
 
-- **Abgrenzung zum Mindestumfang:** Zusätzlich zur technischen Implementierung wurde die Datenstruktur grafisch dokumentiert. Das Diagramm erleichtert die Analyse der Datenbeziehungen, die Wartung sowie die spätere Erweiterung der Anwendung. Da MongoDB dokumentenorientiert arbeitet, werden sowohl logische Referenzen als auch eingebettete Datenstrukturen berücksichtigt.
+- **Abgrenzung zum Mindestumfang:** Zusätzliche Architekturartefakte über die funktionierende Datenspeicherung hinaus.
 
-- **Umsetzung:** Das Datenmodell wurde anhand der implementierten MongoDB-Collections und API-Endpunkte analysiert und mit dbdiagram.io als ER-Diagramm visualisiert. Die Darstellung umfasst zentrale Entitäten wie Vereine, Benutzer, Artikel, Artikelvarianten, Kategorien, Lagerorte, Ausleihen, Inventuren, Verkäufe und Rechnungen.
+- **Umsetzung:** MongoDB-Collections und Referenzen analysieren, mit dbdiagram.io visualisieren und ein Referenzschema für die Initialisierung pflegen. Das Diagramm bildet logische Beziehungen ab, nicht relationale Fremdschlüssel.
 
-- **Nachweise:** [ER-Diagramm](docs/images/ER-Diagram_ClubMatiq.png) · [MongoDB-Anbindung](src/lib/server/mongodb.ts) · [API-Endpunkte](src/routes/api)
+- **Nachweise:** ![Logisches ER-Diagramm der zentralen Domänen](docs/images/ER-Diagram_ClubMatiq.png)
+  Das Diagramm visualisiert die fachlichen Datenbeziehungen. [Schema](database-schema.json) · [Initialisierung](scripts/init-database.mjs) · [MongoDB-Anbindung](src/lib/server/mongodb.ts).
 
-- **Bezug zur Evaluation:** Nein. Das ER-Diagramm wurde zur technischen Dokumentation und besseren Nachvollziehbarkeit der Datenbankstruktur erstellt und ist nicht aus einer Nutzerevaluation hervorgegangen.
+- **Bezug zur Evaluation:** Nein.
 
 #### 4.2.4 Systematische Testmatrix und Testprotokolle
 
-- **Beschreibung & Nutzen:** Zur systematischen Qualitätssicherung wurde ClubMatiq um automatisierte Tests mit Vitest ergänzt. Diese überprüfen zentrale Funktionen, API-Endpunkte, Datenvalidierungen sowie Benutzer- und Berechtigungsprüfungen. Dadurch können Fehler frühzeitig erkannt und Regressionen bei Weiterentwicklungen reduziert werden.
+- **Beschreibung & Nutzen:** Reproduzierbare Unit-, Integrations- und manuelle Abnahmeprüfungen reduzieren Regressionen und machen fachliche Grenzfälle nachvollziehbar.
 
-- **Abgrenzung zum Mindestumfang:** Über die manuelle Funktionsprüfung des Prototyps hinaus wurde eine automatisierte Testsuite mit messbarer Codeabdeckung aufgebaut. Als zusätzliches Qualitätsziel wurde eine Testabdeckung von mindestens 95 % in allen vier Coverage-Kennzahlen definiert.
+- **Abgrenzung zum Mindestumfang:** Zusätzliche technische Teststrategie und messbares Qualitätsziel über die geforderte Nutzerevaluation hinaus.
 
-- **Umsetzung:** Unit- und Integrationstests wurden schrittweise erweitert und in bestehenden Testdateien konsolidiert. Der CI-Lauf vom 26.11.2026 bestätigt 5'013 bestandene Tests und das kombinierte 95-%-Quality-Gate. Die automatisierten Tests ergänzen die manuelle Prüfung und ersetzen keine Nutzerevaluation.
+- **Umsetzung:** Tests nach Modulen strukturieren, positive und negative Fälle prüfen, kombinierte Coverage mit Ziel mindestens 95 % je Kennzahl ermitteln. Historischer CI-Nachweis 26.11.: 5'013 Tests; manuelle Übersicht 463/463, Demo-Prüfungen separat. Keine Gleichsetzung mit Nutzerevaluation.
 
-- **Nachweise:** [Automatisierte Tests](tests/unit) · [Testkonfiguration](vitest.config.ts) · [GitHub-Issue #38](https://github.com/JenSusann/ClubMatiq/issues/38) · [Testausführung und Coverage](#94-code-coverage-und-qualitätsziel)
+- **Nachweise:** [Systemabnahmetestprotokoll](docs/testing/System-Abnahmetestprotokoll.md) · [Unit-Tests](tests/unit) · [Integrationstests](tests/integration) · [Coverage-Skript](scripts/merge-coverage.mjs) · [CI-Nachweis](https://github.com/JenSusann/ClubMatiq/actions/runs/45735645776). Screenshot der Coverage noch ergänzen; maschinenlesbare Berichte sind der präzisere Nachweis.
 
-- **Bezug zur Evaluation:** Nein. Die automatisierten Tests wurden im Rahmen der technischen Qualitätssicherung entwickelt und nicht aus einer durchgeführten Nutzerevaluation abgeleitet.
+- **Bezug zur Evaluation:** Nein.
 
 #### 4.2.5 Anforderungs- und Rückverfolgungsmatrix
-- **Beschreibung & Nutzen:** _[Was wurde zusätzlich erarbeitet oder verbessert und welchen Mehrwert bietet es?]_
-- **Abgrenzung zum Mindestumfang:** _[Was geht konkret über die verbindlichen Anforderungen hinaus?]_
-- **Umsetzung:** _[Wie wurde vorgegangen und was ist das Ergebnis?]_
-- **Nachweise:** _[Screenshot(s) mit Erläuterung; Links auf Artefakte, Konfigurationen oder andere Ergebnisse; bei Code zusätzlich Referenzen auf die relevanten Codestellen]_
-- **Bezug zur Evaluation:** _[Wurde die Erweiterung aus der Evaluation abgeleitet? Falls ja: auf die betreffende Beobachtung bzw. das Issue verweisen. Andernfalls: «Nein».]_
+
+- **Beschreibung & Nutzen:** Verknüpft Anforderungen mit Umsetzung und Abnahme; offene Nachweise werden sichtbar.
+
+- **Abgrenzung zum Mindestumfang:** Explizite Traceability zusätzlich zur phasenbasierten Projektdokumentation.
+
+- **Umsetzung:** Die folgende kompakte Matrix wurde am 27.11. aus vorhandenen Issues, Codepfaden und Protokollen erstellt. Sie ist keine vollständige Einzelanforderungsmatrix.
+
+  | Anforderung | Umsetzung | Nachweis |
+  |---|---|---|
+  | Material erfassen und bearbeiten | [Artikel-API](src/routes/api/artikel) | [Systemabnahme](docs/testing/System-Abnahmetestprotokoll.md) |
+  | Ausleihe und Rückgabe | [Ausleih-API](src/routes/api/ausleihen) | [Integrationstests](tests/integration/ausleihen) |
+  | Vereinskleider und Erstbezug | [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34) | [Systemabnahme](docs/testing/System-Abnahmetestprotokoll.md) |
+  | E-Mail-Konfiguration | [Issue #63](https://github.com/JenSusann/ClubMatiq/issues/63) | [Systemabnahme](docs/testing/System-Abnahmetestprotokoll.md) |
+  | Pilot und Datenbanktrennung | [Issue #115](https://github.com/JenSusann/ClubMatiq/issues/115) | [Pilotbetrieb](docs/testing/Pilotbetrieb.md) |
+  | Nutzerevaluation | Kapitel 3.5 | Durchführung und Auswertung offen |
+
+- **Nachweise:** Die eingebettete Matrix ist das direkt lesbare Artefakt; ein Screenshot derselben Tabelle würde keinen zusätzlichen Nachweis liefern. Verlinkte Codepfade und Protokolle ermöglichen die Vertiefung.
+
+- **Bezug zur Evaluation:** Nein.
 
 #### 4.2.6 Rollenbasiertes Berechtigungskonzept
 
-- **Beschreibung & Nutzen:** ClubMatiq verwendet eine rollenbasierte Zugriffskontrolle mit vier Benutzerrollen und 13 Einzelberechtigungen. Dadurch werden administrative, operative und lesende Zugriffe voneinander getrennt.
-- **Abgrenzung zum Mindestumfang:** Zusätzlich zur Benutzeranmeldung wurden zentrale Berechtigungsprüfungen, eine vereinsbezogene Datenzuordnung und eine rollenabhängige Navigation implementiert.
-- **Umsetzung:** Die Rechte werden serverseitig über eine zentrale Berechtigungsdefinition geprüft. Die Authentifizierung erfolgt über Sessions. Eine Rollenvorschau ermöglicht Administratoren, unterschiedliche Benutzeransichten zu simulieren.
-- **Nachweise:** [Benutzer- und Berechtigungskonzept](docs/architektur/ClubMatiq_Benutzer_Berechtigungskonzept.pdf) · [Berechtigungslogik](src/lib/server/berechtigungen.ts) · [Session-Verwaltung](src/hooks.server.ts).
-- **Bezug zur Evaluation:** Nein. Das Konzept entstand im Rahmen der technischen Umsetzung. Die systematische Validierung der Rollenrechte ist separat nachzuweisen.
+- **Beschreibung & Nutzen:** Separates Konzept dokumentiert Rollen, Rechte und Zugriffsbeschränkungen als Grundlage für Implementierung und Prüfung.
 
+- **Abgrenzung zum Mindestumfang:** Zusätzlich zur Softwarefunktion in 4.1.5 wird die Rechtearchitektur als Analyseartefakt dokumentiert; keine doppelte Beanspruchung derselben Implementierung.
+
+- **Umsetzung:** Rollen und Berechtigungen aus der zentralen Definition ableiten und mit serverseitigen Prüfungen sowie negativen Tests abgleichen.
+
+- **Nachweise:** [Berechtigungskonzept (PDF)](docs/architektur/ClubMatiq_Benutzer_Berechtigungskonzept.pdf) · [Berechtigungslogik](src/lib/server/berechtigungen.ts) · [Session-Verwaltung](src/hooks.server.ts) · [Berechtigungstests](tests/unit/benutzer/berechtigungen.test.ts). Screenshot der Rechteübersicht noch ergänzen.
+
+- **Bezug zur Evaluation:** Nein.
 
 #### 4.2.7 Strukturiertes Release- und Versionsmanagement
 
-- **Beschreibung & Nutzen:** Die Weiterentwicklung wird über Zielversionen, eine Produkt-Roadmap und einen dokumentierten Freigabeprozess strukturiert. Dadurch bleiben Abgabeumfang und spätere Produktentwicklung nachvollziehbar getrennt.
-- **Abgrenzung zum Mindestumfang:** Zusätzlich zur Git-Versionsverwaltung werden Release-Planung, Zielversionslabels, Changelog und Freigabekriterien gepflegt. Geplante Funktionen sind keine umgesetzten Software-Erweiterungen.
-- **Umsetzung:** Am 25.11.2026 wurden die 43 optionalen Issues #72–114 den Zielversionen v1.1 bis v3.0 zugeordnet. Die bestehenden Projektmeilensteine M1–M5 bleiben erhalten. Sechs Versionsmeilensteine (v1.0.0 bis v3.0.0) wurden eingerichtet; alle 43 optionalen Issues sind den fünf Folgeversionen zugeordnet. Die ursprünglich eingeführte interne Entwicklungsversion 0.9.0 wurde zentral in `package.json` gepflegt und über Vite automatisch im globalen Footer angezeigt (Commit [`f56bf71`](https://github.com/JenSusann/ClubMatiq/commit/f56bf71)). Roadmap, Changelog, Release-Management und Freigabecheckliste wurden im Repository angelegt. Die separate Demo wurde am 27.11.2026 veröffentlicht und nachgeprüft; die Pilotversion v0.9.2 wurde produktiv kurzabgenommen. Der erste stabile Release steht noch aus; Zielnummern werden vor Freigabe gemäss Semantic Versioning überprüft.
-- **Nachweise:** [Produkt-Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Release-Management](docs/releases/Release-Management.md) · [Freigabecheckliste](docs/releases/Release-Checkliste.md) · [GitHub-Labels](https://github.com/JenSusann/ClubMatiq/labels) · [Versionsmeilensteine](https://github.com/JenSusann/ClubMatiq/milestones). Produktive Release-Nachweise siehe [Pilotbetrieb](docs/testing/Pilotbetrieb.md).
-- **Bezug zur Evaluation:** Nein. Die Planung entstand als zusätzliche organisatorische Erweiterung; die eingefrorene Evaluationsversion wird nach Durchführung separat nachgewiesen.
+- **Beschreibung & Nutzen:** Trennt Abgabe, Pilotbetrieb und spätere Produktentwicklung mit nachvollziehbaren Freigaben.
+
+- **Abgrenzung zum Mindestumfang:** Zusätzliche Roadmap, Zielversionen, Statuslabels, Freigabecheckliste und Release-Historie statt alleiniger Git-Versionierung.
+
+- **Umsetzung:** 43 optionale Issues #72–114 wurden fünf Folgeversionen zugeordnet; Projektmeilensteine bleiben getrennt. Semantic Versioning, zentrale Paketversion, Footer-Anzeige, Changelog und Release-Tags. Pilotversion v0.9.2 produktiv kurzabgenommen; stabiler Release ausstehend. Geplante Funktionen zählen nicht als umgesetzt.
+
+- **Nachweise:** [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Release-Management](docs/releases/Release-Management.md) · [Checkliste](docs/releases/Release-Checkliste.md) · [Release v0.9.2](https://github.com/JenSusann/ClubMatiq/releases/tag/v0.9.2). Screenshot der Meilensteine noch ergänzen.
+
+- **Bezug zur Evaluation:** Nein.
+
+#### 4.2.8 Automatisierte Integrations- und Release-Pipeline
+
+- **Beschreibung & Nutzen:** CI prüft Änderungen reproduzierbar und stellt Coverage-Artefakte bereit; Release-Erstellung ist an erfolgreiche Jobs gebunden.
+
+- **Abgrenzung zum Mindestumfang:** Automatisierte Build-, Test- und Release-Prozesse über die manuelle Prototypprüfung hinaus; getrennt vom Testkonzept in 4.2.4.
+
+- **Umsetzung:** GitHub Actions führt Svelte/TypeScript-Check, Unit-Tests, Build, Integrationstests mit temporärem MongoDB Replica Set und kombinierte Coverage aus. Tags lösen nach Versionsprüfung GitHub Releases aus. PR #137 erweitert Push- und PR-Filter auf develop/**; PR #135 und #136 synchronisieren die Entwicklungsbranches. Alle abschliessenden CI-Läufe wurden durch die Entwicklerin als erfolgreich bestätigt; konkrete Run-IDs dieser letzten Läufe noch ergänzen.
+
+- **Nachweise:** [Workflow](.github/workflows/check.yml) · [PR #137](https://github.com/JenSusann/ClubMatiq/pull/137) · [PR #135](https://github.com/JenSusann/ClubMatiq/pull/135) · [PR #136](https://github.com/JenSusann/ClubMatiq/pull/136) · [Actions](https://github.com/JenSusann/ClubMatiq/actions). Screenshot der drei erfolgreichen Branch-Läufe noch ergänzen.
+
+- **Bezug zur Evaluation:** Nein.
+
+#### 4.2.9 Umgebungskonzept und reproduzierbare Demo-Daten
+
+- **Beschreibung & Nutzen:** Schützt produktive Daten und ermöglicht wiederholbare Prüfungen mit fiktiven Vereinsdaten.
+
+- **Abgrenzung zum Mindestumfang:** Über das vorgeschriebene separate Evaluationsdeployment hinaus: vier getrennte Datenbankumgebungen, eigene Zugriffsidentitäten, Initialisierung und kontrollierter Demo-Reset.
+
+- **Umsetzung:** PROD, DEV, TEST und DEMO trennen; Referenzschema initialisieren, Demo-Daten deterministisch erzeugen, externe Mail- und Upload-Funktionen in der Demo sperren. 16/16 lesende Datenbank-Zugriffsprüfungen sowie 10/10 lokale, 15/15 Online- und 7/7 finale Demo-Prüfungen dokumentiert; keine unabhängige Sicherheitsprüfung.
+
+- **Nachweise:** [Demo-Betrieb](docs/betrieb/Demo-Betrieb.md) · [Pilotbetrieb](docs/testing/Pilotbetrieb.md) · [Seed/Reset](scripts/seed-demo.mjs) · [Initialisierung](scripts/init-database.mjs) · [Demo-Schutz](src/hooks.server.ts). Screenshot des Demo-Banners und anonymisierte Umgebungsübersicht noch ergänzen.
+
+- **Bezug zur Evaluation:** Nein.
+
+#### 4.2.10 Backup- und Wiederherstellungskonzept
+
+- **Beschreibung & Nutzen:** Reduziert Datenverlustrisiken und schafft überprüfbare Wiederherstellungsabläufe.
+
+- **Abgrenzung zum Mindestumfang:** Zusätzliche Betriebs- und Notfallvorsorge über den funktionsfähigen Prototyp hinaus.
+
+- **Umsetzung:** Verschlüsselte Archive mit AES-256-GCM, Schutz vor Restore in nicht leere Datenbanken und automatisierter Inhalts-/Indexvergleich. DEV-Restore mit 28 Collections, 9 Dokumenten und 36 Indizes bestätigt; PROD-Archiv offline verifiziert, kein vollständiger PROD-Restore.
+
+- **Nachweise:** [Pilotbetrieb](docs/testing/Pilotbetrieb.md) · [Backup](scripts/backup-database.mjs) · [Kryptografie](scripts/backup-crypto.mjs) · [Restore](scripts/restore-database.mjs) · [Vergleich](scripts/verify-restore.mjs) · [Kryptografie-Tests](tests/unit/infrastruktur/backup-crypto.test.ts). Anonymisierten Konsolennachweis noch ergänzen; keine Schlüssel oder Archive veröffentlichen.
+
+- **Bezug zur Evaluation:** Nein.
+
+#### 4.2.11 Repository-Hygiene und Dokumentationsarchitektur
+
+- **Beschreibung & Nutzen:** Reduziert widersprüchliche Dokumentation und hält Entwicklungsstände konsistent.
+
+- **Abgrenzung zum Mindestumfang:** Gezielte Konsolidierung, Linkpflege und Branch-Bereinigung über die reine Repository-Abgabe hinaus.
+
+- **Umsetzung:** PR #134 konsolidiert zwölf auf zehn Markdown-Dateien und schafft ein zentrales Dokumentenverzeichnis. Sieben alte Branches wurden nach Prüfung entfernt; main und beide Versionsbranches synchronisiert. Die abschliessende CI wurde bestätigt.
+
+- **Nachweise:** [PR #134](https://github.com/JenSusann/ClubMatiq/pull/134) · [Dokumentenverzeichnis](#dokumentenverzeichnis) · [PR #135](https://github.com/JenSusann/ClubMatiq/pull/135) · [PR #136](https://github.com/JenSusann/ClubMatiq/pull/136). Screenshot der finalen Branch-Übersicht noch ergänzen.
+
+- **Bezug zur Evaluation:** Nein.
+
+#### 4.2.12 Pilotplanung und gestufte Betriebsabnahme
+
+- **Beschreibung & Nutzen:** Bereitet den realen Vereinseinsatz mit Freigabekriterien, Rückfallplanung und dokumentierten Vorprüfungen vor.
+
+- **Abgrenzung zum Mindestumfang:** Zusätzliche betriebliche Erprobung und Risikoplanung neben der vorgeschriebenen Nutzerevaluation.
+
+- **Umsetzung:** Issue #115, Umgebungsprüfungen, Backup-Nachweise und produktive Kurzabnahmen v0.9.2 (7/7) sowie Gruppenimport #125 (10/10) dokumentieren die Vorbereitung. Live-Verkauf am 28.11. und vollständige Freigabe sind noch nicht nachgewiesen.
+
+- **Nachweise:** [Pilotbetrieb](docs/testing/Pilotbetrieb.md) · [Issue #115](https://github.com/JenSusann/ClubMatiq/issues/115) · [Release-Checkliste](docs/releases/Release-Checkliste.md). Anonymisierte Abnahmebelege noch ergänzen; keine personenbezogenen Vereinsdaten veröffentlichen.
+
+- **Bezug zur Evaluation:** Nein; Pilotvorbereitung ist keine abgeschlossene Nutzerevaluation.
 
 ## 5. Projektorganisation [Optional]
 
@@ -777,6 +874,19 @@ Stand der Dokumentationsüberarbeitung: 25.11.2026. Die Funktionsübersicht basi
 Die detaillierte Änderungshistorie wird über [GitHub-Commits](https://github.com/JenSusann/ClubMatiq/commits/main/) und [GitHub-Issues](https://github.com/JenSusann/ClubMatiq/issues) geführt. Das [Abnahmetestprotokoll](docs/testing/System-Abnahmetestprotokoll.md) ist die zentrale Quelle für manuelle Testresultate. Der Grössenfehler im Inventur-PDF wurde im Rahmen von #21 korrigiert und erfolgreich nachgeprüft.
 
 ### 10.7 Offene Aufgaben bis zur Abgabe
+
+### Abgleich mit der ZHAW-Aufgabenstellung (27.11.2026)
+
+| Kriterium | Stand und verbleibender Nachweis |
+|---|---|
+| Kernfunktionalität & technische Qualität (15 P.) | Kernworkflow implementiert; Code und technische Abnahmen vorhanden. Vollständiger Abgleich mit sämtlichen verbindlichen Wochenübungen noch offen. |
+| Nutzerzentrierung & Bedienbarkeit (15 P.) | Referenz-Mockup und User Journey vorhanden; Screenshots der fertigen App und Nutzernachweise ergänzen. |
+| Vorgehen (15 P.) | Phasen 3.1–3.4 dokumentiert; Artefakte und Entscheidungen vor Abgabe gegen Übungen prüfen. |
+| Evaluation (10 P.) | Separate Demo technisch abgenommen; tatsächliche Nutzerevaluation, Stichprobe, Beobachtungen und Auswertung noch offen. |
+| Dokumentation & Video (5 P.) | README und KI-Deklaration vorhanden; Screenshots und selbst gesprochener Walkthrough (ca. 5, maximal 10 Minuten) offen. |
+| Erweiterungen (40 P. insgesamt) | Kapitel 4 dokumentiert zusätzliche Leistungen; fehlende Screenshots und Nachweise ergänzen. Keine vorweggenommene Punktevergabe. |
+
+Die Aufgabenstellung verlangt ausserdem Repository-URL und ZIP, Zugang für Dozierende, Einhaltung rechtlicher Vorgaben und transparente KI-Deklaration. Moodle-Fristen und konkrete Wochenübungen sind verbindlich; die vorliegende Übersicht ersetzt deren Prüfung nicht.
 
 - [ ] Verbleibende Issues und bekannte Fehler bearbeiten; Abnahmen und Regressionstests dokumentieren.
 - [ ] Finale Unit- und Integrationstestläufe, Coverage und statische Prüfungen mit Commit und Datum dokumentieren.
