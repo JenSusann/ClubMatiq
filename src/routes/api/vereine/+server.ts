@@ -2,6 +2,8 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { db } from '../../../lib/server/mongodb';
+import { pruefeBerechtigung } from '../../../lib/server/berechtigungen';
+import { erstelleAusstellerdaten, validiereVereinseinstellungen } from '../../../lib/server/vereinseinstellungen';
 import type { RequestHandler } from './$types';
 
 // ========================================
@@ -95,4 +97,42 @@ export const POST: RequestHandler = async ({ locals }) => {
     },
     { status: 403 }
   );
+};
+
+/** Speichert ausschliesslich freigegebene Profilfelder des eigenen Vereins. */
+export const PATCH: RequestHandler = async ({ locals, request }) => {
+  const zugriff = pruefeBerechtigung(locals.benutzer, 'verein:verwalten');
+  if (zugriff) return zugriff;
+  const vereinId = locals.benutzer!.vereinId;
+  if (!ObjectId.isValid(vereinId)) return json({ fehler: 'Ungültige Vereins-ID.' }, { status: 400 });
+  let eingabe: unknown;
+  try { eingabe = await request.json(); }
+  catch { return json({ fehler: 'Ungültige JSON-Daten.' }, { status: 400 }); }
+  const ergebnis = validiereVereinseinstellungen(eingabe);
+  if (!ergebnis.erfolg) return json({ fehler: ergebnis.fehler }, { status: 400 });
+  try {
+    const vereine = db.collection('vereine');
+    const _id = new ObjectId(vereinId);
+    const verein = await vereine.findOne({ _id });
+    if (!verein) return json({ fehler: 'Verein nicht gefunden.' }, { status: 404 });
+    // Compare-and-set verhindert, dass parallele Profiländerungen den
+    // ursprünglichen Aussteller überschreiben.
+    const update = await vereine.updateOne({
+      _id,
+      profilRevision: verein.profilRevision === undefined ? { $exists: false } : verein.profilRevision
+    }, {
+      $set: {
+        ...ergebnis.daten,
+        ausstellerVorErsterAenderung: verein.ausstellerVorErsterAenderung ?? erstelleAusstellerdaten(verein),
+        profilAktualisiertAm: new Date(),
+        profilAktualisiertVon: locals.benutzer!.id
+      },
+      $inc: { profilRevision: 1 }
+    });
+    if (update.matchedCount !== 1) return json({ fehler: 'Verein wurde zwischenzeitlich geändert. Bitte neu laden.' }, { status: 409 });
+    return json({ erfolg: true });
+  } catch (error) {
+    console.error('Verein aktualisieren:', error);
+    return json({ fehler: 'Verein konnte nicht gespeichert werden.' }, { status: 500 });
+  }
 };
