@@ -906,3 +906,20 @@ Umgebung: https://clubmatiq-demo.netlify.app, Datenbank `clubmatiq_demo`. Lokale
 | DEMO-15 | Demo-Änderungen erscheinen nicht in Production | Bestanden |
 
 15/15 gemäss Anwenderbestätigung und QR-Testauswahl; Foto-Upload zunächst offen, anschliessend Fehlermeldung bestätigt. HTTP-Status nicht separat belegt. Keine vollständige Sicherheitsprüfung; genaue Deployment-Commit-ID noch zu ergänzen. Nachträgliche UI-Anpassung des Foto-Uploads separat nachprüfen.
+
+
+### Finale Demo-Nachprüfung – 27.11.2026
+
+Veröffentlichter Stand: d2c2d1e, Netlify, 16:45 Uhr. Automatische Builds gestoppt.
+
+| Test-ID | Prüfung | Ergebnis |
+|---|---|---|
+| DEMO-NP-01 | Demo-Banner sichtbar | Bestanden |
+| DEMO-NP-02 | Foto-Auswahl durch Demo-Hinweis ersetzt | Bestanden |
+| DEMO-NP-03 | Schadensmeldung ohne Foto erfolgreich | Bestanden |
+| DEMO-NP-04 | E-Mail-Einstellungen gesperrt | Bestanden |
+| DEMO-NP-05 | Demo-Datenbankbenutzer ohne Production-Zugriff | Bestanden |
+| DEMO-NP-06 | Keine produktiven Zugangsdaten in Demo-Umgebungsvariablen | Bestanden |
+| DEMO-NP-07 | Keine Verbindung zu produktiven externen Diensten | Bestanden |
+
+7/7 gemäss Einzelbestätigung der Anwenderin. Zusammen mit lokaler Prüfung (10/10) und Online-Abnahme (15/15): 32/32 Prüfergebnisse, teilweise überlappende Prüfgegenstände. Kein unabhängiger Penetrationstest. Finaler Reset noch offen.
