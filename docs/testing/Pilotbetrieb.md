@@ -37,3 +37,21 @@ Manuell lokal ausgeführt und durch die Entwicklerin bestätigt: Referenzschema 
 | TEST | verweigert | verweigert | verweigert | erlaubt |
 
 16/16 Prüfungen mittels listCollections bestanden. Keine Schreibzugriffe getestet. Keine Zugangsdaten protokolliert. Backup, produktiver Smoke-Test und Entfernung des alten Administrators bleiben offen.
+
+## Produktive Abnahme – 27.11.2026
+
+Netlify Production: main@cce1443 veröffentlicht, Auto Publishing Locked aktiv (Screenshot). Manuelle Ergebnisse durch Entwicklerin bestätigt.
+
+| Test | Prüfung | Ergebnis |
+|---|---|---|
+| ST-115-01 | Startseite erreichbar | Bestanden |
+| ST-115-02 | Turnverein Weiningen registrieren | Bestanden |
+| ST-115-03 | Abmelden und erneut anmelden | Bestanden |
+| ST-115-04 | Administration öffnen | Bestanden |
+| ST-115-05 | Kategorie erstellen | Bestanden |
+| ST-115-06 | Lagerort erstellen | Bestanden |
+| ST-115-07 | Speicherung in clubmatiq kontrollieren | Bestanden |
+| ST-115-08 | Keine entsprechenden Daten in DEV und DEMO | Bestanden |
+| ST-115-09 | E-Mail-Testversand | Ausstehend – Konfiguration erneut erforderlich |
+
+8/9 bestanden, 1 ausstehend. Backup/Wiederherstellung, Ablösung des alten Atlas-Administrators und Pilotbetrieb bleiben offen.
