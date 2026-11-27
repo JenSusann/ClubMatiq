@@ -12,8 +12,8 @@
 | Verfasser/in | Jennifer Mentner, WIN-03-23HS-TZDSRH *(Angabe aus bisheriger README; vor Abgabe prüfen)* |
 | GitHub-Repository | https://github.com/JenSusann/ClubMatiq |
 | Aktuelle App | https://clubmatiq.netlify.app |
-| Getestete Version | **Noch ergänzen:** URL der separat deployten Testversion und Commit/Tag. Dokumentationsbasis: [`9f2e7bc`](https://github.com/JenSusann/ClubMatiq/commit/9f2e7bc816b91b1f3878c4c269f2403f143fc4f9), 17.11.2026; dies ist **kein Nachweis einer getesteten Version**. |
-| Testzugänge | **Noch ergänzen:** Bereitstellungsweg für eigens angelegte Testkonten je Rolle; keine Passwörter im öffentlichen Repository |
+| Getestete Version | https://clubmatiq-demo.netlify.app – separate Demo, Online-Abnahme 27.11.2026; Deployment-Commit noch zu ergänzen |
+| Testzugänge | Vier Demo-Rollen; Zugangsdaten separat über Moodle, keine Passwörter im Repository |
 | Referenz-Mockup (PowerPoint) | [Interaktives Mockup](docs/konzeption/ClubMatiq_Mockup.pptx) · [Design- und Workflow-Dokumentation](docs/konzeption/ui-prototyping.pdf) |
 | Weitere Artefakte [Optional] | [Crazy 8s](docs/images/crazy8s.png) · [User Journey Map](docs/images/user-journey.png) · [GitHub Issues](https://github.com/JenSusann/ClubMatiq/issues) |
 
