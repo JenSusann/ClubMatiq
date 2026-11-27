@@ -107,6 +107,7 @@ try {
   }
   console.log('ausleihen: ' + loans.length + ' vorgesehene Geschäftsvorfälle');
   console.log('vereinskleider_verkaeufe: '+sales.length+' vorgesehene Geschäftsvorfälle');
+  console.log('vereinskleider_rechnungen: 3 vorgesehene Rechnungen');
   if (!apply) {
     console.log('Vorschau: keine Änderungen.');
   } else {
@@ -171,6 +172,28 @@ try {
           const endbetrag=sale.menge*(sale.price??0);
           await db.collection('vereinskleider_verkaeufe').insertOne({_id,vereinId,verkaufsart:bestellMenge?(sale.direct?'gemischt':'bestellung'):'direkt',status:bestellMenge?'offen':'abgeschlossen',preisOffen:sale.price===null,offenePreispositionen:sale.price===null?1:0,direktMenge:sale.direct,bestellMenge,kaeufer:sale.buyer,riegen:['TI'],zahlungsart:sale.payment,zahlungsstatus:sale.price===null?'preis_offen':sale.paid?'bezahlt':'offen',bezahltBetrag:sale.paid?endbetrag:0,zahlungen:sale.paid?[{betrag:endbetrag,datum:now,zahlungsart:sale.payment}]:[],bemerkung:'Fiktiver Demo-Verkauf',positionen,rabatte:[],zusaetzlicherRabatt:0,zwischentotal:endbetrag,rabattTotal:0,endbetrag,restbetragBekannt:sale.paid?0:endbetrag,erstelltAm:now,aktualisiertAm:now},{session});
           if(sale.direct) await db.collection('lagerbewegungen').insertOne({_id:id('sale-movement:'+sale.key),vereinId,artikelId,groesseId,art:'verkauf',mengeDelta:-sale.direct,zeitpunkt:now,artikelName:sale.name,groesseName:sale.size,benutzerName:'Demo admin',benutzerId:ref('benutzer','admin'),referenzId:_id.toHexString(),referenzTyp:'verkauf'},{session});
+        }
+        for (const key of ['twint','bar','bestellung']) {
+          const _id=id('demo-invoice:'+key);
+          const invoices=db.collection('vereinskleider_rechnungen');
+          const existing=await invoices.findOne({_id},{session});
+          if(existing) {
+            if(existing.vereinId!==vereinId) throw new Error('Rechnungs-ID-Konflikt.');
+            continue;
+          }
+          const verkaufId=id('demo-sale:'+key).toHexString();
+          const verkaeufe=db.collection('vereinskleider_verkaeufe');
+          const v=await verkaeufe.findOne({_id:new ObjectId(verkaufId),vereinId},{session});
+          if(!v || v.status==='storniert' || v.preisOffen || v.rechnungId || v.trancheRechnungIds?.length) throw new Error('Demo-Rechnung: Verkauf nicht verrechenbar.');
+          const cents=x=>Math.round(x*100);
+          if(!Number.isFinite(v.endbetrag)||!Number.isFinite(v.bezahltBetrag)||v.bezahltBetrag<0||v.bezahltBetrag>v.endbetrag||v.zahlungen.reduce((sum,z)=>sum+cents(z.betrag),0)!==cents(v.bezahltBetrag)) throw new Error('Demo-Rechnung: Zahlungsstand ungültig.');
+          const jahr=now.getFullYear();
+          const counter=await db.collection('vereinskleider_rechnungsnummern').findOneAndUpdate({_id:vereinId+':'+jahr},{$inc:{nummer:1},$setOnInsert:{vereinId,jahr}},{upsert:true,returnDocument:'after',session});
+          if(!counter||!Number.isSafeInteger(counter.nummer)) throw new Error('Rechnungsnummer fehlt.');
+          const status=v.bezahltBetrag===v.endbetrag?'bezahlt':v.bezahltBetrag>0?'teilweise_bezahlt':'offen';
+          await invoices.insertOne({_id,vereinId,verkaufId,rechnungsnummer:jahr+'-'+String(counter.nummer).padStart(5,'0'),empfaenger:v.kaeufer,riegen:v.riegen,zahlungsart:v.zahlungsart,bemerkung:v.bemerkung,positionen:v.positionen,rabatte:v.rabatte,zusaetzlicherRabatt:v.zusaetzlicherRabatt,zwischentotal:v.zwischentotal,rabattTotal:v.rabattTotal,gesamtbetrag:v.endbetrag,bezahltBetrag:v.bezahltBetrag,zahlungen:v.zahlungen,status,erstelltAm:now,aktualisiertAm:now,clubdeskExportStatus:'nicht_exportiert'},{session});
+          const result=await verkaeufe.updateOne({_id:v._id,vereinId,rechnungId:{$exists:false},trancheRechnungIds:{$exists:false}},{$set:{rechnungId:_id.toHexString(),aktualisiertAm:now}},{session});
+          if(result.modifiedCount!==1) throw new Error('Demo-Rechnung: Verkaufsreferenz konnte nicht gespeichert werden.');
         }
       });
     } finally { await session.endSession(); }
