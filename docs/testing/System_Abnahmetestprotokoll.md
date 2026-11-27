@@ -881,3 +881,28 @@ Ergebnis: 13/13 bestanden. Vollständiger lokaler Svelte-Check sowie Unit- und I
 ## Abschlussabnahme Issue #125 – 27.11.2026
 
 ClubDesk-Gruppenimport korrigiert in PR #124, produktiv seit v0.9.1. ST-125-01 bis ST-125-08: Versionsanzeige, erneuter Import, keine Duplikate, Gruppenauswahl, Zuordnung, automatische Mitgliederzuordnung, Mehrfachmitgliedschaften und Funktionen bestanden. ST-125-09 Erstbezugsrabatt und ST-125-10 Riegenrabatte durch Anwenderin bestätigt. Gesamt: 10/10 bestanden. Hotfix in beide Entwicklungsbranches übernommen (PR #132 und #133).
+
+
+## Separate Demo-Abnahme – 27.11.2026
+
+Umgebung: https://clubmatiq-demo.netlify.app, Datenbank `clubmatiq_demo`. Lokale Sichtprüfung: 10/10 laut Anwenderbestätigung. Online-Abnahme separat von Issue-Abnahmequote.
+
+| Test-ID | Prüfung | Ergebnis |
+|---|---|---|
+| DEMO-01 | Startseite und Demo-Banner | Bestanden |
+| DEMO-02 | Administrator-Anmeldung | Bestanden |
+| DEMO-03 | Materialverantwortliche-Anmeldung | Bestanden |
+| DEMO-04 | Leiter-Anmeldung | Bestanden |
+| DEMO-05 | Mitglied-Anmeldung | Bestanden |
+| DEMO-06 | Rollenberechtigungen | Bestanden |
+| DEMO-07 | Inventar und Demo-Daten | Bestanden |
+| DEMO-08 | Artikel erstellen und bearbeiten | Bestanden |
+| DEMO-09 | Ausleihe und Rückgabe | Bestanden |
+| DEMO-10 | Rechnungs-PDF | Bestanden |
+| DEMO-11 | Excel-Export | Bestanden |
+| DEMO-12 | QR-Code verweist auf Demo | Bestanden |
+| DEMO-13 | E-Mail-Einstellungen nicht zugänglich | Bestanden |
+| DEMO-14 | Foto-Upload verweigert | Bestanden |
+| DEMO-15 | Demo-Änderungen erscheinen nicht in Production | Bestanden |
+
+15/15 gemäss Anwenderbestätigung und QR-Testauswahl; Foto-Upload zunächst offen, anschliessend Fehlermeldung bestätigt. HTTP-Status nicht separat belegt. Keine vollständige Sicherheitsprüfung; genaue Deployment-Commit-ID noch zu ergänzen. Nachträgliche UI-Anpassung des Foto-Uploads separat nachprüfen.
