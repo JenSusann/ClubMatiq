@@ -85,6 +85,13 @@ const loans = [
 const day = offset => new Date(now.getTime()+offset*86400000);
 const date = offset => day(offset).toISOString().slice(0,10);
 
+const sales = [
+ {key:'twint',name:'T-Shirt',size:'M',menge:2,direct:2,price:28,paid:true,payment:'twint',buyer:'Alex Muster'},
+ {key:'bar',name:'Hoodie',size:'L',menge:1,direct:1,price:55,paid:true,payment:'bar',buyer:'Robin Muster'},
+ {key:'bestellung',name:'Trainerjacke',size:'128',menge:2,direct:0,price:65,paid:false,payment:'rechnung',buyer:'Kim Muster'},
+ {key:'gemischt',name:'Shorts',size:'140',menge:3,direct:1,price:35,paid:false,payment:'rechnung',buyer:'Noah Muster'},
+ {key:'preis-offen',name:'Regenjacke',size:'S',menge:1,direct:0,price:null,paid:false,payment:'rechnung',buyer:'Mia Muster'}
+];
 const client = new MongoClient(config.MONGODB_URI);
 try {
   await client.connect();
@@ -99,6 +106,7 @@ try {
     console.log(collection + ': ' + plan.filter(p => p.collection === collection).length + ' vorgesehene Datensätze');
   }
   console.log('ausleihen: ' + loans.length + ' vorgesehene Geschäftsvorfälle');
+  console.log('vereinskleider_verkaeufe: '+sales.length+' vorgesehene Geschäftsvorfälle');
   if (!apply) {
     console.log('Vorschau: keine Änderungen.');
   } else {
@@ -136,6 +144,33 @@ try {
             if (!mengeDelta) continue;
             await db.collection('lagerbewegungen').insertOne({_id:id('loan-movement:'+loan.key+':'+art),vereinId,artikelId,groesseId:null,art,mengeDelta,zeitpunkt:now,artikelName:loan.name,benutzerName:'Demo admin',benutzerId:ref('benutzer','admin'),referenzId:_id.toHexString(),referenzTyp:'ausleihe'},{session});
           }
+        }
+        for (const sale of sales) {
+          const _id = id('demo-sale:'+sale.key);
+          const existing = await db.collection('vereinskleider_verkaeufe').findOne({_id},{session});
+          if (existing) {
+            if (existing.vereinId !== vereinId) throw new Error('Verkaufs-ID-Konflikt.');
+            continue;
+          }
+          const artikelId=ref('artikel',sale.name), groesseId=ref('groessen',sale.size);
+          const artikel=await db.collection('artikel').findOne({_id:new ObjectId(artikelId),vereinId,istVereinskleidung:true,archiviert:{$ne:true}},{session});
+          const variante=await db.collection('artikelvarianten').findOne({artikelId,groesseId,vereinId,aktiv:{$ne:false}},{session});
+          const preis=await db.collection('vereinskleider_preise').findOne({artikelId,groesseId,vereinId},{session});
+          if (!artikel || !variante || !preis || preis.verkaufspreis!==sale.price || (preis.preisOffen===true)!==(sale.price===null)) throw new Error('Demo-Verkauf: Artikel oder Preis abweichend.');
+          if(sale.direct) {
+            for(const [collection,filter] of [['artikel',{_id:new ObjectId(artikelId),vereinId}],['artikelvarianten',{_id:variante._id,vereinId}]]) {
+              const result=await db.collection(collection).updateOne({...filter,menge:{$gte:sale.direct}},{$inc:{menge:-sale.direct}},{session});
+              if(result.modifiedCount!==1) throw new Error('Demo-Verkauf: Bestand fehlt.');
+            }
+          }
+          const bestellMenge=sale.menge-sale.direct;
+          const positionen=[];
+          for(const [verkaufsart,menge] of [['direkt',sale.direct],['bestellung',bestellMenge]]) {
+            if(menge) positionen.push({artikelId,groesseId,artikelname:sale.name,menge,einzelpreis:sale.price,...(sale.price===null?{preisOffen:true}:{}),positionsbetrag:menge*(sale.price??0),verkaufsart});
+          }
+          const endbetrag=sale.menge*(sale.price??0);
+          await db.collection('vereinskleider_verkaeufe').insertOne({_id,vereinId,verkaufsart:bestellMenge?(sale.direct?'gemischt':'bestellung'):'direkt',status:bestellMenge?'offen':'abgeschlossen',preisOffen:sale.price===null,offenePreispositionen:sale.price===null?1:0,direktMenge:sale.direct,bestellMenge,kaeufer:sale.buyer,riegen:['TI'],zahlungsart:sale.payment,zahlungsstatus:sale.price===null?'preis_offen':sale.paid?'bezahlt':'offen',bezahltBetrag:sale.paid?endbetrag:0,zahlungen:sale.paid?[{betrag:endbetrag,datum:now,zahlungsart:sale.payment}]:[],bemerkung:'Fiktiver Demo-Verkauf',positionen,rabatte:[],zusaetzlicherRabatt:0,zwischentotal:endbetrag,rabattTotal:0,endbetrag,restbetragBekannt:sale.paid?0:endbetrag,erstelltAm:now,aktualisiertAm:now},{session});
+          if(sale.direct) await db.collection('lagerbewegungen').insertOne({_id:id('sale-movement:'+sale.key),vereinId,artikelId,groesseId,art:'verkauf',mengeDelta:-sale.direct,zeitpunkt:now,artikelName:sale.name,groesseName:sale.size,benutzerName:'Demo admin',benutzerId:ref('benutzer','admin'),referenzId:_id.toHexString(),referenzTyp:'verkauf'},{session});
         }
       });
     } finally { await session.endSession(); }
