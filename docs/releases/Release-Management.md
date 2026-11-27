@@ -50,7 +50,7 @@ Produktionsdeployment ausschliesslich aus dem freigegebenen Stand von main bzw. 
 
 ## Umgebungen
 
-Lokale Entwicklung, Preview, separat eingefrorene Evaluation mit getrennten Testdaten und stabile Produktion. Keine produktiven Daten in Evaluation kopieren. Die separate Demo ist eingerichtet; siehe [Demo-Betrieb](../testing/Demo-Betrieb.md). Bei Fehlern Rollback auf geprüften Stand unter Beachtung der Datenbankmigrationen.
+Lokale Entwicklung, Preview, separat eingefrorene Evaluation mit getrennten Testdaten und stabile Produktion. Keine produktiven Daten in Evaluation kopieren. Die separate Demo ist eingerichtet; siehe [Demo-Betrieb](../betrieb/Demo-Betrieb.md). Bei Fehlern Rollback auf geprüften Stand unter Beachtung der Datenbankmigrationen.
 
 ## Planung
 
