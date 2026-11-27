@@ -11,8 +11,8 @@
 | Projekttitel | ClubMatiq – Digitale Material-, Inventar- und Vereinskleiderverwaltung |
 | Verfasser/in | Jennifer Mentner, WIN-03-23HS-TZDSRH *(Angabe aus bisheriger README; vor Abgabe prüfen)* |
 | GitHub-Repository | https://github.com/JenSusann/ClubMatiq |
-| Aktuelle App | https://clubmatiq.netlify.app |
-| Getestete Version | https://clubmatiq-demo.netlify.app – separate Demo, Online-Abnahme 27.11.2026; veröffentlichter Stand: [`d2c2d1e`](https://github.com/JenSusann/ClubMatiq/commit/d2c2d1e10c8c381e05bb72088b6138160085dda8), 27.11.2026, 16:45 Uhr; Nachprüfung ausstehend |
+| Produktive App | https://clubmatiq.netlify.app |
+| Getestete Version | https://clubmatiq-demo.netlify.app – separate Demo, Online-Abnahme 27.11.2026; veröffentlichter Stand: [`d2c2d1e`](https://github.com/JenSusann/ClubMatiq/commit/d2c2d1e10c8c381e05bb72088b6138160085dda8), 27.11.2026, 16:45 Uhr; finale Nachprüfung 7/7 bestanden; Reset bestätigt |
 | Testzugänge | Vier Demo-Rollen; Zugangsdaten separat über Moodle, keine Passwörter im Repository |
 | Referenz-Mockup (PowerPoint) | [Interaktives Mockup](docs/konzeption/ClubMatiq_Mockup.pptx) · [Design- und Workflow-Dokumentation](docs/konzeption/ui-prototyping.pdf) |
 | Weitere Artefakte [Optional] | [Crazy 8s](docs/images/crazy8s.png) · [User Journey Map](docs/images/user-journey.png) · [GitHub Issues](https://github.com/JenSusann/ClubMatiq/issues) |
@@ -21,9 +21,25 @@
 
 > **Testzugänge:** Keine persönlichen Passwörter, API-Schlüssel oder MongoDB-Zugangsdaten im Repository veröffentlichen. Testkonten gegebenenfalls separat bereitstellen.
 
+## Dokumentenverzeichnis
+
+| Bereich | Dokument | Zweck |
+|---|---|---|
+| Planung | [Roadmap](ROADMAP.md) | Zielversionen und Funktionsumfang |
+| Entwicklung | [AGENTS](AGENTS.md) | Entwicklungs- und KI-Richtlinien |
+| Versionierung | [Changelog](CHANGELOG.md) | Änderungshistorie |
+| Release | [Release-Management](docs/releases/Release_Management.md) | Branches, Versionierung und Freigabe |
+| Release | [Release-Checkliste](docs/releases/Release_Checkliste.md) | Wiederverwendbare Freigabekriterien |
+| Betrieb | [Demo-Betrieb](docs/testing/Demo-Betrieb.md) | Demo-Deployment, Daten und Reset |
+| Betrieb | [E-Mail-Konfiguration](docs/resend-einladungen.md) | Microsoft 365, SMTP und Resend |
+| Qualitätssicherung | [Systemabnahmetestprotokoll](docs/testing/System_Abnahmetestprotokoll.md) | Automatisierte und manuelle Nachweise |
+| Qualitätssicherung | [Pilotbetrieb](docs/testing/Pilotbetrieb.md) | Produktive Abnahmen, Backup und Live-Test |
+
+Historische Übergangsdokumente: [Release-Strategie](RELEASE-STRATEGIE.md) (in Release-Management integriert), [Coverage-Paket 7](tests/integration/dokumentation/hinweise-aus-coverage-p7.md) (frühere Übernahmehinweise).
+
 ## Inhaltsverzeichnis
 
-[Projektübersicht & Zugänge](#projektübersicht--zugänge)
+[Projektübersicht & Zugänge](#projektübersicht--zugänge) · [Dokumentenverzeichnis](#dokumentenverzeichnis)
 
 - [1. Ausgangslage](#1-ausgangslage)
 - [2. Lösungsidee](#2-lösungsidee)
@@ -333,8 +349,8 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 
 - **Beschreibung & Nutzen:** Die Weiterentwicklung wird über Zielversionen, eine Produkt-Roadmap und einen dokumentierten Freigabeprozess strukturiert. Dadurch bleiben Abgabeumfang und spätere Produktentwicklung nachvollziehbar getrennt.
 - **Abgrenzung zum Mindestumfang:** Zusätzlich zur Git-Versionsverwaltung werden Release-Planung, Zielversionslabels, Changelog und Freigabekriterien gepflegt. Geplante Funktionen sind keine umgesetzten Software-Erweiterungen.
-- **Umsetzung:** Am 25.11.2026 wurden die 43 optionalen Issues #72–114 den Zielversionen v1.1 bis v3.0 zugeordnet. Die bestehenden Projektmeilensteine M1–M5 bleiben erhalten. Sechs Versionsmeilensteine (v1.0.0 bis v3.0.0) wurden eingerichtet; alle 43 optionalen Issues sind den fünf Folgeversionen zugeordnet. Die interne Entwicklungsversion 0.9.0 wird zentral in `package.json` gepflegt und über Vite automatisch im globalen Footer angezeigt (Commit [`f56bf71`](https://github.com/JenSusann/ClubMatiq/commit/f56bf71)). Roadmap, Changelog, Release-Management und Freigabecheckliste wurden im Repository angelegt. Die separat deployte Evaluationsversion und der erste stabile Release sind noch ausstehend; Zielnummern werden vor Freigabe gemäss Semantic Versioning überprüft.
-- **Nachweise:** [Produkt-Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Release-Management](docs/releases/Release_Management.md) · [Freigabecheckliste](docs/releases/Release_Checkliste.md) · [GitHub-Labels](https://github.com/JenSusann/ClubMatiq/labels) · [Versionsmeilensteine](https://github.com/JenSusann/ClubMatiq/milestones). Screenshot und tatsächliche Release-Nachweise nach Einrichtung ergänzen.
+- **Umsetzung:** Am 25.11.2026 wurden die 43 optionalen Issues #72–114 den Zielversionen v1.1 bis v3.0 zugeordnet. Die bestehenden Projektmeilensteine M1–M5 bleiben erhalten. Sechs Versionsmeilensteine (v1.0.0 bis v3.0.0) wurden eingerichtet; alle 43 optionalen Issues sind den fünf Folgeversionen zugeordnet. Die ursprünglich eingeführte interne Entwicklungsversion 0.9.0 wurde zentral in `package.json` gepflegt und über Vite automatisch im globalen Footer angezeigt (Commit [`f56bf71`](https://github.com/JenSusann/ClubMatiq/commit/f56bf71)). Roadmap, Changelog, Release-Management und Freigabecheckliste wurden im Repository angelegt. Die separate Demo wurde am 27.11.2026 veröffentlicht und nachgeprüft; die Pilotversion v0.9.2 wurde produktiv kurzabgenommen. Der erste stabile Release steht noch aus; Zielnummern werden vor Freigabe gemäss Semantic Versioning überprüft.
+- **Nachweise:** [Produkt-Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Release-Management](docs/releases/Release_Management.md) · [Freigabecheckliste](docs/releases/Release_Checkliste.md) · [GitHub-Labels](https://github.com/JenSusann/ClubMatiq/labels) · [Versionsmeilensteine](https://github.com/JenSusann/ClubMatiq/milestones). Produktive Release-Nachweise siehe [Pilotbetrieb](docs/testing/Pilotbetrieb.md).
 - **Bezug zur Evaluation:** Nein. Die Planung entstand als zusätzliche organisatorische Erweiterung; die eingefrorene Evaluationsversion wird nach Durchführung separat nachgewiesen.
 
 ## 5. Projektorganisation [Optional]
@@ -430,7 +446,7 @@ KI-generierter Code wird anhand statischer Prüfungen, automatisierter Unit- und
 
 Manuelle Tests werden durch die entwickelnde Person ausgeführt. Die Ergebnisse werden erst nach entsprechender Rückmeldung als bestanden dokumentiert. Historisch rekonstruierte Testbeschreibungen werden gekennzeichnet. Die unabhängige Usability-Evaluation ergänzt diese funktionalen Prüfungen.
 
-Die Übersicht im System- und Abnahmetestprotokoll weist 430/430 quantifizierte manuelle Prüfungen aus (eingesehen am 27.11.2026). Neuere Einzelabnahmen sind dort separat dokumentiert; die Übersicht ist keine abschliessende Gesamtzählung. Der aktuelle automatisierte Nachweis vom 26.11.2026 ist in Kapitel 9.4 dokumentiert.
+Die Übersicht im System- und Abnahmetestprotokoll weist 463/463 quantifizierte manuelle Prüfungen aus (eingesehen am 27.11.2026). Die Übersicht ist keine abschliessende Gesamtzählung; Demo-Prüfungen (32/32) und technische Nachprüfungen werden separat ausgewiesen. Der aktuelle automatisierte Nachweis vom 26.11.2026 ist in Kapitel 9.4 dokumentiert.
 
 **Nachweise:** [System- und Abnahmetestprotokoll](docs/testing/System_Abnahmetestprotokoll.md) · [Testdateien](tests) · [Kapitel 9](#9-lokale-installation-und-tests)
 
@@ -615,7 +631,7 @@ Historischer Auszug vom 25.11.2026 (nicht der aktuelle Gesamtstand):
 | [#34](https://github.com/JenSusann/ClubMatiq/issues/34) | Vereinskleider, Erstbezüge und Stornierungen | 20/20 |
 | **Gesamt** | | **98/98** |
 
-Die Ergebnisse beziehen sich auf die jeweiligen dokumentierten Abnahmen, nicht auf eine vollständige Prüfung des aktuellen Gesamtstands. Der zunächst festgestellte Grössenfehler bei #21 wurde korrigiert und erfolgreich nachgeprüft. Historisch rekonstruierte Aufgaben sind im Protokoll gekennzeichnet. Weitere 56 Regressionstestfälle sind dort als geplant erfasst und nicht in der Erfolgsquote enthalten. Massgeblich für den laufenden Stand ist das verlinkte Protokoll. Dessen Übersicht weist bei Einsicht am 27.11.2026 430/430 quantifizierte Prüfungen aus; neuere Einzelabnahmen sind separat aufgeführt.
+Die Ergebnisse beziehen sich auf die jeweiligen dokumentierten Abnahmen, nicht auf eine vollständige Prüfung des aktuellen Gesamtstands. Der zunächst festgestellte Grössenfehler bei #21 wurde korrigiert und erfolgreich nachgeprüft. Historisch rekonstruierte Aufgaben sind im Protokoll gekennzeichnet. Weitere 56 Regressionstestfälle sind dort als geplant erfasst und nicht in der Erfolgsquote enthalten. Massgeblich für den laufenden Stand ist das verlinkte Protokoll. Dessen Übersicht weist bei Einsicht am 27.11.2026 463/463 quantifizierte Prüfungen aus; Demo-Prüfungen (32/32) und technische Nachprüfungen sind separat aufgeführt.
 
 ### 9.6 Usability-Tests und Evaluation
 
@@ -755,7 +771,7 @@ Stand der Dokumentationsüberarbeitung: 25.11.2026. Die Funktionsübersicht basi
 | Fachliche Module | Oberflächen und API-Routen gemäss Kapitel 10.2 vorhanden |
 | Externe Dienste | Implementierungen gemäss Kapitel 10.3 und 10.4 vorhanden; Live-Nachweise je Dienst separat erforderlich |
 | Automatisierte Tests | 5'013/5'013 bestanden; kombiniertes 95-%-Quality-Gate bestanden (26.11.2026, Kapitel 9.4) |
-| Manuelle Abnahmen | 430/430 quantifizierte Prüfungen gemäss Übersicht im Testprotokoll (eingesehen am 27.11.2026); weitere Einzelabnahmen separat dokumentiert |
+| Manuelle Abnahmen | 463/463 quantifizierte Prüfungen gemäss Übersicht im Testprotokoll (eingesehen am 27.11.2026); Demo-Prüfungen (32/32) separat dokumentiert |
 | Regressionstests | Weitere 56 Fälle geplant; laufende Issue-Abnahmen ergänzen den Katalog |
 | Usability | Unabhängige Evaluation noch durchzuführen bzw. auszuwerten |
 | Abgabedokumentation | Laufende Pflege; finaler Abgabestand noch festzulegen |
