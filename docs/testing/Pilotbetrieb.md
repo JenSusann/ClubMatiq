@@ -87,3 +87,5 @@ MongoDB Database Tools 100.20.1 installiert. DEV-Backup um 01:23:33 MEZ und PROD
 - Offline-Archivprüfung PROD und sichere Schlüsselablage noch nicht bestätigt. Kein vollständiger PROD-Restore durchgeführt.
 
 - PROD-Offline-Archivprüfung bestanden: `clubmatiq_2026-11-27T10-46-12-010Z.archive.gz.enc` (27.11.2026, 11:46:12 MEZ). AES-GCM-Authentifizierung und GZIP-Integrität erfolgreich. Kein produktiver Restore durchgeführt. Sichere Schlüsselablage weiterhin separat zu bestätigen.
+
+- Lokale Backup-Bereinigung bestätigt: drei unverschlüsselte DEV-Archive und ein unverschlüsseltes PROD-Archiv entfernt. Verbleibend: verschlüsseltes DEV-Archiv (2980 Bytes) und PROD-Archiv (2750 Bytes). Keine forensisch sichere Löschung nachgewiesen. Sichere separate Schlüsselaufbewahrung noch zu bestätigen.
