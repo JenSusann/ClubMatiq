@@ -68,8 +68,7 @@ export async function versendeEinladung(daten: {
   });
 
   if (!antwort.ok) {
-    const fehlermeldung = await antwort.text();
-    console.error('Resend API Fehler:', antwort.status, fehlermeldung);
+    console.error('Resend API Fehler:', antwort.status);
     throw new Error('Der E-Mail-Versand ist fehlgeschlagen.');
   }
 

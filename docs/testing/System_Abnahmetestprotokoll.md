@@ -33,6 +33,7 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 
 | Issue | Bereich | Bestanden | Nachweis |
 |---|---|---:|---|
+| #130 | Kombinierbare Erstbezugsrabatte | 13/13 | Einzelbestätigung 27.11.2026 |
 | #14 | Session-Verwaltung | 8/8 | Original-Screenshot |
 | #15 | Benutzerverwaltung | 21/21 | Erneute manuelle Abnahme, Einzelbestätigung 25.11.2026 |
 | #16 | Rollenbasierte Berechtigungen | 10/10 | Original-Screenshot |
@@ -50,8 +51,14 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #48 | Stornierungen und Gutschriften inkl. #118 | 20/20 | Nachprüfung 26.11.2026 |
 | #49 | Verkaufshistorie inkl. #119 | 38/38 | Nachprüfung 26.11.2026 |
 | #32 | Admin-Dashboard | 10/10 | Sammelbestätigung 26.11.2026 |
-| #62 | Manuelle Benutzeranlage | 15/15 | Sammelbestätigung 26.11.2026 |
-| Gesamt | Quantifizierte manuelle Prüfungen | 307/307 | Dokumentierte Durchläufe |
+| #62 | Manuelle Benutzeranlage | 20/20 | Sammelbestätigung 26.11.2026 |
+| #64 | Benutzerlöschung und Einladungswiderruf | 15/15 | Einzelbestätigung 26.11.2026 |
+| #68 | Offene Preise und gemischte Teilzahlungen | 25/25 | Einzelbestätigung 26.11.2026 |
+| #70 | Gutschriften und Rückerstattungen inkl. #121 | 30/30 | Einzelbestätigung 26.11.2026 |
+| #50 | Dashboard | 17/17 | Sammelbestätigung 26.11.2026 |
+| #51 | Lagerbewegungsjournal | 21/21 | Sammelbestätigung 26.11.2026 |
+| #65 | Übergabe letztes Lagerstück | 10/10 | Sammelbestätigung |
+| Gesamt | Quantifizierte manuelle Prüfungen | 430/430 | Dokumentierte Durchläufe |
 
 Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
@@ -561,9 +568,81 @@ Keine Codeänderung erforderlich. Automatisierter Nachweis: bestehender erfolgre
 
 Automatisierte Tests für manuelle Anlage, Duplicate Key und Passwortwechsel-Sperren in Hooks vorhanden. Vollständiger CI-Lauf 45816880404 erfolgreich; spezifische Coverage und Sitzungswiderruf nach Passwortwechsel noch zu prüfen.
 
+#### Nachprüfung Sitzungswiderruf (#62)
+
+Commit 4bdb41f, Nachprüfung gemäss Sammelbestätigung bestanden.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-62-16 | Zwei aktive Sitzungen | Bestanden |
+| ST-62-17 | Aktuelle Sitzung bleibt erhalten | Bestanden |
+| ST-62-18 | Andere Sitzung widerrufen | Bestanden |
+| ST-62-19 | Fehlgeschlagener Wechsel erhält Sitzungen | Bestanden |
+| ST-62-20 | Fremde Benutzersitzung unverändert | Bestanden |
+
+Gezielter Integrationstest (5c7cef3) und npm run check gemäss Rückmeldung erfolgreich. CI-Lauf 45821258149 (3fe6cbc) erfolgreich: 2441 Unit- und 2600 Integrationstests, 5041/5041; kombinierte Coverage 98,18 % Statements, 95,01 % Branches, 96,19 % Functions, 98,88 % Lines. Quality Gate bestanden. 19 veraltete Unit-Test-Fixtures korrigiert, vier zusätzliche Unit-Tests.
+
+### Issue #64 – Benutzer löschen und Einladungen widerrufen
+
+26.11.2026: Alle 15 manuellen Fälle gemäss Einzelbestätigung bestanden; vor technischer Nachabsicherung.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-64-01 | Einladung widerrufen | Bestanden |
+| ST-64-02 | Widerrufener Link ungültig | Bestanden |
+| ST-64-03 | Anzeige widerrufener Einladung | Bestanden |
+| ST-64-04 | Erneute Einladung | Bestanden |
+| ST-64-05 | Angenommene Einladung geschützt | Bestanden |
+| ST-64-06 | Widerruf abbrechen | Bestanden |
+| ST-64-07 | Unreferenzierten Benutzer löschen | Bestanden |
+| ST-64-08 | Anmeldung nach Löschung verweigert | Bestanden |
+| ST-64-09 | Selbstlöschung geschützt | Bestanden |
+| ST-64-10 | Löschung abbrechen | Bestanden |
+| ST-64-11 | Referenzierte Ausleihe schützt Benutzer | Bestanden |
+| ST-64-12 | Deaktivierung erhält Historie | Bestanden |
+| ST-64-13 | Sitzung nach Löschung ungültig | Bestanden |
+| ST-64-14 | Nicht-Admin verweigert | Bestanden |
+| ST-64-15 | Dialoge und Meldungen | Bestanden |
+
+Technische Nachabsicherung: Benutzer- und Session-Löschung in gemeinsamer Transaktion (2aef97bf), sieben zusätzliche Unit-Tests (f6c54ac), drei MongoDB-Integrationstests (2fed46d), zwei bestehende Unit-Mocks korrigiert (305d4e8). Gezielte Tests und vollständiger Unit-Lauf gemäss Entwicklerin erfolgreich. [CI-Lauf 45824480865](https://github.com/JenSusann/ClubMatiq/actions/runs/45824480865) erfolgreich; kombinierte Coverage 98,19 % Statements, 95,04 % Branches, 96,20 % Functions, 98,90 % Lines. Quality Gate bestanden. Manuelle Abnahme vor Transaktionsänderung; parallele neu entstehende Referenzen und erzwungener Rollback nicht vollständig abgesichert.
+
+### Issue #68 – Offene Preise und gemischte Teilzahlungen
+
+26.11.2026: Alle 25 Fälle gemäss Einzelbestätigung der Entwicklerin bestanden.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-68-01 | Preis-offen-Checkbox speichern | Bestanden |
+| ST-68-02 | Offener Preis nicht CHF 0 | Bestanden |
+| ST-68-03 | Gemischter Warenkorb | Bestanden |
+| ST-68-04 | Bekannter Teilbetrag CHF 55 | Bestanden |
+| ST-68-05 | TWINT nur CHF 55 | Bestanden |
+| ST-68-06 | Gemeinsame Bestell-ID | Bestanden |
+| ST-68-07 | Preisfestlegung CHF 48 | Bestanden |
+| ST-68-08 | Bezahlte Positionen unverändert | Bestanden |
+| ST-68-09 | Restforderung CHF 48 | Bestanden |
+| ST-68-10 | Rechnung und PDF CHF 48 | Bestanden |
+| ST-68-11 | Teilzahlung CHF 20 | Bestanden |
+| ST-68-12 | Restzahlung CHF 28 | Bestanden |
+| ST-68-13 | Doppelverrechnung und Überzahlung blockiert | Bestanden |
+| ST-68-14 | Verrechneten Preis schützen | Bestanden |
+| ST-68-15 | Gemischter Barverkauf | Bestanden |
+| ST-68-16 | Nur offene Preise ohne Zahlung | Bestanden |
+| ST-68-17 | Storno offener Preis ohne Gutschrift | Bestanden |
+| ST-68-18 | Storno bezahlter Position mit Gutschrift | Bestanden |
+| ST-68-19 | Rabattkombination | Bestanden |
+| ST-68-20 | Sammelbestellung | Bestanden |
+| ST-68-21 | Wareneingang und Übergabe | Bestanden |
+| ST-68-22 | Historie und Belege | Bestanden |
+| ST-68-23 | Excel und PDF | Bestanden |
+| ST-68-24 | Bestehende Verkäufe | Bestanden |
+| ST-68-25 | Berechtigungen | Bestanden |
+
+Keine Fehler gemeldet; keine Codeänderung für diese Abnahme erforderlich. Abschliessender CI-Lauf 45825936609 erfolgreich; siehe technischer Abschluss #68.
+
 ## 3. Geplanter Regressionstestkatalog
 
-Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 307 Tests addiert.
+Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachweis vorliegt. Sie werden nicht zu den bestätigten 382 Tests addiert.
 
 | Bereich | Geplante Testfälle |
 |---|---|
@@ -605,3 +684,195 @@ Alle nachstehenden Fälle sind offen, sofern kein separater Durchführungsnachwe
 6. Vor Abgabe aus Markdown ein Word-Dokument erstellen und als PDF exportieren.
 
 Historische Ergebnisse nicht ohne Nachweis ergänzen. Bei Regressionen frühere Ergebnisse erhalten und neue Durchläufe separat erfassen. Die funktionale Abnahme durch die Entwicklerin ersetzt keine unabhängige Usability-Evaluation.
+
+
+### Technischer Abschluss #68 – 26.11.2026
+25/25 manuelle Tests bestanden. 31 bestehende mockbasierte Integrationstests geprüft; drei zusätzliche echte MongoDB-Parallelitätstests (Preisfestlegung, Restzahlung vor Verrechnung, Vollrechnung) in `preisfestlegung.integration.test.ts`, Commit 9d80fd5. Gezielter Lauf und TypeScript-Check gemäss Entwicklerin erfolgreich. [CI 45825936609](https://github.com/JenSusann/ClubMatiq/actions/runs/45825936609) erfolgreich; kombinierte Coverage 98,19 % Statements, 95,04 % Branches, 96,20 % Functions, 98,90 % Lines. Quality Gate bestanden. Nicht sämtliche möglichen parallelen Teilrechnungskombinationen mit echter MongoDB geprüft.
+
+### Issue #70 – Gutschriften und Rückerstattungen
+
+26.11.2026: 25/25 manuelle Tests gemäss Einzelbestätigung bestanden.
+
+| ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-70-01 | Gutschrift offen | Bestanden |
+| ST-70-02 | Als erledigt markieren | Bestanden |
+| ST-70-03 | Keine offene Forderung oder Rückerstattung | Bestanden |
+| ST-70-04 | Doppelabschluss verhindert | Bestanden |
+| ST-70-05 | Anspruch CHF 48 | Bestanden |
+| ST-70-06 | Erledigung bei Auszahlung blockiert | Bestanden |
+| ST-70-07 | Pflichtangaben | Bestanden |
+| ST-70-08 | Teilrückerstattung CHF 20 TWINT | Bestanden |
+| ST-70-09 | Rest CHF 28 | Bestanden |
+| ST-70-10 | Überzahlung CHF 29 blockiert | Bestanden |
+| ST-70-11 | Rest CHF 28 Bank | Bestanden |
+| ST-70-12 | Rückerstattet, Rest null | Bestanden |
+| ST-70-13 | Doppelrückerstattung blockiert | Bestanden |
+| ST-70-14 | Historie und Bearbeiter | Bestanden |
+| ST-70-15 | Teilbezahlte Rechnung: Anspruch CHF 20 | Bestanden |
+| ST-70-16 | Barerstattung CHF 20 | Bestanden |
+| ST-70-17 | Originalrechnung und Zahlungen unverändert | Bestanden |
+| ST-70-18 | Gutschriften- und Rechnungs-PDF | Bestanden |
+| ST-70-19 | Gutschriftenexport und Rechnungsabgleich-CSV | Bestanden |
+| ST-70-20 | Teilrechnungszuordnung | Bestanden |
+| ST-70-21 | Retoure und Rückerstattung | Bestanden |
+| ST-70-22 | Altdaten | Bestanden |
+| ST-70-23 | Berechtigungen | Bestanden |
+| ST-70-24 | Persistenz nach Neuladen | Bestanden |
+| ST-70-25 | Mobile Darstellung und Dialoge | Bestanden |
+
+Technische Abschlussprüfung (Export-Coverage, Vereinsisolation, Parallelität) noch offen.
+
+### Nachprüfung #121 / #70 – 26.11.2026
+
+| ID | Prüfung | Ergebnis |
+|---|---|---|
+| ST-70-19a | Unbezahlt: CSV Rest CHF 0 | Bestanden |
+| ST-70-19b | Teilbezahlt: CSV Rest CHF 20 | Bestanden |
+| ST-70-19c | Nach Erstattung CHF 20: Rest CHF 0 | Bestanden |
+| ST-70-19d | Teilrückerstattung: korrekter Rest | Bestanden |
+| ST-70-19e | Mehrere Gutschriften: keine Doppelzählung | Bestanden |
+
+5/5 Nachprüfungen, TypeScript-Check und gezielte Integrationstests gemäss Entwicklerin erfolgreich. Korrektur e02dd3c, Tests 32f0a81. Vollständiger CI-Nachweis und echte MongoDB-Parallelitätsprüfung für #70 noch offen.
+
+
+### Technischer Abschluss #70 / #121 – 26.11.2026
+
+CI [45829003597](https://github.com/JenSusann/ClubMatiq/actions/runs/45829003597), Commit ced5c68: erfolgreich. Kombinierte Coverage: Statements 98.18 %, Branches 95.00 % (5190/5463), Functions 96.22 %, Lines 98.88 %. Quality Gate bestanden. 12 Status-Integrationstests inklusive drei echter MongoDB-Tests (parallele vollständige Rückerstattung derselben bzw. zweier Gutschriften und fremder Verein); 20 Export-Integrationstests inklusive 16 neuer Regressionstests. Manuelle Abnahme 30/30 inklusive #121. Rollenprüfung in den neuen MongoDB-Tests gemockt; identische Teilrückerstattungen bei ausreichend verbleibendem Anspruch nicht als idempotent nachgewiesen. Keine automatische Auszahlung.
+
+
+## Manuelle Abnahme #50 – 26.11.2026
+
+| ID | Prüfung | Ergebnis |
+|---|---|---|
+| ST-50-01 | Aktive Artikel | Bestanden |
+| ST-50-02 | Archivierung | Bestanden |
+| ST-50-03 | Reaktivierung | Bestanden |
+| ST-50-04 | Gesamtbestand | Bestanden |
+| ST-50-05 | Inaktive Varianten | Bestanden |
+| ST-50-06 | Mindestbestand | Bestanden |
+| ST-50-07 | Ausleihen | Bestanden |
+| ST-50-08 | Schadensmeldungen | Bestanden |
+| ST-50-09 | Kleiderbestellungen | Bestanden |
+| ST-50-10 | Vollständige Stornierung | Bestanden |
+| ST-50-11 | Teilstornierung | Bestanden |
+| ST-50-12 | Filterlinks | Bestanden |
+| ST-50-13 | Aktualisierung | Bestanden |
+| ST-50-14 | Rollen | Bestanden |
+| ST-50-15 | Vereinstrennung | Bestanden |
+| ST-50-16 | Mobile Ansicht | Bestanden |
+| ST-50-17 | Leerzustand | Bestanden |
+
+17/17 gemäss Entwicklerin bestanden. Kumuliert 399/399. Commits a4b9d81, 61159fa, c404cd0. Automatisierter Abschlussnachweis folgt.
+
+
+## Technischer Abschluss – 26.11.2026
+17/17 manuelle Tests gemäss Entwicklerin bestanden. Neun zusätzliche Dashboard-Unit-Tests in tests/unit/artikel/inventar-export-api.test.ts (a762908, Typkorrektur 95804d5). CI [45864599244](https://github.com/JenSusann/ClubMatiq/actions/runs/45864599244) erfolgreich; Combined Coverage 98.18 / 95.00 / 96.22 / 98.88 %. Dashboard-Page-Server liegt ausserhalb des bisherigen Coverage-Include; die Tests laufen dennoch. Bestellmenge enthält bereits den Stornoabzug. Fehlerzustand automatisiert mit Mock geprüft, Aktualisierungszustand im UI vorhanden. Abschluss bereit.
+
+
+## Manuelle Abnahme #51 – 26.11.2026
+
+| ID | Prüfung | Ergebnis |
+|---|---|---|
+| ST-51-01 | Artikel mit Anfangsbestand | Bestanden |
+| ST-51-02 | Kleidungsartikel mit mehreren Grössen | Bestanden |
+| ST-51-03 | Bestand erhöhen | Bestanden |
+| ST-51-04 | Bestand reduzieren | Bestanden |
+| ST-51-05 | Speichern ohne Bestandsänderung | Bestanden |
+| ST-51-06 | Material ausleihen | Bestanden |
+| ST-51-07 | Material zurückgeben | Bestanden |
+| ST-51-08 | Inventur mit Differenz | Bestanden |
+| ST-51-09 | Direktverkauf | Bestanden |
+| ST-51-10 | Kundenbestellung ohne Lagerabgang | Bestanden |
+| ST-51-11 | Wareneingang | Bestanden |
+| ST-51-12 | Bestellung übergeben | Bestanden |
+| ST-51-13 | Offene Bestellung stornieren | Bestanden |
+| ST-51-14 | Retoure | Bestanden |
+| ST-51-15 | Journalfilter | Bestanden |
+| ST-51-16 | Benutzer, Datum und Grösse | Bestanden |
+| ST-51-17 | Chronologische Reihenfolge | Bestanden |
+
+17/17 gemäss Sammelbestätigung der Entwicklerin. CI [45869328662](https://github.com/JenSusann/ClubMatiq/actions/runs/45869328662) erfolgreich. Zuletzt gemeldete kombinierte Coverage: 98.48 / 95.53 / 96.39 / 99.09 %. Vollständiger Rollback- und Indexnachweis noch offen.
+
+### Nachprüfung #51 – 26.11.2026
+
+| ID | Prüfung | Ergebnis |
+|---|---|---|
+| ST-51-18 | Nachträgliche Inventurkorrektur | Bestanden |
+| ST-51-19 | Abgeschlossene Inventur stornieren | Bestanden |
+| ST-51-20 | Offene Inventur ohne Journalbewegung stornieren | Bestanden |
+| ST-51-21 | Grössenvarianten ohne doppelte Rückbuchungsprotokollierung | Bestanden |
+
+21/21 gemäss Sammelbestätigung. CI [45904070874](https://github.com/JenSusann/ClubMatiq/actions/runs/45904070874) erfolgreich. Echter MongoDB-Rollback-Test d67b3e6 erfolgreich (CI 45898570106). Die regulären Schreibpfade wurden geprüft und die produktiven Journalindizes erfolgreich verifiziert.
+
+### Ergänzender technischer Nachweis #51
+
+Historische Artikel-, Grössen- und Benutzernamen werden bei neuen Journalbewegungen gespeichert. Anzeige und Excel-Export wurden angepasst; bestehende Einträge nutzen weiterhin die bisherige Namensauflösung. MongoDB-Integrationstest für Umbenennung und Löschung ergänzt. CI nach Fixture-Korrekturen (letzter Commit b45cf75) gemäss Rückmeldung der Entwicklerin erfolgreich. Inventurkorrektur und Inventurstornierung verwenden den Journalhelper innerhalb derselben Transaktion. Die produktiven Journalindizes wurden gemäss Konsolenausgabe der Entwicklerin erfolgreich verifiziert.
+
+### Schlussprüfung der Bestandsänderungen #51
+
+Quellcodeabgleich der regulären Bestandsänderungen inklusive Retouren und Bestellungsübergabe durchgeführt. Artikellöschung als zusätzlicher Schreibpfad transaktional angebunden (b788ea2). Vier Unit-Regressionstests (184eacb) und ein echter MongoDB-Integrationstest (2c71b44) ergänzt; CI gemäss Rückmeldung der Entwicklerin erfolgreich. Indexskript scripts/lagerjournal-indizes.mjs (21991f5) vorhanden; produktive Ausführung und Verifikation erfolgreich: journal_verein_zeit: OK (journal_verein_zeit); journal_verein_artikel_zeit: OK (journal_verein_artikel_zeit). Keine zusätzliche manuelle Browser-Abnahme behauptet.
+
+## Manuelle Abnahme #65
+
+| ID | Prüfung | Ergebnis |
+|---|---|---|
+| ST-65-01 | Bestand 0 | Bestanden |
+| ST-65-02 | Wareneingang 1 Stück | Bestanden |
+| ST-65-03 | Letztes Stück übergeben | Bestanden |
+| ST-65-04 | Bestand 0 nach Übergabe | Bestanden |
+| ST-65-05 | Übergabehistorie | Bestanden |
+| ST-65-06 | Lagerjournal +1/-1 | Bestanden |
+| ST-65-07 | Fremdreservierung geschützt | Bestanden |
+| ST-65-08 | Teilübergabe | Bestanden |
+| ST-65-09 | Grössenvariante | Bestanden |
+| ST-65-10 | Erneute Übergabe gesperrt | Bestanden |
+
+10/10 gemäss Sammelbestätigung. CI [45905839420](https://github.com/JenSusann/ClubMatiq/actions/runs/45905839420) erfolgreich; drei echte MongoDB-Regressionstests (85e4e4d). Wareneingang bis Übergabe manuell geprüft, automatisiert mit vorbereitetem Bestand. Separater Rollback- und Vereinsisolationsnachweis für diesen Ablauf nicht ergänzt.
+
+### Technischer Abschluss #65
+
+CI [45906588822](https://github.com/JenSusann/ClubMatiq/actions/runs/45906588822) erfolgreich. Vollständige Wareneingang-Übergabe-Kette, Vereinsisolation und echter MongoDB-Rollback bei simuliertem Journalfehler nachgewiesen (c785a50). Unit-Grenzfälle Bestand 0 und 1 ergänzt (43a7dff); Teilübergabe und Fremdreservierungen bereits in bestehender Suite. 10/10 manuelle Tests, kumuliert 430/430. Abschluss bereit.
+
+
+### Issue #63 – Vereinsbezogene E-Mail-Einstellungen
+
+Manuelle Abnahme am 27.11.2026 gemäss Rückmeldung der Entwicklerin.
+
+| Test-ID | Testfall | Ergebnis |
+|---|---|---|
+| ST-63-01 | Admin-Zugriff | Bestanden |
+| ST-63-02 | Zugriffsschutz | Bestanden |
+| ST-63-03 | Konfiguration laden | Bestanden |
+| ST-63-04 | Konfiguration speichern | Bestanden |
+| ST-63-05 | Microsoft-365-Testversand | Bestanden |
+| ST-63-06 | Einladung | Bestanden |
+| ST-63-07 | Erneuter Versand | Bestanden |
+| ST-63-08 | Einladungslink | Bestanden |
+| ST-63-09 | SMTP-Validierung | Bestanden |
+| ST-63-10 | Persistenz | Bestanden |
+
+**Ergebnis:** 10/10 bestanden. CI nach Sicherheitskorrektur und Regressionstest (14e48dd) gemäss Rückmeldung erfolgreich. Microsoft-365-Testversand, Einladung und erneuter Versand manuell bestätigt. SMTP-Validierung bestanden; realer SMTP-Versand und produktiver Testversand auf Netlify gemäss abschliessender Rückmeldung der Entwicklerin erfolgreich. Keine unabhängigen Versandlogs vorgelegt. Entra-/Exchange-Konfiguration und Postfachbeschränkung wurden bereits früher gemäss Entwicklerin erfolgreich geprüft. Keine unabhängige Wiederholung dieser externen Prüfungen.
+
+
+## Issue #130 – Kombinierbare Erstbezugsrabatte (27.11.2026)
+
+Manuelle Einzelbestätigung auf dem Hotfix-Branch, Zielversion 0.9.2.
+
+| Test-ID | Testfall | Status |
+|---|---|---|
+| ST-130-01 | Mehrere kombinierbare Erstbezugsrabatte auswählen | Bestanden |
+| ST-130-02 | Nicht kombinierbare Rabattregeln werden gesperrt | Bestanden |
+| ST-130-03 | Erstbezug mit normaler Rabattregel kombinieren | Bestanden |
+| ST-130-04 | Zwei Gwändli und eine Jacke ergeben CHF 75 | Bestanden |
+| ST-130-05 | Verkaufsübersicht zeigt die effektiven Einzelpreise | Bestanden |
+| ST-130-06 | Verkauf speichern und erneut öffnen | Bestanden |
+| ST-130-07 | Bereits beanspruchte Erstbezüge nicht erneut anbieten | Bestanden |
+| ST-130-08 | Zweites Gwändli stornieren – CHF 5 | Bestanden |
+| ST-130-09 | Erstes Gwändli stornieren – CHF 50 und Anspruch freigeben | Bestanden |
+| ST-130-10 | Rechnungs-PDF mit korrekten Rabatten und Total | Bestanden |
+| ST-130-11 | Gutschriften-PDF mit korrektem Nettobetrag | Bestanden |
+| ST-130-12 | Gemischte Rabattregeln bei TWINT-Verkauf | Bestanden |
+| ST-130-13 | Gemischter Warenkorb mit Direktverkauf und Bestellung | Bestanden |
+
+Ergebnis: 13/13 bestanden. Vollständiger lokaler Svelte-Check sowie Unit- und Integrationstests laut Rückmeldung fehlerfrei; genaue Gesamtzahlen nicht übermittelt. Stornierungen bezahlter Verkäufe ohne Beleg, gemischte Rabatte bei Teilrechnungen und zusätzliche manuelle Rabatte bei Rabattstornierungen bleiben gesperrt. Die manuelle TWINT-Abnahme bestätigt den Verkauf, nicht die Aufhebung dieser Sperren. #127 und #128 wurden zuvor zusammenfassend positiv bestätigt, ohne Einzeltestnachweise.

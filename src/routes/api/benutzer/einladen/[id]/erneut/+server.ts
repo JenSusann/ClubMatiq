@@ -33,8 +33,8 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
       $set: { tokenHash, ablaufdatum, versendetAm: new Date(), resendId: versand.id }
     });
     return json({ erfolg: true, nachricht: 'Einladung erneut versendet.' });
-  } catch (error) {
-    console.error('Einladung erneut versenden fehlgeschlagen:', error);
+  } catch {
+    console.error('Einladung erneut versenden fehlgeschlagen.');
     return json({ fehler: 'E-Mail konnte nicht versendet werden.' }, { status: 502 });
   }
 };

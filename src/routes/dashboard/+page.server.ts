@@ -22,8 +22,8 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 
   try {
     const [artikel, varianten, ausleihen, meldungen, verkaufe] = await Promise.all([
-      db.collection('artikel').find({ vereinId }, { projection: { _id: 1, menge: 1, hatGroessen: 1, mindestbestand: 1, mindestBestand: 1 } }).toArray(),
-      db.collection('artikelvarianten').find({ vereinId }, { projection: { artikelId: 1, menge: 1, mindestbestand: 1, aktiv: 1 } }).toArray(),
+      db.collection('artikel').find({ vereinId, archiviert: { $ne: true } }, { projection: { _id: 1, menge: 1, hatGroessen: 1, mindestbestand: 1, mindestBestand: 1 } }).toArray(),
+      db.collection('artikelvarianten').find({ vereinId, aktiv: { $ne: false } }, { projection: { artikelId: 1, menge: 1, mindestbestand: 1, aktiv: 1 } }).toArray(),
       darfAusleihenSehen
         ? db.collection('ausleihen').find({ vereinId, status: 'offen' }, { projection: { _id: 1 } }).toArray()
         : Promise.resolve(null),
@@ -38,6 +38,7 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
     const variantenMengen = new Map<string, number>();
     const variantenWarnungen = new Set<string>();
     for (const variante of varianten) {
+      if (variante.aktiv === false) continue;
       const id = String(variante.artikelId);
       variantenMengen.set(id, (variantenMengen.get(id) ?? 0) + (Number(variante.menge) || 0));
       if (variante.aktiv !== false && typeof variante.mindestbestand === 'number' && variante.mindestbestand > 0 && Number(variante.menge) < variante.mindestbestand) variantenWarnungen.add(id);
@@ -66,7 +67,14 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
           if (position.verkaufsart !== 'bestellung') continue;
           const menge = Number(position.menge);
           const uebergeben = Number(position.uebergebenMenge ?? 0);
-          if (Number.isFinite(menge) && Number.isFinite(uebergeben) && menge > uebergeben) {
+          // menge enthält bereits die aktive Menge nach Stornierungen.
+          const storniert = Number(position.storniertMenge ?? 0);
+          const reserviert = Number(position.reserviertMenge ?? 0);
+          if (Number.isSafeInteger(menge) && menge > 0 &&
+              Number.isSafeInteger(storniert) && storniert >= 0 &&
+              Number.isSafeInteger(menge + storniert) &&
+              Number.isSafeInteger(uebergeben) && uebergeben >= 0 && menge > uebergeben &&
+              Number.isSafeInteger(reserviert) && reserviert >= 0 && reserviert <= menge - uebergeben) {
             bestellungen++;
           }
         }

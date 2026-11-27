@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { db, client } from '../../../../../lib/server/mongodb';
+import { protokolliereLagerbewegung } from '../../../../../lib/server/lagerbewegungen';
 import { pruefeBerechtigung } from '../../../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
@@ -183,6 +184,15 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
           }
         }
 
+        for (const eintrag of variantenDeltas.values()) {
+          if (eintrag.delta === 0) continue;
+          await protokolliereLagerbewegung({
+            vereinId, artikelId: eintrag.artikelId, groesseId: eintrag.groesseId,
+            art: 'storno', mengeDelta: eintrag.delta, benutzerId: locals.benutzer!.id,
+            referenzId: inventurId, referenzTyp: 'inventur-storno'
+          }, session);
+        }
+
         for (const [artikelId, delta] of artikelDeltas) {
           if (delta === 0) continue;
           const aktualisiert = await artikelSammlung.updateOne(
@@ -196,6 +206,9 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
           );
           if (aktualisiert.matchedCount !== 1) {
             throw new Error('Ein Artikel fehlt oder hat zu wenig Bestand für die Rückbuchung.');
+          }
+          if (artikelOhneGroessen.has(artikelId)) {
+            await protokolliereLagerbewegung({ vereinId, artikelId, groesseId: null, art: 'storno', mengeDelta: delta, benutzerId: locals.benutzer!.id, referenzId: inventurId, referenzTyp: 'inventur-storno' }, session);
           }
         }
       }

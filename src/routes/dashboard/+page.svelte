@@ -25,10 +25,10 @@
   const darfBestellungenSehen = $derived(angezeigteRolle === 'admin' || angezeigteRolle === 'materialverantwortlich');
 
   const kennzahlKarten = $derived([
-    { titel: 'Artikel', wert: data.kennzahlen?.artikel, zusatz: 'Erfasste Inventarartikel', link: '/inventar', sichtbar: true },
+    { titel: 'Artikel', wert: data.kennzahlen?.artikel, zusatz: 'Aktive Inventarartikel', link: '/inventar', sichtbar: true },
     { titel: 'Verfügbarer Bestand', wert: data.kennzahlen?.bestand, zusatz: 'Stück im Inventar', link: '/inventar', sichtbar: true },
     { titel: 'Offene Ausleihen', wert: data.kennzahlen?.ausleihen, zusatz: 'Noch nicht abgeschlossene Ausleihen', link: '/ausleihen', sichtbar: darfAusleihenSehen },
-    { titel: 'Offene Schadensmeldungen', wert: data.kennzahlen?.meldungen, zusatz: darfBestellungenSehen ? 'Offen oder in Bearbeitung' : 'Eigene offene Meldungen', link: '/meldungen', sichtbar: true },
+    { titel: 'Offene Schadensmeldungen', wert: data.kennzahlen?.meldungen, zusatz: darfBestellungenSehen ? 'Offen oder in Bearbeitung' : 'Eigene offene Meldungen', link: '/meldungen?status=aktiv', sichtbar: true },
     { titel: 'Unter Mindestbestand', wert: data.kennzahlen?.unterMindestbestand, zusatz: 'Artikel mit unterschrittener Warnschwelle', link: '/inventar?mindestbestand=1', sichtbar: true },
     { titel: 'Offene Kleiderbestellungen', wert: data.kennzahlen?.bestellungen, zusatz: 'Noch nicht vollständig übergebene Bestellpositionen', link: '/vereinskleider/bestellungen', sichtbar: darfBestellungenSehen }
   ].filter((k) => k.sichtbar));
@@ -59,7 +59,7 @@
       {#if data.kennzahlenFehler}
         <p class="fehler" role="alert">{data.kennzahlenFehler}</p>
       {:else}
-        <div class="kennzahlen-grid">
+        <div class="kennzahlen-grid" aria-busy={wirdAktualisiert}>
           {#each kennzahlKarten as k (k.titel)}
             <a class="kennzahl" href={k.link}>
               <span>{k.titel}</span>

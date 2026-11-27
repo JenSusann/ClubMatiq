@@ -51,7 +51,7 @@ beforeAll(async () => {
     { _id: artikelId, vereinId, name: 'Testshirt ÄÖÜ' },
     { _id: fremdArtikelId, vereinId: fremdvereinId, name: 'Geheimes Shirt' }
   ]);
-  await db.collection('benutzer').insertOne({ _id: benutzerId, vereinId, vorname: 'Test', nachname: 'Person' });
+  await db.collection('benutzer').insertOne({ _id: benutzerId, vereinId, vorname: 'Test', nachname: 'Person', email: prefix + '@example.invalid' });
   await db.collection('lagerbewegungen').insertMany([
     ...Array.from({ length: 200 }, (_, i) => bewegung(i, vereinId, artikelId, prefix + '-normal-' + i)),
     bewegung(200, vereinId, artikelId, prefix + '-gesucht'),
@@ -154,4 +154,79 @@ describe('Issue #66 – Lagerjournal mit echter MongoDB', () => {
       await db.collection('lagerbewegungen').deleteMany({ vereinId, referenzId: { $regex: '^' + marker } });
     }
   }, 60000);
+});
+
+describe('Issue #51 – atomare Bestandsbewegung', () => {
+  it('rollt Bestand und Journal gemeinsam zurück', async () => {
+    const { protokolliereLagerbewegung } = await import('../../../src/lib/server/lagerbewegungen');
+    const id=new ObjectId(), referenzId=prefix+'-rollback';
+    const session=client.startSession();
+    try {
+      await db.collection('artikel').insertOne({_id:id,vereinId,menge:5});
+      await expect(session.withTransaction(async()=>{
+        await db.collection('artikel').updateOne({_id:id,vereinId},{$inc:{menge:-2}},{session});
+        await protokolliereLagerbewegung({vereinId,artikelId:id.toString(),groesseId:null,art:'ausleihe',mengeDelta:-2,benutzerId:admin.id,referenzId,referenzTyp:'test'},session);
+        throw new Error('Erzwungener Rollback');
+      })).rejects.toThrow('Erzwungener Rollback');
+      expect((await db.collection('artikel').findOne({_id:id,vereinId}))?.menge).toBe(5);
+      expect(await db.collection('lagerbewegungen').countDocuments({vereinId,referenzId})).toBe(0);
+    } finally {
+      await session.endSession();
+      await db.collection('artikel').deleteOne({_id:id,vereinId});
+      await db.collection('lagerbewegungen').deleteMany({vereinId,referenzId});
+    }
+  });
+});
+
+describe('Issue #51 – historische Journalnamen', () => {
+  it('behält Namen nach Umbenennung und Löschung in Vorschau und Excel', async () => {
+    const { protokolliereLagerbewegung } = await import('../../../src/lib/server/lagerbewegungen');
+    const id = new ObjectId(), groesseId = new ObjectId(), personId = new ObjectId();
+    const referenzId = prefix + '-snapshot';
+    const session = client.startSession();
+    try {
+      await db.collection('artikel').insertOne({ _id: id, vereinId, name: 'Historisches Shirt', menge: 2 });
+      await db.collection('groessen').insertOne({ _id: groesseId, vereinId, bezeichnung: 'Historische Grösse' });
+      await db.collection('benutzer').insertOne({ _id: personId, vereinId, vorname: 'Historische', nachname: 'Person', email: prefix + '-snapshot@example.invalid' });
+      await session.withTransaction(async () => {
+        await db.collection('artikel').updateOne({ _id: id, vereinId }, { $inc: { menge: -1 } }, { session });
+        await protokolliereLagerbewegung({ vereinId, artikelId: id.toString(), groesseId: groesseId.toString(), art: 'verkauf', mengeDelta: -1, benutzerId: personId.toString(), referenzId, referenzTyp: 'test' }, session);
+      });
+      await db.collection('artikel').deleteOne({ _id: id, vereinId });
+      await db.collection('groessen').updateOne({ _id: groesseId, vereinId }, { $set: { bezeichnung: 'Neu' } });
+      await db.collection('benutzer').deleteOne({ _id: personId, vereinId });
+      const query = '?suche=' + encodeURIComponent(referenzId);
+      const res = await journalGET(event('/api/lagerbewegungen/gesamt' + query));
+      expect(res.status).toBe(200);
+      expect((await res.json()).bewegungen).toEqual([expect.objectContaining({ artikel: 'Historisches Shirt', groesse: 'Historische Grösse', benutzer: 'Historische Person' })]);
+      const sheet = await workbook(await exportGET(event('/api/export/lagerbewegungen' + query)));
+      expect(sheet.getRow(5).getCell(2).value).toBe('Historisches Shirt');
+      expect(sheet.getRow(5).getCell(4).value).toBe('Historische Grösse');
+      expect(sheet.getRow(5).getCell(7).value).toBe('Historische Person');
+    } finally {
+      await session.endSession();
+      await db.collection('artikel').deleteOne({ _id: id, vereinId });
+      await db.collection('groessen').deleteOne({ _id: groesseId, vereinId });
+      await db.collection('benutzer').deleteOne({ _id: personId, vereinId });
+      await db.collection('lagerbewegungen').deleteMany({ vereinId, referenzId });
+    }
+  });
+});
+
+describe('Issue #51 – Artikellöschung mit echter MongoDB', () => {
+  it('löscht Bestand und erhält den historischen Journalabgang', async () => {
+    const { DELETE } = await import('../../../src/routes/api/artikel/[id]/+server');
+    const id = new ObjectId();
+    try {
+      await db.collection('artikel').insertOne({ _id: id, vereinId, name: 'Löschtest', menge: 5, hatGroessen: false });
+      const response = await DELETE({ params: { id: id.toString() }, locals: { benutzer: admin } } as never);
+      expect(response.status).toBe(200);
+      expect(await db.collection('artikel').findOne({ _id: id, vereinId })).toBeNull();
+      const eintraege = await db.collection('lagerbewegungen').find({ vereinId, artikelId: id.toString() }).toArray();
+      expect(eintraege).toEqual([expect.objectContaining({ mengeDelta: -5, artikelName: 'Löschtest', referenzTyp: 'artikel-loeschung' })]);
+    } finally {
+      await db.collection('artikel').deleteOne({ _id: id, vereinId });
+      await db.collection('lagerbewegungen').deleteMany({ vereinId, artikelId: id.toString() });
+    }
+  });
 });

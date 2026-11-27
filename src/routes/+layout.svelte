@@ -158,7 +158,7 @@
   </header>
   {#if logoutFehler}<div class="logout-fehler" role="alert">{logoutFehler}</div>{/if}
   {#if vorschauAktiv && !istOeffentlicheSeite}<div class="vorschau-banner"><span>👁️ Vorschau als <strong>{rollenNamen[angezeigteRolle]}</strong> – Du bleibst Administrator.</span><button onclick={()=>rollenVorschau.zuruecksetzen()}>Vorschau beenden</button></div>{/if}
-  {#if navigationAnzeigen}<nav aria-label="Hauptnavigation">{#each sichtbareNavigation as eintrag (eintrag.link)}<a href={eintrag.link} class:active={page.url.pathname===eintrag.link || page.url.pathname.startsWith(eintrag.link+'/')}>{eintrag.titel}</a>{/each}</nav>{/if}
+  {#if navigationAnzeigen}<nav aria-label="Hauptnavigation">{#each sichtbareNavigation as eintrag (eintrag.link)}<a href={eintrag.link} class:active={page.url.pathname === '/inventar/neu' ? eintrag.link === '/stammdaten' : page.url.pathname===eintrag.link || page.url.pathname.startsWith(eintrag.link+'/')}>{eintrag.titel}</a>{/each}</nav>{/if}
   <div class="content" class:auth-content={page.url.pathname==='/anmelden' || page.url.pathname==='/registrieren'}>{@render children()}</div>
     <footer>
     <span>

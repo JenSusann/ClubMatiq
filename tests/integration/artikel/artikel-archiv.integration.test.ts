@@ -154,3 +154,28 @@ describe('Issue #60 – Physische Löschsperre', () => {
     expect(m.findOne).not.toHaveBeenCalled();
   });
 });
+
+describe('Artikelarchiv – historische Daten und Fehlerpfade (#38)', () => {
+  it.each([null,[],{},42,{archiviert:'true'}])('verwirft ungültigen Request %j', async body => {
+    const r=await PATCH({params:{id},locals:{benutzer},request:new Request('http://localhost',{method:'PATCH',body:JSON.stringify(body)})} as never);
+    expect(r.status).toBe(400); expect(m.findOne).not.toHaveBeenCalled();
+  });
+  it('verwirft fehlerhaftes JSON', async () => {
+    expect((await PATCH({params:{id},locals:{benutzer},request:new Request('http://localhost',{method:'PATCH',body:'{'})} as never)).status).toBe(400);
+  });
+  it('blockiert Ausleihe ohne Rückgabehistorie', async () => {
+    m.toArray.mockResolvedValueOnce([{menge:2}]).mockResolvedValueOnce([]);
+    expect((await PATCH(ctx(true))).status).toBe(409);
+  });
+  it('akzeptiert abgeschlossene Ausleihen und historische Direktverkäufe', async () => {
+    m.toArray.mockResolvedValueOnce([{menge:2,rueckgaben:[{menge:2},{}]},{}]).mockResolvedValueOnce([{}, {positionen:[{artikelId:'fremd',verkaufsart:'bestellung',menge:2},{artikelId:id,verkaufsart:'direkt',menge:2},{artikelId:id,verkaufsart:'bestellung',menge:2,uebergebenMenge:2},{artikelId:id,verkaufsart:'bestellung'}]}]);
+    expect((await PATCH(ctx(true))).status).toBe(200);
+  });
+  it('blockiert Bestellung ohne Übergabemenge', async () => {
+    m.toArray.mockResolvedValueOnce([]).mockResolvedValueOnce([{positionen:[{artikelId:id,verkaufsart:'bestellung',menge:2}]}]);
+    expect((await PATCH(ctx(true))).status).toBe(409);
+  });
+  it('meldet Datenbankfehler ohne Statusänderung', async () => {
+    m.findOne.mockRejectedValueOnce(new Error('DB')); expect((await PATCH(ctx(true))).status).toBe(500); expect(m.updateOne).not.toHaveBeenCalled();
+  });
+});

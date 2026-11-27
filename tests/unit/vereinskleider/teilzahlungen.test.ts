@@ -35,3 +35,27 @@ describe('Issue #68 – gemischte Zahlungen', () => {
     expect(() => berechneZahlungsstand([bekannt], [{ betrag: 1.001 }])).toThrow('Ungültiger');
   });
 });
+
+describe('Zahlungsstand – Grenzwerte (#38)', () => {
+  it.each([0,-1,1.5,Number.MAX_SAFE_INTEGER+1])('verwirft Menge %s', menge => {
+    expect(() => berechneZahlungsstand([{...bekannt,menge}],[])).toThrow('Ungültige Menge');
+  });
+  it('verwirft fehlenden fälligen Preis', () => {
+    expect(() => berechneZahlungsstand([{...bekannt,einzelpreis:null}],[])).toThrow('Ein fälliger Preis fehlt');
+  });
+  it.each([NaN,Infinity,-Infinity])('verwirft nicht endlichen Betrag %s', betrag => {
+    expect(() => berechneZahlungsstand([bekannt],[{betrag}])).toThrow('Ungültiger Geldbetrag');
+  });
+  it('verwirft Überlauf der Forderung', () => {
+    expect(() => berechneZahlungsstand([{...bekannt,menge:Number.MAX_SAFE_INTEGER}],[])).toThrow('Betrag ausserhalb');
+  });
+  it('verwirft Überlauf der Zahlungen', () => {
+    expect(() => berechneZahlungsstand([bekannt],[{betrag:Number.MAX_SAFE_INTEGER}])).toThrow('Betrag ausserhalb');
+  });
+  it('zeigt unbezahlte Forderung als offen', () => {
+    expect(berechneZahlungsstand([bekannt],[])).toEqual({faellig:25,bezahlt:0,restbetrag:25,offenePreispositionen:0,status:'offen'});
+  });
+  it('rechnet Rappen ohne Rundungsdifferenz', () => {
+    expect(berechneZahlungsstand([{...bekannt,einzelpreis:0.1,menge:3}],[{betrag:0.3}])).toMatchObject({restbetrag:0,status:'bezahlt'});
+  });
+});

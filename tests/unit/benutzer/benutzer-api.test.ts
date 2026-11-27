@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
 const mocks = vi.hoisted(() => ({ permission: vi.fn(), collection: vi.fn(), find: vi.fn(), project: vi.fn(), sort: vi.fn(), toArray: vi.fn(), findOne: vi.fn(), updateOne: vi.fn(), countDocuments: vi.fn(), deleteMany: vi.fn(), insertOne: vi.fn(), hash: vi.fn(), listCollections: vi.fn(), deleteOne: vi.fn() }));
-vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: (...args: unknown[]) => mocks.collection(...args), listCollections: mocks.listCollections } }));
+vi.mock('../../../src/lib/server/mongodb', () => ({ client: { withSession: async (cb: (session: { withTransaction: (fn: () => Promise<void>) => Promise<void> }) => Promise<void>) => cb({ withTransaction: async (fn) => fn() }) }, db: { collection: (...args: unknown[]) => mocks.collection(...args), listCollections: mocks.listCollections } }));
 vi.mock('../../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: (...args: unknown[]) => mocks.permission(...args) }));
 import { GET } from '../../../src/routes/api/benutzer/+server';
 import { PATCH } from '../../../src/routes/api/benutzer/[id]/+server';
@@ -232,7 +232,7 @@ describe('Benutzerverwaltung – sichere Löschung und Randfälle (#38)',()=>{
  it('schützt letzten aktiven Administrator',async()=>{mocks.findOne.mockResolvedValue({...ziel,rolle:'admin'});mocks.countDocuments.mockResolvedValue(0);expect((await del()).status).toBe(409);});
  function refs(docs:unknown[]){mocks.listCollections.mockReturnValue({toArray:async()=>['benutzer','sessions','einladungen','system.test','artikel'].map(name=>({name}))});mocks.find.mockReturnValue({async *[Symbol.asyncIterator](){yield* docs;}});}
  it.each([{ref:id},{ref:new ObjectId(id)},{ref:[{nested:id}]}])('schützt fachliche Referenz %j',async doc=>{refs([doc]);expect((await del()).status).toBe(409);expect(mocks.deleteOne).not.toHaveBeenCalled();});
- it('löscht nur referenzfreien Benutzer und dessen Sessions',async()=>{refs([{ref:[null,42,new Date(),new ObjectId(), 'fremd']}]);expect((await del()).status).toBe(200);expect(mocks.find).toHaveBeenCalledWith({vereinId:'verein-1'});expect(mocks.deleteOne).toHaveBeenCalledWith({_id:new ObjectId(id),vereinId:'verein-1'});expect(mocks.deleteMany).toHaveBeenCalledWith({vereinId:'verein-1',benutzerId:id});});
+ it('löscht nur referenzfreien Benutzer und dessen Sessions',async()=>{refs([{ref:[null,42,new Date(),new ObjectId(), 'fremd']}]);expect((await del()).status).toBe(200);expect(mocks.find).toHaveBeenCalledWith({vereinId:'verein-1'});expect(mocks.deleteOne).toHaveBeenCalledWith({_id:new ObjectId(id),vereinId:'verein-1',rolle:'mitglied',aktiv:true},{session:expect.any(Object)});expect(mocks.deleteMany).toHaveBeenCalledWith({vereinId:'verein-1',benutzerId:id},{session:expect.any(Object)});});
  it('verweigert zu umfangreiche Referenzprüfung',async()=>{refs(Array(10001).fill({}));expect((await del()).status).toBe(500);expect(mocks.deleteOne).not.toHaveBeenCalled();});
  it('erkennt konkurrierende Löschung',async()=>{mocks.deleteOne.mockResolvedValue({deletedCount:0});expect((await del()).status).toBe(409);});
  it.each([Error('DB'),'DB'])('meldet Löschfehler',async e=>{mocks.deleteOne.mockRejectedValue(e);expect((await del()).status).toBe(500);});

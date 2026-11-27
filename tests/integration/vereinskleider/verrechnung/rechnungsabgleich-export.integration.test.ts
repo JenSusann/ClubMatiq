@@ -3,11 +3,13 @@ import { ObjectId } from 'mongodb';
 
 const m = vi.hoisted(() => ({
   daten: [] as Record<string, unknown>[],
+  credits: [] as Record<string, unknown>[],
   pruefeBerechtigung: vi.fn()
 }));
 vi.mock('../../../../src/lib/server/mongodb', () => ({
-  db: { collection: () => ({ find: () => ({
-    sort: () => ({ limit: () => ({ toArray: async () => m.daten }) })
+  db: { collection: (name: string) => ({ find: () => ({
+    toArray: async () => m.daten,
+    sort: () => ({ limit: () => ({ toArray: async () => name === 'vereinskleider_gutschriften' ? m.credits : m.daten }) })
   }) }) }
 }));
 vi.mock('../../../../src/lib/server/berechtigungen', () => ({
@@ -24,6 +26,7 @@ const rechnung = (nummer: string, betrag: number, teilrechnung: boolean) => ({
 });
 beforeEach(() => {
   m.daten = [];
+  m.credits = [];
   m.pruefeBerechtigung.mockReset();
 });
 describe('Issue #68 – Rechnungsabgleich mit mehreren Teilrechnungen', () => {
@@ -53,4 +56,79 @@ describe('Issue #68 – Rechnungsabgleich mit mehreren Teilrechnungen', () => {
     m.pruefeBerechtigung.mockReturnValue(new Response('Verboten', { status: 403 }));
     expect((await GET(event() as never)).status).toBe(403);
   });
+});
+
+import { GET as exportGutschriften } from '../../../../src/routes/api/vereinskleider/gutschriften/export/+server';
+
+describe('Issue #121 – Gutschriftenabgleich', () => {
+  function vorbereiten(bezahlt: number, erstattet: number, status = 'offen') {
+    const r = { ...rechnung('2026-00001',48,false), bezahltBetrag: bezahlt, gutgeschriebenBetrag: 48 };
+    m.daten = [r];
+    m.credits = [{ _id: new ObjectId(), vereinId: 'verein', rechnungId: r._id.toString(),
+      rechnungsnummer: r.rechnungsnummer, betrag: 48, rueckerstattetBetrag: erstattet,
+      bearbeitungsstatus: status, erstelltAm: new Date(), artikelname: 'Test', menge: 1 }];
+  }
+  async function rest() {
+    const response = await exportGutschriften(event() as never);
+    expect(response.status).toBe(200);
+    return (await response.text()).split('\r\n').filter(Boolean).slice(1).map(z => z.split(';')[12]);
+  }
+  it.each([
+    [0,0,'offen','0,00'], [20,0,'offen','20,00'],
+    [20,20,'rueckerstattet','0,00'], [48,20,'teilweise_rueckerstattet','28,00'],
+    [48,48,'rueckerstattet','0,00']
+  ] as const)('berechnet bei Zahlung %s und Erstattung %s den korrekten Rest', async (bezahlt, erstattet, status, erwartet) => {
+    vorbereiten(bezahlt,erstattet,status);
+    expect(await rest()).toEqual(['"' + erwartet + '"']);
+  });
+  it('verteilt den Rechnungsrest ohne Doppelzählung', async () => {
+    vorbereiten(30,0);
+    m.credits = [{ ...m.credits[0], betrag: 24 }, { ...m.credits[0], _id: new ObjectId(), betrag: 24 }];
+    expect(await rest()).toEqual(['"24,00"','"6,00"']);
+  });
+  it('verweigert inkonsistente Erstattungen', async () => {
+    vorbereiten(20,21);
+    expect((await exportGutschriften(event() as never)).status).toBe(409);
+  });
+  it('verweigert fehlende Rechnungszuordnung', async () => {
+    vorbereiten(20,0);
+    m.daten = [];
+    expect((await exportGutschriften(event() as never)).status).toBe(409);
+  });
+  it('verweigert Zugriff ohne Berechtigung', async () => {
+    m.pruefeBerechtigung.mockReturnValue(new Response('Verboten',{status:403}));
+    expect((await exportGutschriften(event() as never)).status).toBe(403);
+  });
+  it('verweigert bezahlte Beträge oberhalb der ursprünglichen Rechnung', async () => {
+    vorbereiten(49,0);
+    expect((await exportGutschriften(event() as never)).status).toBe(409);
+  });
+  it('verweigert Gutschriftensumme oberhalb des Rechnungsbetrags', async () => {
+    vorbereiten(20,0);
+    m.daten[0].gutgeschriebenBetrag = 49;
+    expect((await exportGutschriften(event() as never)).status).toBe(409);
+  });
+  it('verweigert fehlende Gutschriften zur Rechnung', async () => {
+    vorbereiten(20,0);
+    m.credits[0].betrag = 24;
+    expect((await exportGutschriften(event() as never)).status).toBe(409);
+  });
+  it('verweigert abgeschlossene Gutschrift mit nicht gedecktem Restanspruch', async () => {
+    vorbereiten(20,0,'erledigt');
+    expect((await exportGutschriften(event() as never)).status).toBe(409);
+  });
+  it('berücksichtigt alte unbezahlte Rechnungen ohne Zahlungsfeld', async () => {
+    vorbereiten(0,0);
+    delete m.daten[0].bezahltBetrag;
+    expect(await rest()).toEqual(['"0,00"']);
+  });
+  it('berücksichtigt alte Gutschriften ohne Bearbeitungsstatus', async () => {
+    vorbereiten(20,0);
+    delete m.credits[0].bearbeitungsstatus;
+    expect(await rest()).toEqual(['"20,00"']);
+  });
+  it('exportiert leeren Kontrollauszug ohne Gutschriften', async () => {
+    expect(await rest()).toEqual([]);
+  });
+
 });

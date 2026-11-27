@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 const mocks = vi.hoisted(() => ({
   findOne: vi.fn(), find: vi.fn(), insertOne: vi.fn(), updateOne: vi.fn(),
   updateMany: vi.fn(), deleteOne: vi.fn(), countDocuments: vi.fn(), aggregate: vi.fn(),
-  collection: vi.fn(), startSession: vi.fn()
+  collection: vi.fn(), startSession: vi.fn(), journal: vi.fn()
 }));
 vi.mock('../../../../src/lib/server/mongodb', () => ({
   db: { collection: mocks.collection },
@@ -22,7 +22,7 @@ const event = (method: string, body?: unknown, role: string | null = 'admin') =>
 });
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.collection.mockImplementation(() => mocks);
+  mocks.collection.mockImplementation((name: string) => name === 'lagerbewegungen' ? { insertOne: mocks.journal } : mocks);
   mocks.findOne.mockResolvedValue(null);
   mocks.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
   mocks.updateOne.mockResolvedValue({ modifiedCount: 1, matchedCount: 1 });
@@ -122,6 +122,7 @@ describe('21-verkauf-automatisch-erfolgreich', () => {
   it('21-verkauf-automatisch-erfolgreich', async () => {
     mocks.collection.mockImplementation((name: string) => ({
       ...mocks,
+      insertOne: name === 'lagerbewegungen' ? mocks.journal : mocks.insertOne,
       findOne: vi.fn(async () => name === 'artikel'
         ? { _id: new ObjectId(id), name: 'Trainerjacke', kategorieId: id, istVereinskleidung: true, hatGroessen: false, menge: 10 }
         : name === 'vereinskleider_preise' ? { preistyp: 'fix', verkaufspreis: 25 } : null)
@@ -129,6 +130,8 @@ describe('21-verkauf-automatisch-erfolgreich', () => {
     const response = await route7.POST(event('POST', {"verkaufsart": "automatisch", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
     expect(response.status).toBe(201);
     expect(mocks.insertOne).toHaveBeenCalledOnce();
+    expect(mocks.journal).toHaveBeenCalledOnce();
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ art: 'verkauf', mengeDelta: -2, artikelId: id, vereinId }), expect.objectContaining({ session: expect.anything() }));
     const data = await response.json();
     expect(data.erfolg).toBe(true);
     expect(data.verkauf.positionen.length).toBeGreaterThan(0);
@@ -156,6 +159,7 @@ describe('21-verkauf-bestellung-erfolgreich', () => {
   it('21-verkauf-bestellung-erfolgreich', async () => {
     mocks.collection.mockImplementation((name: string) => ({
       ...mocks,
+      insertOne: name === 'lagerbewegungen' ? mocks.journal : mocks.insertOne,
       findOne: vi.fn(async () => name === 'artikel'
         ? { _id: new ObjectId(id), name: 'Trainerjacke', kategorieId: id, istVereinskleidung: true, hatGroessen: false, menge: 10 }
         : name === 'vereinskleider_preise' ? { preistyp: 'fix', verkaufspreis: 25 } : null)
@@ -175,6 +179,7 @@ describe('21-verkauf-direkt-erfolgreich', () => {
   it('21-verkauf-direkt-erfolgreich', async () => {
     mocks.collection.mockImplementation((name: string) => ({
       ...mocks,
+      insertOne: name === 'lagerbewegungen' ? mocks.journal : mocks.insertOne,
       findOne: vi.fn(async () => name === 'artikel'
         ? { _id: new ObjectId(id), name: 'Trainerjacke', kategorieId: id, istVereinskleidung: true, hatGroessen: false, menge: 10 }
         : name === 'vereinskleider_preise' ? { preistyp: 'fix', verkaufspreis: 25 } : null)
@@ -182,6 +187,8 @@ describe('21-verkauf-direkt-erfolgreich', () => {
     const response = await route10.POST(event('POST', {"verkaufsart": "direkt", "kaeufer": "Vereinsmitglied", "zahlungsart": "rechnung", "riegen": ["Aktive"], "positionen": [{"artikelId": id, "groesseId": null, "menge": 2}]}) as never);
     expect(response.status).toBe(201);
     expect(mocks.insertOne).toHaveBeenCalledOnce();
+    expect(mocks.journal).toHaveBeenCalledOnce();
+    expect(mocks.journal).toHaveBeenCalledWith(expect.objectContaining({ art: 'verkauf', mengeDelta: -2, artikelId: id, vereinId }), expect.objectContaining({ session: expect.anything() }));
     const data = await response.json();
     expect(data.erfolg).toBe(true);
     expect(data.verkauf.positionen.length).toBeGreaterThan(0);

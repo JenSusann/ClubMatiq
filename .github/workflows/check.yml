@@ -34,6 +34,7 @@ jobs:
     timeout-minutes: 20
 
     env:
+      MONGODB_DB_NAME: clubmatiq_test
       MONGODB_URI: mongodb://127.0.0.1:27017/clubmatiq_ci
 
     steps:
@@ -76,6 +77,7 @@ jobs:
     timeout-minutes: 30
 
     env:
+      MONGODB_DB_NAME: clubmatiq_test
       MONGODB_URI: mongodb://127.0.0.1:27017/clubmatiq_test?replicaSet=rs0
       MONGODB_TEST_URI: mongodb://127.0.0.1:27017/clubmatiq_test?replicaSet=rs0
 

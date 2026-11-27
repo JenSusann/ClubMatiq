@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ObjectId } from 'mongodb';
+
 const mock = vi.hoisted(() => ({
   findOne: vi.fn(), updateOne: vi.fn(), deleteOne: vi.fn(),
   countDocuments: vi.fn(), deleteMany: vi.fn(), listCollections: vi.fn(),
   find: vi.fn()
 }));
 vi.mock('../../../src/lib/server/mongodb', () => ({
+  client: { withSession: async (cb: (session: { withTransaction: (fn: () => Promise<void>) => Promise<void> }) => Promise<void>) => cb({ withTransaction: async (fn) => fn() }) },
   db: {
     collection: vi.fn((name: string) => ({
       findOne: name === 'einladungen' ? mock.findOne : mock.findOne,
@@ -70,12 +73,48 @@ describe('Einladungen widerrufen und Benutzer sicher löschen', () => {
   it('löscht unreferenzierte Benutzer und ihre Sessions', async () => {
     expect((await benutzerLoeschen(kontext())).status).toBe(200);
     expect(mock.deleteOne).toHaveBeenCalled();
-    expect(mock.deleteMany).toHaveBeenCalledWith({ vereinId, benutzerId: id });
+    expect(mock.deleteMany).toHaveBeenCalledWith({ vereinId, benutzerId: id }, { session: expect.any(Object) });
   });
 
   it('verweigert bei fehlgeschlagener Referenzprüfung sicherheitshalber das Löschen', async () => {
     mock.listCollections.mockImplementation(() => { throw new Error('DB unavailable'); });
     expect((await benutzerLoeschen(kontext())).status).toBe(500);
     expect(mock.deleteOne).not.toHaveBeenCalled();
+  });
+  it.each([id, new ObjectId(id)])('blockiert verschachtelte Referenzen: %s', async ref => {
+    mock.find.mockReturnValue({ [Symbol.asyncIterator]: async function* () {
+      yield { vereinId, historie: [{ akteur: ref }] };
+    } });
+    expect((await benutzerLoeschen(kontext())).status).toBe(409);
+    expect(mock.deleteOne).not.toHaveBeenCalled();
+  });
+
+  it('prüft Referenzen nur im eigenen Verein', async () => {
+    expect((await benutzerLoeschen(kontext())).status).toBe(200);
+    expect(mock.find).toHaveBeenCalledWith({ vereinId });
+    expect(mock.findOne).toHaveBeenCalledWith({ _id: new ObjectId(id), vereinId });
+  });
+
+  it('meldet zwischenzeitlich geänderten Benutzer', async () => {
+    mock.deleteOne.mockResolvedValue({ deletedCount: 0 });
+    expect((await benutzerLoeschen(kontext())).status).toBe(409);
+    expect(mock.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('meldet Fehler bei Session-Bereinigung', async () => {
+    mock.deleteMany.mockRejectedValue(new Error('DB'));
+    expect((await benutzerLoeschen(kontext())).status).toBe(500);
+  });
+
+  it('blockiert letzten aktiven Administrator', async () => {
+    mock.findOne.mockResolvedValue({ rolle: 'admin', aktiv: true });
+    mock.countDocuments.mockResolvedValue(0);
+    expect((await benutzerLoeschen(kontext())).status).toBe(409);
+    expect(mock.deleteOne).not.toHaveBeenCalled();
+  });
+
+  it('blockiert konkurrierende Annahme der Einladung', async () => {
+    mock.updateOne.mockResolvedValue({ modifiedCount: 0 });
+    expect((await widerrufen(kontext())).status).toBe(409);
   });
 });

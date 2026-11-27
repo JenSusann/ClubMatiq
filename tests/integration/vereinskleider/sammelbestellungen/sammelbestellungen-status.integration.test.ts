@@ -22,6 +22,7 @@ function setup(status='entwurf',position:any={...pos,artikelname:'Trikot',gelief
  m.c.vereinskleider_sammelbestellungen={findOne:vi.fn(async()=>({status,positionen:[position]})),updateOne:vi.fn(async()=>({modifiedCount:1}))};
  m.c.vereinskleider_verkaeufe={find:vi.fn(()=>({sort:()=>({toArray:async()=>kunden})})),updateOne:vi.fn(async()=>({modifiedCount:1}))};
  m.c.lagerbewegungen={insertOne:vi.fn(async()=>({insertedId:new ObjectId()}))};
+ m.c.groessen={findOne:vi.fn(async()=>({bezeichnung:'M'}))};
  m.c.artikel={updateOne:vi.fn(async()=>({matchedCount:1})),findOne:vi.fn(async()=>({menge:8}))};
  m.c.artikelvarianten={updateOne:vi.fn(async()=>({matchedCount:1})),findOne:vi.fn(async()=>({menge:8}))};
 }
@@ -117,6 +118,7 @@ const post=(x:unknown=input)=>unpack(route0.POST({locals:{benutzer:user},request
 function setup(p:any={artikelId:A,groesseId:null,menge:5,verkaufsart:'bestellung',uebergebenMenge:0,reserviertMenge:0},stock:any={menge:10,hatGroessen:false},reservations:any[]=[]){
  m.c.vereinskleider_verkaeufe={findOne:vi.fn(async()=>({positionen:[p]})),find:vi.fn(()=>({toArray:async()=>reservations})),updateOne:vi.fn(async()=>({modifiedCount:1}))};
  m.c.lagerbewegungen={insertOne:vi.fn(async()=>({insertedId:new ObjectId()}))};
+ m.c.groessen={findOne:vi.fn(async()=>({bezeichnung:'M'}))};
  m.c.artikel={findOne:vi.fn(async()=>stock),updateOne:vi.fn(async()=>({modifiedCount:1}))};
  m.c.artikelvarianten={findOne:vi.fn(async()=>({menge:10})),updateOne:vi.fn(async()=>({modifiedCount:1}))};
 }

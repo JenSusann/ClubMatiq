@@ -20,8 +20,8 @@ const RAB2 = 'dddddddddddddddddddddddd';
 const id = () => new ObjectId();
 const defaultInput = () => ({ verkaufsart: 'bestellung', kaeufer: 'Testperson', zahlungsart: 'twint', riegen: ['Aktive'], positionen: [{ artikelId: ART, groesseId: null, menge: 2 }] });
 const req = (body: unknown) => new Request('http://localhost/api/vereinskleider', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-const post = async (body: unknown) => route0.POST({ request: req(body), locals: { benutzer: { vereinId: 'verein-1' } } } as never);
-const get = async (query = '') => route0.GET({ url: new URL(`http://localhost/api/vereinskleider${query}`), locals: { benutzer: { vereinId: 'verein-1' } } } as never);
+const post = async (body: unknown) => route0.POST({ request: req(body), locals: { benutzer: { id: 'admin-test', vereinId: 'verein-1' } } } as never);
+const get = async (query = '') => route0.GET({ url: new URL(`http://localhost/api/vereinskleider${query}`), locals: { benutzer: { id: 'admin-test', vereinId: 'verein-1' } } } as never);
 const data = async (response: Response) => ({ status: response.status, body: await response.json() });
 const collection = (name: string) => mock.collections[name];
 
@@ -31,6 +31,8 @@ beforeEach(() => {
   mock.session.withTransaction.mockImplementation(async (fn: () => Promise<unknown>) => fn());
   const artikel = { _id: new ObjectId(ART), name: 'Vereinsshirt', kategorieId: 'kat-1', istVereinskleidung: true, hatGroessen: false, menge: 10 };
   const cols: Record<string, any> = {
+    groessen: { findOne: vi.fn(async () => ({ bezeichnung: 'M' })) },
+    lagerbewegungen: { insertOne: vi.fn(async () => ({ insertedId: id() })) },
     artikel: { findOne: vi.fn(async () => artikel), updateOne: vi.fn(async () => ({ modifiedCount: 1 })) },
     artikelvarianten: { findOne: vi.fn(async () => ({ menge: 10 })), updateOne: vi.fn(async () => ({ modifiedCount: 1 })) },
     vereinskleider_preise: { findOne: vi.fn(async () => ({ preistyp: 'fix', verkaufspreis: 20 })) },
@@ -85,7 +87,7 @@ describe('Paket 35 – Vereinskleider Haupt-API: Eingabe', () => {
     expect(mock.session.withTransaction).not.toHaveBeenCalled();
   });
   it('behandelt kaputtes JSON', async () => {
-    const response = await route0.POST({ request: new Request('http://localhost/api/vereinskleider', { method: 'POST', body: '{' }), locals: { benutzer: { vereinId: 'verein-1' } } } as never);
+    const response = await route0.POST({ request: new Request('http://localhost/api/vereinskleider', { method: 'POST', body: '{' }), locals: { benutzer: { id: 'admin-test', vereinId: 'verein-1' } } } as never);
     expect(response.status).toBe(400);
   });
   it('gibt Berechtigungsantwort unverändert zurück', async () => {

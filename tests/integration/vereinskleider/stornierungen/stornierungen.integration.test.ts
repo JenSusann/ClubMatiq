@@ -143,3 +143,90 @@ describe('Stornierungen – weitere Validierungen und Transaktionen', () => {
     spy.mockRestore();
   });
 });
+
+describe('Issue #130 – Stornierung mehrerer Erstbezüge', () => {
+  const hoseId = 'dddddddddddddddddddddddd';
+  const mitgliedId = 'eeeeeeeeeeeeeeeeeeeeeeee';
+  const regelIds = ['111111111111111111111111','222222222222222222222222'];
+  const positionen = [
+    { ...position(), menge: 1, reserviertMenge: 0, einzelpreis: 115, positionsbetrag: 115 },
+    { ...position(), artikelId: hoseId, menge: 1, reserviertMenge: 0, einzelpreis: 98, positionsbetrag: 98 }
+  ];
+  const vorgang = () => ({
+    ...verkauf(), mitgliedId, positionen, zwischentotal: 213, rabattTotal: 163, endbetrag: 50,
+    erstbezugsIds: [AID,hoseId],
+    erstbezugsPositionen: [AID,hoseId].map((anspruch,i) => ({
+      anspruch, rabattId: regelIds[i], positionsIndex: i, rabattBetrag: [65,98][i]
+    })),
+    rabatte: regelIds.map((rabattId,i) => ({ rabattId, betrag: [65,98][i], einmaligProMitglied: true }))
+  });
+  it('gibt nur den Anspruch der kostenlosen Hose frei', async () => {
+    mocks.findOne.mockResolvedValue(vorgang());
+    const res = await send({ ...valid(), positionsIndex: 1 });
+    expect(res.status).toBe(200);
+    expect(mocks.updateOne).toHaveBeenCalledWith('clubdesk_mitglieder', expect.anything(),
+      { $pullAll: { erstbezugsRabattIds: [hoseId] } }, expect.anything());
+    expect(mocks.updateOne).toHaveBeenCalledWith('vereinskleider_verkaeufe', expect.anything(),
+      { $set: expect.objectContaining({ endbetrag: 50, rabattTotal: 65, erstbezugsIds: [AID] }) }, expect.anything());
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('erstellt eine Gutschrift von CHF 50 für das Gwändli und behält den Hosenanspruch', async () => {
+    mocks.findOne.mockImplementation((name: string) => name === 'vereinskleider_verkaeufe'
+      ? { ...vorgang(), rechnungId: RID }
+      : { ...rechnung(), gesamtbetrag: 50, positionen });
+    const res = await send(valid());
+    expect(res.status).toBe(200);
+    expect((await res.json()).stornierung.gutschriftBetrag).toBe(50);
+    expect(mocks.insertOne).toHaveBeenCalledWith('vereinskleider_gutschriften',
+      expect.objectContaining({ betrag: 50, rabattBetrag: 65 }), expect.anything());
+    expect(mocks.updateOne).toHaveBeenCalledWith('clubdesk_mitglieder', expect.anything(),
+      { $pullAll: { erstbezugsRabattIds: [AID] } }, expect.anything());
+    expect(mocks.updateOne).toHaveBeenCalledWith('vereinskleider_verkaeufe', expect.anything(),
+      { $set: expect.objectContaining({ endbetrag: 0, rabattTotal: 98, erstbezugsIds: [hoseId] }) }, expect.anything());
+  });
+});
+
+describe('Issue #130 – gemischte Rabattabschnitte', () => {
+  const positionen = [{ ...position(), menge: 2, reserviertMenge: 0, einzelpreis: 150, positionsbetrag: 300 }];
+  const vorgang = () => ({
+    ...verkauf(), mitgliedId: 'eeeeeeeeeeeeeeeeeeeeeeee', positionen,
+    zwischentotal: 300, rabattTotal: 245, endbetrag: 55,
+    erstbezugsIds: [AID],
+    erstbezugsPositionen: [{ anspruch: AID, rabattId: 'gw', positionsIndex: 0, rabattBetrag: 100 }],
+    rabatte: [{ rabattId: 'gw', betrag: 100, einmaligProMitglied: true }, { rabattId: 'sonstiges', betrag: 145 }],
+    rabattAbschnitte: [
+      { positionsIndex: 0, abStueck: 0, menge: 1, rabattRappen: 10000, regelId: 'gw' },
+      { positionsIndex: 0, abStueck: 1, menge: 1, rabattRappen: 14500, regelId: 'sonstiges' }
+    ]
+  });
+  it('storniert das zweite Stück ohne Freigabe des Erstbezugs', async () => {
+    mocks.findOne.mockResolvedValue(vorgang());
+    expect((await send(valid())).status).toBe(200);
+    expect(mocks.updateOne).toHaveBeenCalledTimes(1);
+    expect(mocks.updateOne).toHaveBeenCalledWith('vereinskleider_verkaeufe', expect.anything(),
+      { $set: expect.objectContaining({ endbetrag: 50, rabattTotal: 100, erstbezugsIds: [AID], rabattAbschnitte: [vorgang().rabattAbschnitte[0]] }) }, expect.anything());
+  });
+  it('schreibt bei bestehender Rechnung CHF 5 gut', async () => {
+    mocks.findOne.mockImplementation((name: string) => name === 'vereinskleider_verkaeufe'
+      ? { ...vorgang(), rechnungId: RID }
+      : { ...rechnung(), gesamtbetrag: 55, positionen });
+    const res = await send(valid());
+    expect(res.status).toBe(200);
+    expect((await res.json()).stornierung.gutschriftBetrag).toBe(5);
+    expect(mocks.insertOne).toHaveBeenCalledWith('vereinskleider_gutschriften', expect.objectContaining({ betrag: 5, rabattBetrag: 145 }), expect.anything());
+  });
+  it('storniert beide Stücke und gibt den Anspruch frei', async () => {
+    mocks.findOne.mockResolvedValue(vorgang());
+    expect((await send({...valid(),menge:2})).status).toBe(200);
+    expect(mocks.updateOne).toHaveBeenCalledWith('clubdesk_mitglieder', expect.anything(), { $pullAll: { erstbezugsRabattIds: [AID] } }, expect.anything());
+    expect(mocks.updateOne).toHaveBeenCalledWith('vereinskleider_verkaeufe', expect.anything(),
+      { $set: expect.objectContaining({ endbetrag: 0, rabattTotal: 0, rabattAbschnitte: [], erstbezugsIds: [] }) }, expect.anything());
+  });
+  it('blockiert inkonsistente Rabattabschnitte', async () => {
+    const v = vorgang();
+    v.rabattAbschnitte[1].rabattRappen = 14400;
+    mocks.findOne.mockResolvedValue(v);
+    expect((await send(valid())).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+});

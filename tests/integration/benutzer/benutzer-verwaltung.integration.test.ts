@@ -335,3 +335,56 @@ describe('Einladungen und Annahme', () => {
 });
 
 });
+
+import { DELETE as loeschen } from '../../../src/routes/api/benutzer/[id]/+server';
+import { DELETE as widerrufen } from '../../../src/routes/api/benutzer/einladen/[id]/+server';
+
+describe('Issue #64 – Löschung und Widerruf mit MongoDB', () => {
+  const vereinId = new ObjectId().toString();
+  const fremdVereinId = new ObjectId().toString();
+  const admin = { id: new ObjectId().toString(), vereinId, rolle: 'admin' };
+  const event = (id: ObjectId) => ({ params: { id: id.toString() }, locals: { benutzer: admin } }) as never;
+  beforeAll(async () => {
+    if (db.databaseName !== 'clubmatiq_test') throw new Error('Unsichere Testdatenbank');
+    await client.connect();
+  });
+  afterAll(async () => {
+    for (const name of ['benutzer', 'sessions', 'einladungen', 'artikel']) {
+      await db.collection(name).deleteMany({ vereinId: { $in: [vereinId, fremdVereinId] } });
+    }
+  });
+  async function konto(v = vereinId) {
+    const id = new ObjectId();
+    await db.collection('benutzer').insertOne({ _id: id, vereinId: v, email: id.toString() + '@example.invalid', rolle: 'mitglied', aktiv: true });
+    await db.collection('sessions').insertOne({ vereinId: v, benutzerId: id.toString(), tokenHash: id.toString() });
+    return id;
+  }
+  it('löscht Konto und Sitzungen, aber keine fremden Konten', async () => {
+    const id = await konto();
+    const fremd = await konto(fremdVereinId);
+    expect((await loeschen(event(fremd))).status).toBe(404);
+    expect((await loeschen(event(id))).status).toBe(200);
+    expect(await db.collection('benutzer').findOne({ _id: id })).toBeNull();
+    expect(await db.collection('sessions').countDocuments({ benutzerId: id.toString() })).toBe(0);
+    expect(await db.collection('benutzer').findOne({ _id: fremd })).not.toBeNull();
+    expect(await db.collection('sessions').countDocuments({ benutzerId: fremd.toString() })).toBe(1);
+  });
+  it('erhält Konto und Sitzung bei verschachtelter fachlicher Referenz', async () => {
+    const id = await konto();
+    await db.collection('artikel').insertOne({ vereinId, historie: [{ akteur: id }] });
+    expect((await loeschen(event(id))).status).toBe(409);
+    expect(await db.collection('benutzer').findOne({ _id: id })).not.toBeNull();
+    expect(await db.collection('sessions').countDocuments({ benutzerId: id.toString() })).toBe(1);
+  });
+  it('widerruft eine Einladung genau einmal und invalidiert den Token', async () => {
+    const token = randomBytes(32).toString('hex');
+    const { insertedId } = await db.collection('einladungen').insertOne({
+      vereinId, status: 'offen', tokenHash: createHash('sha256').update(token).digest('hex'),
+      ablaufdatum: new Date(Date.now()+86400000), email: token+'@example.invalid', rolle: 'mitglied'
+    });
+    const responses = await Promise.all([widerrufen(event(insertedId)), widerrufen(event(insertedId))]);
+    expect(responses.map(r => r.status).sort()).toEqual([200, 409]);
+    expect((await db.collection('einladungen').findOne({ _id: insertedId }))?.status).toBe('widerrufen');
+    expect((await pruefen({ url: new URL('http://localhost/api/einladung?token='+token) } as never)).status).toBe(404);
+  });
+});

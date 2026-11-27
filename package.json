@@ -1,6 +1,6 @@
 {
 	"name": "clubmatiq",
-	"version": "0.9.0",
+	"version": "0.9.2",
 	"private": true,
 	"type": "module",
 	"imports": {
@@ -24,7 +24,15 @@
 		"test:coverage": "vitest run tests/unit --coverage",
 		"test:integration": "vitest run --config vitest.integration.config.ts --coverage",
 		"coverage:merge": "node scripts/merge-coverage.mjs",
-		"test:all": "npm run test:coverage && npm run test:integration && npm run coverage:merge"
+		"test:all": "npm run test:coverage && npm run test:integration && npm run coverage:merge",
+		"db:init:dev": "node scripts/init-database.mjs --environment=dev",
+		"db:init:demo": "node scripts/init-database.mjs --environment=demo",
+		"db:init:prod": "node scripts/init-database.mjs --environment=prod",
+		"db:schema:export": "node scripts/init-database.mjs --environment=prod --export",
+		"db:backup:prod": "node scripts/backup-database.mjs prod",
+		"db:backup:dev": "node scripts/backup-database.mjs dev",
+		"db:backup:demo": "node scripts/backup-database.mjs demo",
+		"db:restore:test": "node scripts/restore-database.mjs"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^8.0.0",

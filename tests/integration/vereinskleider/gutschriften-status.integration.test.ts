@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
 
 const m = vi.hoisted(() => ({
@@ -8,7 +8,14 @@ const m = vi.hoisted(() => ({
   updates: [] as { name: string; value: Record<string, unknown> }[],
   changed: false
 }));
-vi.mock('../../../src/lib/server/mongodb', () => ({
+const mode = vi.hoisted(() => ({ real: false }));
+vi.mock('../../../src/lib/server/mongodb', async () => {
+  const { config } = await import('dotenv');
+  config({ path: '.env' });
+  const { MongoClient } = await import('mongodb');
+  const realClient = new MongoClient(process.env.MONGODB_TEST_URI ?? 'mongodb://127.0.0.1:1');
+  const realDb = realClient.db('clubmatiq_test');
+  const mocked = {
   db: { collection: (name: string) => ({
     findOne: async () => name === 'vereinskleider_gutschriften' ? m.credit : m.invoice,
     find: () => ({ toArray: async () => m.credits }),
@@ -21,7 +28,21 @@ vi.mock('../../../src/lib/server/mongodb', () => ({
     withTransaction: async (cb: () => Promise<unknown>) => cb(),
     endSession: async () => undefined
   }) }
-}));
+};
+
+  return {
+    db: new Proxy(realDb, { get(target, key) {
+      if (!mode.real && key === 'collection') return mocked.db.collection;
+      const value = Reflect.get(target, key, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    } }),
+    client: new Proxy(realClient, { get(target, key) {
+      if (!mode.real && key === 'startSession') return mocked.client.startSession;
+      const value = Reflect.get(target, key, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    } })
+  };
+});
 vi.mock('../../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: () => null }));
 import { PATCH } from '../../../src/routes/api/vereinskleider/gutschriften/status/+server';
 
@@ -107,5 +128,68 @@ describe('Issue #70 – Gutschriften abschliessen', () => {
     expect((await send('rueckerstattet', {
       betrag: 20, datum: '2026-11-21', zahlungsart: 'bank', bemerkung: ''
     })).status).toBe(409);
+  });
+});
+
+import { client, db } from '../../../src/lib/server/mongodb';
+
+describe('Issue #70 – echte MongoDB: parallele Rückerstattungen', () => {
+  const tenant = new ObjectId().toString();
+  const foreign = new ObjectId().toString();
+  const credits = () => db.collection('vereinskleider_gutschriften');
+  const invoices = () => db.collection('vereinskleider_rechnungen');
+  beforeAll(async () => {
+    if (!process.env.MONGODB_TEST_URI || db.databaseName !== 'clubmatiq_test') throw new Error('Testdatenbank fehlt');
+    mode.real = true;
+    await client.connect();
+  });
+  afterAll(async () => {
+    try {
+      if (mode.real) {
+        await credits().deleteMany({ vereinId: tenant });
+        await invoices().deleteMany({ vereinId: tenant });
+      }
+    } finally { await client.close(); mode.real = false; }
+  });
+  async function anlegen(betraege: number[]) {
+    const _id = new ObjectId();
+    await invoices().insertOne({ _id, vereinId: tenant, gesamtbetrag: 100,
+      bezahltBetrag: 70, gutgeschriebenBetrag: 50, rueckerstattungOffen: 20 });
+    const gs = betraege.map(betrag => ({ _id: new ObjectId(), vereinId: tenant,
+      rechnungId: _id.toString(), betrag, bearbeitungsstatus: 'offen' }));
+    await credits().insertMany(gs);
+    return { _id, gs };
+  }
+  const auszahlen = (_id: ObjectId, verein = tenant) => PATCH({
+    locals: { benutzer: { vereinId: verein, rolle: 'admin', id: 'test-admin' } },
+    request: new Request('http://localhost/api/test', { method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ gutschriftId: _id.toString(), aktion: 'rueckerstattet',
+        betrag: 20, datum: '2026-11-26', zahlungsart: 'bank', bemerkung: 'Integration' }) })
+  } as never);
+  async function pruefen(_id: ObjectId, erwartet: number) {
+    const gs = await credits().find({ vereinId: tenant, rechnungId: _id.toString() }).toArray();
+    expect(gs.reduce((s,g) => s + (g.rueckerstattetBetrag ?? 0),0)).toBe(erwartet);
+    expect(gs.flatMap(g => g.rueckerstattungen ?? [])).toHaveLength(erwartet ? 1 : 0);
+    expect(await invoices().findOne({ _id, vereinId: tenant })).toMatchObject({
+      gesamtbetrag: 100, bezahltBetrag: 70, gutgeschriebenBetrag: 50, rueckerstattungOffen: 20-erwartet
+    });
+  }
+  it('dokumentiert dieselbe Gutschrift bei parallelen Anfragen nur einmal', async () => {
+    const { _id, gs } = await anlegen([50]);
+    const rs = await Promise.all([auszahlen(gs[0]._id),auszahlen(gs[0]._id)]);
+    expect(rs.map(r=>r.status).sort()).toEqual([200,409]);
+    await pruefen(_id,20);
+  });
+  it('verhindert doppelte Auszahlung über zwei Gutschriften derselben Rechnung', async () => {
+    const { _id, gs } = await anlegen([25,25]);
+    const rs = await Promise.all(gs.map(g=>auszahlen(g._id)));
+    expect(rs.map(r=>r.status).sort()).toEqual([200,409]);
+    await pruefen(_id,20);
+  });
+  it('verweigert fremden Verein ohne Änderung der Finanzdaten', async () => {
+    const { _id, gs } = await anlegen([50]);
+    expect((await auszahlen(gs[0]._id,foreign)).status).toBe(404);
+    await pruefen(_id,0);
   });
 });

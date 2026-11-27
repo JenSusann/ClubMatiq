@@ -74,7 +74,7 @@ describe('Vereinskleider – Abgleich, Export und Retourenhistorie',()=>{
   const event=(data:unknown={},query='',user:object=benutzer)=>({locals:{benutzer:user},request:new Request('http://localhost',{method:'PATCH',body:JSON.stringify(data)}),url:new URL('http://localhost/?'+query)}) as never;
   const valid={typ:'rechnung',id,datum:'2026-11-26',referenz:' Buchung 1 '};
   const g={_id:oid,rechnungId:id,rechnungsnummer:'R1',gutschriftnummer:'G1',betrag:48,rueckerstattetBetrag:12,erstelltAm:'2026-11-26',artikelname:'Shirt "A"',menge:1};
-  const invoice={_id:oid,rechnungsnummer:'R1'};
+  const invoice={_id:oid,rechnungsnummer:'R1',gesamtbetrag:48,bezahltBetrag:48,gutgeschriebenBetrag:48};
   beforeEach(()=>{
     vi.resetAllMocks();
     m.permission.mockReturnValue(null);m.collection.mockReturnValue(m);
@@ -103,7 +103,7 @@ describe('Vereinskleider – Abgleich, Export und Retourenhistorie',()=>{
   });
   it('meldet Abgleichfehler',async()=>{m.updateOne.mockRejectedValue(new Error('db'));expect((await Abgleich(event(valid))).status).toBe(500);});
   it('exportiert CSV mit korrekter Maskierung und Beträgen',async()=>{
-    m.toArray.mockResolvedValueOnce([g,{...g,rueckerstattetBetrag:undefined,clubdeskVerbuchung:{datum:valid.datum,referenz:'B1',erfasstVonName:'Ada'},clubdeskExportStatus:'exportiert'}]).mockResolvedValueOnce([invoice]);
+    m.toArray.mockResolvedValueOnce([g,{...g,rueckerstattetBetrag:undefined,clubdeskVerbuchung:{datum:valid.datum,referenz:'B1',erfasstVonName:'Ada'},clubdeskExportStatus:'exportiert'}]).mockResolvedValueOnce([{...invoice,gesamtbetrag:96,bezahltBetrag:96,gutgeschriebenBetrag:96}]);
     const r=await Export(event());expect(r.status).toBe(200);
     expect(r.headers.get('content-type')).toContain('text/csv');expect(r.headers.get('cache-control')).toBe('no-store');
     const csv=await r.text();expect(csv).toContain('"Shirt ""A"""');expect(csv).toContain('"48,00";"12,00";"36,00"');expect(csv).toContain('"exportiert";"Ja"');
@@ -192,5 +192,17 @@ describe('Retourenprüfung – zusätzliche Grenzwerte', () => {
     const v = basis(); v.positionen![0].einzelpreis = 0; v.positionen![0].uebergebenMenge = undefined;
     v.uebergaben!.push({ positionsIndex: 1, menge: 99 }); v.retouren = [{ positionsIndex: 1, menge: 99 }];
     expect(pruefeRetourenmenge(v, 0, 3)).toEqual({ maximal: 3, einzelpreisRappen: 0 });
+  });
+});
+
+describe('Retouren – historische Daten (#38)', () => {
+  it('erlaubt Direktverkauf ohne optionale Historienfelder', () => {
+    expect(pruefeRetourenmenge({positionen:[{menge:2,verkaufsart:'direkt',einzelpreis:12.35}]},0,1)).toEqual({maximal:2,einzelpreisRappen:1235});
+  });
+  it('verweigert Direktverkauf ohne Mengenfeld', () => {
+    expect(() => pruefeRetourenmenge({positionen:[{verkaufsart:'direkt',einzelpreis:12}]},0,1)).toThrow('Keine dokumentierte Übergabe');
+  });
+  it('verwendet dokumentierte Übergaben auch beim Direktverkauf', () => {
+    expect(pruefeRetourenmenge({positionen:[{menge:4,verkaufsart:'direkt',einzelpreis:12}],uebergaben:[{positionsIndex:0,menge:2}]},0,1).maximal).toBe(2);
   });
 });

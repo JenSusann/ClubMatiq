@@ -156,6 +156,7 @@ beforeEach(() => {
 });
 
  it('führt identische ClubDesk-IDs mit gleichem Namen zusammen', async () => {
+  m.collection.find.mockReturnValue({ toArray: async () => [] });
   const r = await post(upload('[Id];Vorname;Nachname;Gruppen\n1;Anna;Muster;Gruppe A (TurnerIn)\n1;Anna;Muster;Gruppe B (TurnerIn)'));
   expect(r.status).toBe(200);
   expect(await r.json()).toMatchObject({ eingelesen: 1 });

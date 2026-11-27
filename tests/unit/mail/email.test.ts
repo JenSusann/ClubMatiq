@@ -16,7 +16,7 @@ describe('Resend-Einladungsmail', () => {
     expect(payload.html).toContain('Ada &amp; &lt;Test&gt; &quot;Hallo&quot; &#39;'); expect(payload.html).toContain('TV &lt;Weiningen&gt; &amp; Co.');
     expect(payload.html).toContain('token=a&amp;b=&quot;x&quot;'); expect(payload.text).toContain(daten.link);
   });
-  it('meldet fehlgeschlagenen HTTP-Status', async () => { globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 429, text: async () => 'rate limited' }) as any; await expect(versendeEinladung(daten)).rejects.toThrow('fehlgeschlagen'); expect(console.error).toHaveBeenCalledWith('Resend API Fehler:', 429, 'rate limited'); });
+  it('meldet fehlgeschlagenen HTTP-Status', async () => { globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 429, text: async () => 'rate limited' }) as any; await expect(versendeEinladung(daten)).rejects.toThrow('fehlgeschlagen'); expect(console.error).toHaveBeenCalledExactlyOnceWith('Resend API Fehler:', 429); expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain('rate limited'); });
   it.each([null, {}, { id: 123 }, { id: null }, 'invalid'])('weist fehlende Versand-ID zurück %#', async (result) => { globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => result }) as any; await expect(versendeEinladung(daten)).rejects.toThrow('Versand-ID'); });
   it('reicht Netzwerkfehler weiter', async () => { globalThis.fetch = vi.fn().mockRejectedValue(new Error('network')) as any; await expect(versendeEinladung(daten)).rejects.toThrow('network'); });
 });
