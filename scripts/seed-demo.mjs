@@ -212,6 +212,27 @@ try {
           await inventuren.insertOne({_id:inventurId,vereinId,name:'Demo-Inventur Geräteraum',typ:'lagerort',lagerortId,lagerortName:lagerort.name,status:'offen',anzahlArtikel:artikel.length,anzahlPositionen:positionen.length,erstelltAm:now,erstelltVon:ref('benutzer','admin')},{session});
           await db.collection('inventurpositionen').insertMany(positionen,{session});
         }
+        const aufnahmen=db.collection('inventarbewertung_aufnahmen');
+        const bewertungId=id('demo-bewertung:historisch');
+        const vorhandeneBewertung=await aufnahmen.findOne({_id:bewertungId},{session});
+        if(vorhandeneBewertung && vorhandeneBewertung.vereinId!==vereinId) throw new Error('Bewertungs-ID-Konflikt.');
+        if(!vorhandeneBewertung) {
+          const artikel=await db.collection('artikel').find({vereinId},{session}).sort({name:1}).toArray();
+          const varianten=await db.collection('artikelvarianten').find({vereinId},{session}).toArray();
+          const maps={};
+          for(const c of ['kategorien','lagerorte','groessen']) maps[c]=new Map((await db.collection(c).find({vereinId},{session}).toArray()).map(d=>[String(d._id),String(c==='groessen'?d.bezeichnung:d.name)]));
+          const zeilen=[];
+          for(const a of artikel) {
+            for(const p of a.hatGroessen?varianten.filter(v=>String(v.artikelId)===String(a._id)):[a]) {
+              const menge=p.menge??0;
+              if(!Number.isSafeInteger(menge)||menge<0) throw new Error('Demo-Bewertung: ungültiger Bestand.');
+              if(a.hatGroessen&&menge===0) continue;
+              const einzelwert=typeof p.einzelwert==='number'&&Number.isFinite(p.einzelwert)&&p.einzelwert>=0?p.einzelwert:null;
+              zeilen.push({artikelId:String(a._id),artikel:String(a.name),kategorie:maps.kategorien.get(String(a.kategorieId))??'Unbekannt',lagerort:maps.lagerorte.get(String(a.lagerortId))??'Unbekannt',groesse:a.hatGroessen?maps.groessen.get(String(p.groesseId))??'Unbekannt':'',menge,einzelwert,gesamtwert:einzelwert===null?null:menge*einzelwert});
+            }
+          }
+          await aufnahmen.insertOne({_id:bewertungId,vereinId,aufgenommenAm:now,aufgenommenVon:ref('benutzer','admin'),zeilen},{session});
+        }
       });
     } finally { await session.endSession(); }
     console.log('Demo-Grundstruktur sichergestellt. Bestehende Datensätze unverändert.');
