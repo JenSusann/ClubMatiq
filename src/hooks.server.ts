@@ -66,6 +66,9 @@ export const handle = async ({
   }
 
   const pfad = event.url.pathname;
+  if (process.env.MONGODB_DB_NAME === 'clubmatiq_demo' && /^\/api\/(?:upload|mail-einstellungen|clubdesk)(?:[/-]|$)/.test(pfad)) {
+    return Response.json({ fehler: 'Externe Integrationen sind in der Demo deaktiviert.', code: 'DEMO_INTEGRATION_DEAKTIVIERT' }, { status: 403 });
+  }
   const istOeffentlich = oeffentlicheSeiten.has(pfad) || pfad === '/docs' || pfad.startsWith('/docs/');
   const istAPI = pfad.startsWith('/api/');
   if (!event.locals.benutzer && !istOeffentlich && !oeffentlicheAPIs.has(pfad)) {
