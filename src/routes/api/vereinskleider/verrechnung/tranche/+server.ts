@@ -3,6 +3,7 @@ import { ObjectId, type Document } from 'mongodb';
 import { client, db } from '../../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../../lib/server/berechtigungen';
 import { berechneNaechsteRechnungstranche } from '../../../../../lib/server/vereinskleider-rechnungstranchen';
+import { erstelleAusstellerdaten } from '../../../../../lib/server/vereinseinstellungen';
 import type { RequestHandler } from './$types';
 
 class TrancheFehler extends Error {
@@ -122,7 +123,11 @@ export const POST: RequestHandler = async ({ locals, request }) => {
       }));
       const status = neuBezahlt === gesamtRappen ? 'bezahlt' :
         neuBezahlt > 0 ? 'teilweise_bezahlt' : 'offen';
+      const verein = ObjectId.isValid(vereinId)
+        ? await db.collection('vereine').findOne({ _id: new ObjectId(vereinId) }, { session })
+        : null;
       const dokument = {
+        aussteller: erstelleAusstellerdaten(verein),
         _id: rechnungId, vereinId, verkaufId, rechnungstranche: true,
         rechnungsnummer, empfaenger: verkauf.kaeufer, riegen: verkauf.riegen ?? [],
         zahlungsart: verkauf.zahlungsart, bemerkung: verkauf.bemerkung ?? '',
