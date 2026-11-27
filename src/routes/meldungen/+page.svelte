@@ -299,7 +299,7 @@
 
     try {
       const fotos: Schadensfoto[] = [];
-      for (const [index, foto] of ausgewaehlteFotos.entries()) {
+      for (const [index, foto] of (page.data.demo ? [] : ausgewaehlteFotos).entries()) {
         uploadFortschritt = `Foto ${index + 1} von ${ausgewaehlteFotos.length} wird hochgeladen ...`;
         fotos.push(await fotoHochladen(foto.datei));
       }
@@ -424,6 +424,9 @@
           </span>
         </div>
 
+        {#if page.data.demo}
+          <div class="foto-bereich"><strong>Foto-Upload deaktiviert</strong><p>In der Demo können Schadensmeldungen ohne Fotos erfasst werden.</p></div>
+        {:else}
         <!-- Fotos auswählen und vor dem Hochladen ansehen -->
         <div class="foto-bereich">
           <div class="foto-symbol">📷</div>
@@ -461,6 +464,7 @@
           {/if}
         </div>
 
+        {/if}
         <div class="aktionen">
           <button
             type="submit"

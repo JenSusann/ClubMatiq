@@ -49,6 +49,7 @@ export const POST: RequestHandler = async ({
   // 2. Formulardaten lesen
   // ========================================
 
+  if (env.MONGODB_DB_NAME === 'clubmatiq_demo') return json({ fehler: 'Foto-Uploads sind in der Demo deaktiviert.' }, { status: 403 });
   let formular: FormData;
 
   try {

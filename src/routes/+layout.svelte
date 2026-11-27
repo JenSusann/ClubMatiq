@@ -6,7 +6,7 @@
   import { setzeBestaetigung } from '../lib/bestaetigung';
   import { erstelleRollenVorschau, type Rolle } from '../lib/rollenVorschau.svelte';
 
-  let { children, data }: { children: Snippet; data: { benutzer: App.Locals['benutzer']; sessionFristen?: { absolut: number; inaktiv: number } } } = $props();
+  let { children, data }: { children: Snippet; data: { demo?: boolean; benutzer: App.Locals['benutzer']; sessionFristen?: { absolut: number; inaktiv: number } } } = $props();
   const rollenVorschau = erstelleRollenVorschau();
   let bestaetigungsDialog: HTMLDialogElement;
   let anfrage = $state<{ text: string; aktion: string; kritisch: boolean } | null>(null);
@@ -55,7 +55,7 @@
     { titel:'Benutzerverwaltung', link:'/benutzer', rollen:['admin'] },
     { titel:'E-Mail-Einstellungen', link:'/mail-einstellungen', rollen:['admin'] }
   ];
-  const sichtbareNavigation = $derived(navigation.filter((n)=>n.rollen.includes(angezeigteRolle)));
+  const sichtbareNavigation = $derived(navigation.filter((n)=>n.rollen.includes(angezeigteRolle) && (!data.demo || n.link !== '/mail-einstellungen')));
   const istOeffentlicheSeite = $derived(page.url.pathname==='/' || page.url.pathname==='/anmelden' || page.url.pathname==='/registrieren' || page.url.pathname==='/funktionen' || page.url.pathname==='/docs' || page.url.pathname.startsWith('/docs/'));
   const navigationAnzeigen = $derived(!istOeffentlicheSeite && !!data.benutzer);
   let fristen = $state<{ absolut: number; inaktiv: number } | undefined>(undefined);
@@ -143,6 +143,7 @@
 </script>
 <svelte:head><link rel="icon" href={favicon}/></svelte:head>
 <div class="app">
+  {#if data.demo}<div class="demo-banner">DEMO-UMGEBUNG – Ausschliesslich fiktive Testdaten. Externe Integrationen sind deaktiviert.</div>{/if}
   <header>
     <a href="/" class="brand"><span class="logo">📦</span><span class="brand-name">ClubMatiq</span></a>
     <div class="header-rechts">
@@ -192,6 +193,7 @@
   </div>
 {/if}
 <style>
+  .demo-banner { background: #fff1c2; color: #694600; padding: 0.65rem 1rem; text-align: center; font-weight: 600; font-size: 0.875rem; }
 .bestaetigungs-dialog{width:min(460px,calc(100% - 32px));max-height:85dvh;overflow:auto;border:0;border-radius:14px;padding:24px;color:#172b4d;box-shadow:0 12px 40px #0003}.bestaetigungs-dialog::backdrop{background:#172b4d88}.bestaetigungs-dialog h2{margin:0 0 14px;font-size:20px}.bestaetigungs-dialog p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}.bestaetigungs-aktionen{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:24px}.bestaetigungs-aktionen button{padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;background:white;cursor:pointer}.bestaetigungs-aktionen .primaer{background:#172b4d;color:white;border-color:#172b4d}.bestaetigungs-aktionen .kritisch{background:#b91c1c;border-color:#b91c1c}
 
 .session-overlay{position:fixed;inset:0;background:#172b4d88;display:grid;place-items:center;z-index:1000;padding:16px}.session-dialog{background:white;border-radius:14px;padding:24px;width:min(440px,100%);box-shadow:0 12px 40px #0003}.session-countdown{text-align:center;font-size:36px;font-weight:700;font-variant-numeric:tabular-nums;margin:20px}.session-aktionen{display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap}.session-aktionen button{padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;background:white;cursor:pointer}.session-aktionen .session-weiter{background:#2563eb;color:white;border-color:#2563eb}

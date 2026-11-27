@@ -4,15 +4,15 @@ Diese Datei dokumentiert Änderungen an ClubMatiq. Geplante Funktionen stehen in
 
 ## [Unreleased]
 
-## [0.9.2] – Pilot-Hotfix (Freigabe ausstehend)
+## [0.9.2] – Pilot-Hotfix (produktive Abnahme 27.11.2026)
 
 - #130: Kombinierbare Erstbezugs- und weitere Rabattregeln mit stückbezogener Verteilung, Preisübersicht und Rabattkorrektur bei unterstützten Bestellstornierungen.
 - #127: Navigation bei neuer Artikelanlage korrigiert.
 - #128: Verkaufspreise aktiver Grössen gemeinsam bearbeiten.
 - Lokale Regression fehlerfrei gemeldet; manuelle Abnahme #130: 13/13 bestanden. #127 und #128 positiv zusammenfassend bestätigt.
-- Stornierungen bezahlter Verkäufe ohne Beleg, rabattierter Teilrechnungen und zusätzlicher manueller Rabatte bleiben gesperrt. CI und produktive Freigabe ausstehend.
+- Stornierungen bezahlter Verkäufe ohne Beleg, rabattierter Teilrechnungen und zusätzlicher manueller Rabatte bleiben gesperrt. Produktive Kurzabnahme 7/7 und PR-, Main- und Tag-CI erfolgreich; siehe [Pilotbetrieb](docs/testing/Pilotbetrieb.md).
 
-## [0.9.1] – Hotfix (Freigabe ausstehend)
+## [0.9.1] – Hotfix (produktiv veröffentlicht)
 
 ### Behoben
 
@@ -23,7 +23,7 @@ Diese Datei dokumentiert Änderungen an ClubMatiq. Geplante Funktionen stehen in
 
 - PR #124, CI-Lauf 45989603629: 5 erfolgreich, 3 übersprungen, 0 fehlgeschlagen.
 - Kombinierte Coverage: Statements 98.45 %, Branches 95.51 %, Functions 96.39 %, Lines 99.10 %.
-- Erneute CI nach Versionserhöhung sowie produktive Abnahme stehen aus.
+- Produktiver Gruppenimport am 27.11.2026 mit 10/10 Prüfungen abgenommen; siehe [Pilotbetrieb](docs/testing/Pilotbetrieb.md).
 
 ## [0.9.0] – Pilotversion
 

@@ -2,7 +2,7 @@ name: ClubMatiq CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'develop/**']
     tags: ['v*']
     paths-ignore:
       - 'README.md'
@@ -11,7 +11,7 @@ on:
       - 'docs/releases/**'
       - 'docs/testing/**/*.md'
   pull_request:
-    branches: [main]
+    branches: [main, 'develop/**']
     paths-ignore:
       - 'README.md'
       - 'CHANGELOG.md'

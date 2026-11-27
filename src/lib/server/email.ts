@@ -18,6 +18,7 @@ export async function versendeEinladung(daten: {
   ablaufdatum: Date;
   vereinId?: string;
 }): Promise<{ id: string }> {
+  if (process.env.MONGODB_DB_NAME === 'clubmatiq_demo') throw new Error('E-Mail-Versand ist in der Demo deaktiviert.');
   const textInhalt = `Hallo ${daten.vorname},\n\nDu wurdest zu ${daten.verein} auf ClubMatiq eingeladen.\n\nRegistriere dich hier: ${daten.link}\n\nDer Link ist bis ${daten.ablaufdatum.toLocaleDateString('de-CH')} gültig.\n\nClubMatiq`;
   const htmlInhalt = `<p>Hallo ${escapeHtml(daten.vorname)},</p><p>Du wurdest zu <strong>${escapeHtml(daten.verein)}</strong> auf ClubMatiq eingeladen.</p><p><a href="${escapeHtml(daten.link)}">Einladung annehmen</a></p><p>Gültig bis ${daten.ablaufdatum.toLocaleDateString('de-CH')}.</p><p>ClubMatiq</p>`;
   if (daten.vereinId) {
