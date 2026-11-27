@@ -92,6 +92,8 @@ const sales = [
  {key:'gemischt',name:'Shorts',size:'140',menge:3,direct:1,price:35,paid:false,payment:'rechnung',buyer:'Noah Muster'},
  {key:'preis-offen',name:'Regenjacke',size:'S',menge:1,direct:0,price:null,paid:false,payment:'rechnung',buyer:'Mia Muster'}
 ];
+add('vereinskleider_sammelbestellungen','demo-reserve',{lieferantId:ref('lieferanten','Demo Textilwerk'),lieferantName:'Demo Textilwerk',status:'entwurf',positionen:[{artikelId:ref('artikel','Polo'),groesseId:ref('groessen','M'),artikelname:'Polo',menge:4,geliefertMenge:0,kundenbedarfMenge:0,lagerreserveMenge:4}],bemerkung:'Demo: Lagerreserve',erstelltAm:now,aktualisiertAm:now});
+add('vereinskleider_sammelbestellungen','demo-kundenbedarf',{lieferantId:ref('lieferanten','Demo Textilwerk'),lieferantName:'Demo Textilwerk',status:'bestellt',positionen:[{artikelId:ref('artikel','Trainerjacke'),groesseId:ref('groessen','128'),artikelname:'Trainerjacke',menge:3,geliefertMenge:0,kundenbedarfMenge:2,lagerreserveMenge:1},{artikelId:ref('artikel','Shorts'),groesseId:ref('groessen','140'),artikelname:'Shorts',menge:3,geliefertMenge:0,kundenbedarfMenge:2,lagerreserveMenge:1}],bemerkung:'Demo: Kundenbedarf und Lagerreserve',bestelltAm:now,erstelltAm:now,aktualisiertAm:now});
 const client = new MongoClient(config.MONGODB_URI);
 try {
   await client.connect();
