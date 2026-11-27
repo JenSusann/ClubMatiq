@@ -661,17 +661,17 @@
           {/if}
           <div class="rabattbereich">
             <h3>Rabatt</h3>
-            <label><input type="checkbox" bind:checked={erstbezug} disabled={!ausgewaehltesMitglied || hatOffenePreise} onchange={() => { rabattIds = []; }} /> Vergünstigter Erstbezug</label>
+            <label class="checkzeile"><input type="checkbox" bind:checked={erstbezug} disabled={!ausgewaehltesMitglied || hatOffenePreise} onchange={() => { rabattIds = []; }} /> Vergünstigter Erstbezug</label>
             {#if erstbezug && ausgewaehltesMitglied}<p class="hinweis">Bereits beanspruchte Erstbezugsregeln werden ausgeblendet. Der Server prüft den Anspruch beim Speichern erneut.</p>{/if}
             <p>Gespeicherte Rabattregeln (optional)</p>
              {#each passendeRegeln as regel (regel._id)}
-               <label><input type="checkbox" checked={rabattIds.includes(regel._id)}
+               <label class="checkzeile rabattoption"><input type="checkbox" checked={rabattIds.includes(regel._id)}
                  disabled={!rabattIds.includes(regel._id) && (hatOffenePreise || ausgewaehlteRabatte.some(r => !kompatibel(r, regel)))}
                  onchange={(e) => { rabattIds = e.currentTarget.checked ? [...rabattIds, regel._id] : rabattIds.filter(id => id !== regel._id); }} />
                  {regel.name} ({regel.rabattart === 'prozent' ? `${regel.wert} %` : formatCHF(regel.wert)})
                </label>
              {/each}
-             {#if rabattIds.length}<button type="button" onclick={() => { rabattIds = []; }}>Rabattauswahl zurücksetzen</button>{/if}
+             {#if rabattIds.length}<button class="rabatt-reset" type="button" onclick={() => { rabattIds = []; }}>Rabattauswahl zurücksetzen</button>{/if}
             {#if rabattregeln.length === 0}
               <p class="hinweis">Noch keine Rabattregeln hinterlegt. Du kannst sie in den <a href="/stammdaten/rabatte">Rabatt-Stammdaten</a> erstellen.</p>
             {:else if passendeRegeln.length === 0}
@@ -753,6 +753,8 @@
   .checkzeile input { width: auto; flex: 0 0 auto; }
   .zahlung-bestaetigung { margin-bottom: 4px; }
   .rabattbereich { border-top: 1px solid #e2e8f0; padding: 12px 0; }
+  .rabattoption { padding: 9px 10px; border: 1px solid #e2e8f0; border-radius: 8px; }
+  .rabatt-reset { background: #eff6ff; color: #2563eb; border: 0; border-radius: 6px; padding: 8px 12px; cursor: pointer; font: inherit; font-size: 13px; }
   .rabattbereich h3 { font-size: 15px; color: #172b4d; }
   .felder { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
   .volle-breite { grid-column: 1 / -1; }
