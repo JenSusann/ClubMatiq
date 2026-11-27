@@ -48,7 +48,20 @@ export const GET: RequestHandler = async ({ locals }) => {
         _id: verein._id.toString(),
         name: verein.name,
         kuerzel: verein.kuerzel ?? '',
-        erstelltAm: verein.erstelltAm
+        erstelltAm: verein.erstelltAm,
+        adresse: {
+          strasse: verein.adresse?.strasse ?? '',
+          plz: verein.adresse?.plz ?? '',
+          ort: verein.adresse?.ort ?? ''
+        },
+        kontakt: {
+          email: verein.kontakt?.email ?? '',
+          telefon: verein.kontakt?.telefon ?? '',
+          website: verein.kontakt?.website ?? ''
+        },
+        logo: typeof verein.logo?.url === 'string'
+          ? { url: verein.logo.url }
+          : null
       }
     ]);
   } catch (error) {
