@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
 
 const mocks = vi.hoisted(() => ({
-  collection: vi.fn(), createIndex: vi.fn(), find: vi.fn(), toArray: vi.fn(),
+  withTransaction: vi.fn(), endSession: vi.fn(), collection: vi.fn(), createIndex: vi.fn(), find: vi.fn(), toArray: vi.fn(),
   findOne: vi.fn(), updateOne: vi.fn(), pruefeBerechtigung: vi.fn()
 }));
 
-vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: mocks.collection } }));
+vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: mocks.collection }, client: { startSession: () => ({ withTransaction: mocks.withTransaction, endSession: mocks.endSession }) } }));
 vi.mock('../../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: mocks.pruefeBerechtigung }));
-import { GET, PUT } from '../../../src/routes/api/vereinskleider/preise/+server';
+import { GET, PUT, POST } from '../../../src/routes/api/vereinskleider/preise/+server';
 
 const artikelId = new ObjectId().toHexString();
 const groesseId = new ObjectId().toHexString();
@@ -36,7 +36,7 @@ beforeEach(() => {
     if (name === 'vereinskleider_preise') return {
       createIndex: mocks.createIndex, find: mocks.find, updateOne: mocks.updateOne
     };
-    if (name === 'artikel' || name === 'artikelvarianten') return { findOne: mocks.findOne };
+    if (name === 'artikel' || name === 'artikelvarianten') return { findOne: mocks.findOne, find: mocks.find };
     throw new Error(`Unerwartete Collection: ${name}`);
   });
   mocks.createIndex.mockResolvedValue('unique_vereinskleider_preis');
@@ -239,5 +239,63 @@ describe('PUT /api/vereinskleider/preise', () => {
     const response = await put();
     expect(response.status).toBe(500);
     expect((await response.json()).fehler).toBe('Preis konnte nicht gespeichert werden.');
+  });
+});
+
+describe('POST – Issue #128', () => {
+  const zweite = new ObjectId().toHexString();
+  const send = (daten: unknown = { artikelId, preistyp: 'fix', verkaufspreis: 115 }) => POST({
+    locals: { benutzer }, request: new Request('http://localhost', { method: 'POST', body: JSON.stringify(daten) })
+  } as Parameters<typeof POST>[0]);
+  beforeEach(() => {
+    mocks.withTransaction.mockImplementation(async (cb: () => Promise<unknown>) => cb());
+    mocks.endSession.mockResolvedValue(undefined);
+    mocks.findOne.mockResolvedValue({ istVereinskleidung: true, hatGroessen: true });
+    mocks.toArray.mockResolvedValue([{ groesseId }, { groesseId: zweite }]);
+  });
+  it('aktualisiert aktive Grössen und erhält Druckkosten', async () => {
+    const res = await send();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ erfolg: true, anzahl: 2 });
+    expect(mocks.find).toHaveBeenCalledWith({ artikelId, vereinId, aktiv: { $ne: false } }, expect.anything());
+    expect(mocks.updateOne).toHaveBeenCalledTimes(2);
+    for (const [filter, update, options] of mocks.updateOne.mock.calls) {
+      expect(filter).toMatchObject({ vereinId, artikelId });
+      expect(update.$set).toMatchObject({ verkaufspreis: 115, preisOffen: false });
+      expect(update.$set).not.toHaveProperty('druckkosten');
+      expect(update.$setOnInsert.druckkosten).toBe(0);
+      expect(options.session).toBeDefined();
+    }
+    expect(mocks.withTransaction).toHaveBeenCalledOnce();
+    expect(mocks.endSession).toHaveBeenCalledOnce();
+  });
+  it('überschreibt Druckkosten ausdrücklich und akzeptiert Nullpreis', async () => {
+    expect((await send({ artikelId, preistyp: 'variabel', verkaufspreis: 0, druckkosten: 5 })).status).toBe(200);
+    expect(mocks.updateOne.mock.calls[0][1].$set).toMatchObject({ druckkosten: 5, verkaufspreis: 0, preistyp: 'variabel' });
+  });
+  it('verweigert fehlende Berechtigung', async () => {
+    mocks.pruefeBerechtigung.mockReturnValue(new Response(null,{status:403}));
+    expect((await send()).status).toBe(403);
+    expect(mocks.withTransaction).not.toHaveBeenCalled();
+  });
+  it.each([-1, 1.234, null, '115'])('verweigert ungültigen VP %j', async verkaufspreis => {
+    expect((await send({ artikelId, preistyp:'fix', verkaufspreis })).status).toBe(400);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('verweigert fehlenden oder fremden Artikel', async () => {
+    mocks.findOne.mockResolvedValue(null);
+    expect((await send()).status).toBe(404);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('verweigert Artikel ohne aktive Grössen', async () => {
+    mocks.toArray.mockResolvedValue([]);
+    expect((await send()).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('meldet Fehler innerhalb der Transaktion und beendet die Session', async () => {
+    mocks.updateOne.mockResolvedValueOnce({ modifiedCount: 1 }).mockRejectedValueOnce(new Error('DB down'));
+    expect((await send()).status).toBe(500);
+    expect(mocks.withTransaction).toHaveBeenCalledOnce();
+    expect(mocks.endSession).toHaveBeenCalledOnce();
   });
 });
