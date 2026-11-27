@@ -228,6 +228,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
       if (verkaufUpdate.modifiedCount !== 1) throw new Retourenfehler('Verkauf wurde zwischenzeitlich geändert.');
       const gutschriftId = new ObjectId();
       await db.collection('vereinskleider_gutschriften').insertOne({
+        ...(rechnung.aussteller ? { aussteller: rechnung.aussteller } : {}),
         _id: gutschriftId, vereinId, verkaufId: verkaufId.toString(),
         rechnungId: rechnung._id.toString(), rechnungsnummer: rechnung.rechnungsnummer,
         gutschriftnummer: `GS-${gutschriftId.toString().slice(-12).toUpperCase()}`,
