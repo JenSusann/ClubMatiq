@@ -89,3 +89,9 @@ MongoDB Database Tools 100.20.1 installiert. DEV-Backup um 01:23:33 MEZ und PROD
 - PROD-Offline-Archivprüfung bestanden: `clubmatiq_2026-11-27T10-46-12-010Z.archive.gz.enc` (27.11.2026, 11:46:12 MEZ). AES-GCM-Authentifizierung und GZIP-Integrität erfolgreich. Kein produktiver Restore durchgeführt. Sichere Schlüsselablage weiterhin separat zu bestätigen.
 
 - Lokale Backup-Bereinigung bestätigt: drei unverschlüsselte DEV-Archive und ein unverschlüsseltes PROD-Archiv entfernt. Verbleibend: verschlüsseltes DEV-Archiv (2980 Bytes) und PROD-Archiv (2750 Bytes). Keine forensisch sichere Löschung nachgewiesen. Sichere separate Schlüsselaufbewahrung noch zu bestätigen.
+
+### Ergänzende Pilotabnahme – 27.11.2026
+
+- ST-115-09 – Microsoft-365-Testversand: Bestanden. Screenshot bestätigt Eingang der Test-E-Mail «ClubMatiq – Microsoft-365-Testversand» beim Empfänger Kasse TVW.
+- Separate sichere Aufbewahrung der DEV- und PROD-Backup-Schlüssel inklusive geschützter PROD-Ersatzkopie durch Anwenderin bestätigt.
+- PR #123 erfolgreich in main gemergt (d09a234); finale PR-CI: 5 erfolgreich, 3 übersprungen, 0 fehlgeschlagen.
