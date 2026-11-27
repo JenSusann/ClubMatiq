@@ -69,3 +69,5 @@ MongoDB Database Tools 100.20.1 installiert. DEV-Backup um 01:23:33 MEZ und PROD
 - Verschlüsselte Ablage weiterhin offen.
 
 - Zweiter DEV-Restore (Backup 01:33:40 MEZ): 28 Collections, 9 Dokumente, 36 Indizes erfolgreich wiederhergestellt. Exakter Vergleich noch ausstehend.
+
+- Automatisierter Vergleich mit scripts/verify-restore.mjs: alle 28 Collections mit inhalte=true und indizes=true; 9 Dokumente und 36 Indizes. DEV-Restore-Abnahme bestanden. Kein produktiver Restore durchgeführt. Verschlüsselte Ablage weiterhin offen.
