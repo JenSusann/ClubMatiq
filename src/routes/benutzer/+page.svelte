@@ -386,6 +386,8 @@
 </svelte:head>
 
 <div class="seite">
+  <a href="/administration" class="zurueck">← Zurück zur Administration</a>
+
   <!-- Seitenkopf -->
   <header class="kopf">
     <div>
@@ -741,6 +743,13 @@
 {/if}
 
 <style>
+  .zurueck {
+    display: inline-block;
+    margin-bottom: 25px;
+    color: #64748b;
+    text-decoration: none;
+  }
+
   .dialog-hintergrund { position: fixed; inset: 0; z-index: 1000; background: rgba(15, 23, 42, .58); display: flex; align-items: center; justify-content: center; padding: 20px; }
   .bestaetigungsdialog { background: #fff; border-radius: 14px; padding: 28px; width: min(100%, 480px); box-shadow: 0 18px 60px rgba(0,0,0,.2); }
   .bestaetigungsdialog h2 { margin: 0 0 14px; }
