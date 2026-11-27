@@ -707,8 +707,39 @@
           <div class="zeile"><span>Direktverkauf</span><strong>{direktTotal} Stück</strong></div>
           <div class="zeile"><span>Bestellung</span><strong>{bestellTotal} Stück</strong></div>
           <div class="zeile"><span>Zwischentotal</span><strong>{formatCHF(gesamtpreis)}</strong></div>
-          {#each ausgewaehlteRabatte as regel (regel._id)}<div class="zeile"><span>{regel.name}</span><strong>− {formatCHF(rabattBerechnen(regel))}</strong></div>{/each}
+          {#if ausgewaehlteRabatte.length}
+            <h3 class="abrechnungstitel">Angewendete Rabattregeln</h3>
+            {#each ausgewaehlteRabatte as regel (regel._id)}
+              <div class="rabattdetail">
+                <div class="zeile"><span>{regel.name}</span><strong>− {formatCHF(rabattBerechnen(regel))}</strong></div>
+                {#if regel.rabattart === 'fixpreis'}
+                  <p class="preisdetail">Sonderpreis: {formatCHF(regel.wert)} pro rabattiertem Stück</p>
+                {/if}
+                {#each verteilung?.abschnitte.filter(a => a.regelId === regel._id) ?? [] as abschnitt}
+                  {@const p = positionen[abschnitt.positionsIndex]}
+                  <p class="preisdetail">{abschnitt.menge} × {artikel.find(a => a._id === p.artikelId)?.name ?? 'Artikel'}: {formatCHF((p.einzelpreis ?? 0) * abschnitt.menge)} → {formatCHF(((p.einzelpreis ?? 0) * abschnitt.menge) - abschnitt.rabattRappen / 100)}</p>
+                {/each}
+              </div>
+            {/each}
+          {/if}
           {#if rabattGueltig && rabattZahl > 0}<div class="zeile"><span>Weiterer Rabatt</span><strong>− {formatCHF(rabattZahl)}</strong></div>{/if}
+          {#if ausgewaehlteRabatte.length || (rabattGueltig && rabattZahl > 0)}
+            <div class="zeile"><span>Rabatte total</span><strong>− {formatCHF(regelRabatt + (rabattGueltig ? rabattZahl : 0))}</strong></div>
+          {/if}
+          {#if verteilung && rabattAuswahlGueltig}
+            <h3 class="abrechnungstitel">Effektive Verkaufspreise</h3>
+            {#each positionen as p, i}
+              {@const teile = verteilung.abschnitte.filter(a => a.positionsIndex === i)}
+              {#each teile as teil}
+                <div class="zeile preiszeile"><span>{teil.menge} × {artikel.find(a => a._id === p.artikelId)?.name ?? 'Artikel'}<small>{ausgewaehlteRabatte.find(r => r._id === teil.regelId)?.name}</small></span><strong>{formatCHF((p.einzelpreis ?? 0) * teil.menge - teil.rabattRappen / 100)}</strong></div>
+              {/each}
+              {@const rest = p.menge - teile.reduce((s,t) => s+t.menge,0)}
+              {#if rest > 0}
+                <div class="zeile preiszeile"><span>{rest} × {artikel.find(a => a._id === p.artikelId)?.name ?? 'Artikel'}<small>Regulärer Preis</small></span><strong>{formatCHF((p.einzelpreis ?? 0) * rest)}</strong></div>
+              {/if}
+            {/each}
+            {#if rabattGueltig && rabattZahl > 0}<div class="zeile"><span>Weiterer Rabatt</span><strong>− {formatCHF(rabattZahl)}</strong></div>{/if}
+          {/if}
           <div class="zeile gesamt"><span>{hatOffenePreise ? 'Bereits bekannter Betrag' : 'Zu bezahlen'}</span><strong>{formatCHF(endbetrag)}</strong></div>
         {/if}
         {#if verkaufsart === 'bestellung'}
@@ -789,6 +820,11 @@
   .zeile { padding: 12px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
   .zeile span { color: #64748b; }
   .zeile strong { color: #172b4d; }
+  .abrechnungstitel { font-size: 14px; color: #172b4d; margin: 16px 0 4px; }
+  .rabattdetail { border-bottom: 1px solid #e2e8f0; padding: 8px 0; }
+  .rabattdetail .zeile { border: 0; padding: 3px 0; }
+  .preisdetail, .preiszeile small { display: block; font-size: 12px; color: #64748b; margin: 4px 0; }
+  .preiszeile strong { white-space: nowrap; }
   .gesamt { font-size: 18px; border-bottom: 0; }
   .warnung { color: #92400e; background: #fffbeb; padding: 12px; border-radius: 8px; font-size: 14px; }
   .fehler { color: #b91c1c; background: #fef2f2; }
