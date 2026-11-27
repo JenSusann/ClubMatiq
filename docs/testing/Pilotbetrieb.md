@@ -95,3 +95,20 @@ MongoDB Database Tools 100.20.1 installiert. DEV-Backup um 01:23:33 MEZ und PROD
 - ST-115-09 – Microsoft-365-Testversand: Bestanden. Screenshot bestätigt Eingang der Test-E-Mail «ClubMatiq – Microsoft-365-Testversand» beim Empfänger Kasse TVW.
 - Separate sichere Aufbewahrung der DEV- und PROD-Backup-Schlüssel inklusive geschützter PROD-Ersatzkopie durch Anwenderin bestätigt.
 - PR #123 erfolgreich in main gemergt (d09a234); finale PR-CI: 5 erfolgreich, 3 übersprungen, 0 fehlgeschlagen.
+
+
+## Produktive Abnahme v0.9.2 – 27.11.2026
+
+Release: [v0.9.2](https://github.com/JenSusann/ClubMatiq/releases/tag/v0.9.2), Merge-Commit `0fa4d3943d222d8bb489c448278b8b1fd5dac568`, PR #131. PR-CI 46014689417, Main-CI 46015038832 und Tag-CI 46015282887 erfolgreich.
+
+| Prüfung | Ergebnis |
+|---|---|
+| Footer zeigt v0.9.2 | Bestanden |
+| Anmeldung beim Turnverein Weiningen | Bestanden |
+| Bestehende Mitglieder und Artikel vorhanden | Bestanden |
+| Kombinierbare Erstbezugsrabatte auswählbar | Bestanden |
+| Gwändli und Hosen mit korrektem Gesamtpreis | Bestanden |
+| Massenbearbeitung der Verkaufspreise verfügbar | Bestanden |
+| Navigation bei neuer Artikelanlage korrekt | Bestanden |
+
+Einzelbestätigung: 7/7 bestanden. Manuelle DEV-Abnahme #130: 13/13 bestanden. Produktive Kurzabnahme bestätigt die genannten Funktionen, nicht sämtliche Stornierungsvarianten. Bestehende Sperren für bezahlte Verkäufe ohne Beleg, rabattierte Teilrechnungen und zusätzliche manuelle Rabatte bei Stornierungen bleiben bestehen. Der eigentliche Pilotverkauf (#115) steht noch aus.
