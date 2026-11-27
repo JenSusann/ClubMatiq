@@ -59,3 +59,11 @@ Netlify Production: main@cce1443 veröffentlicht, Auto Publishing Locked aktiv (
 ## Backup-Abnahme – 27.11.2026
 
 MongoDB Database Tools 100.20.1 installiert. DEV-Backup um 01:23:33 MEZ und PROD-Backup um 01:23:54 MEZ erfolgreich laut lokaler Konsolenausgabe. Archive ausserhalb des Repositorys gespeichert. Verschlüsselung und Wiederherstellung noch nicht nachgewiesen. Vor und nach der Kleiderbörse erneut sichern; Schreibvorgänge während der Sicherung pausieren.
+
+### Wiederherstellungsprüfung
+
+- Nicht leere Restore-Datenbank: erwarteter Abbruch vor mongorestore, bestanden.
+- Isolierter Restore des DEV-Archivs vom 27.11.2026, 01:23:33 MEZ: erfolgreich.
+- 28 Collections und 35 Indizes laut Konsolenausgabe wiederhergestellt; Anzahl entspricht dem bekannten Schema.
+- Alle Collections enthielten 0 Dokumente. Wiederherstellung von Dokumentinhalten und exakte Indexdefinitionen noch nicht nachgewiesen.
+- Verschlüsselte Ablage weiterhin offen.
