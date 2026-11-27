@@ -150,3 +150,26 @@ describe('Mitglieder – zusätzliche CSV- und Suchzweige', () => {
     expect(m.bulkWrite.mock.calls[0][0][0].updateOne.update.$set.vorname).toBe('änne');
   });
 });
+
+describe('Issue #115 – ClubDesk-Export', () => {
+  it.each(['[Gruppen]', 'Gruppen'])('importiert %s ohne Hauptgruppe', async (spalte) => {
+    m.find.mockReturnValue({ toArray: m.toArray });
+    const response = await post('[Id];Vorname;Nachname;' + spalte + '\n42;Anna;Muster;K4/5 Ti (TurnerIn), 06_01_GETU_350   (TurnerIn), 01_01_Vorstand (Kassier(in)), 02_01_Aktive_Getu, K4/5 Ti (TurnerIn)');
+    expect(response.status).toBe(200);
+    expect(m.bulkWrite.mock.calls[0][0][0].updateOne).toMatchObject({
+      filter: { vereinId: 'verein-1', clubdeskId: '42' },
+      upsert: true,
+      update: { $set: { clubdeskGruppendetails: [
+        { gruppe: 'K4/5 Ti', funktion: 'TurnerIn' },
+        { gruppe: '06_01_GETU_350', funktion: 'TurnerIn' },
+        { gruppe: '01_01_Vorstand', funktion: 'Kassier(in)' },
+        { gruppe: '02_01_Aktive_Getu', funktion: null }
+      ] } }
+    });
+  });
+  it('akzeptiert leere Gruppenfelder', async () => {
+    m.find.mockReturnValue({ toArray: m.toArray });
+    expect((await post('[Id];Vorname;Nachname;[Gruppen]\n42;Anna;Muster;')).status).toBe(200);
+    expect(m.bulkWrite.mock.calls[0][0][0].updateOne.update.$set.clubdeskGruppendetails).toEqual([]);
+  });
+});
