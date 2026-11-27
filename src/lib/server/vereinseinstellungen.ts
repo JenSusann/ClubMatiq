@@ -63,3 +63,21 @@ export function validiereVereinseinstellungen(eingabe: unknown): Ergebnis {
     return { erfolg: false, fehler: fehler instanceof Error ? fehler.message : 'Ungültige Vereinsdaten.' };
   }
 }
+
+/** Erstellt eine unabhängige Kopie der verfügbaren Ausstellerdaten. */
+export function erstelleAusstellerdaten(verein: unknown): Ausstellerdaten {
+  const quelle = objekt(verein) ? verein : {};
+  const adresse = objekt(quelle.adresse) ? quelle.adresse : {};
+  const kontakt = objekt(quelle.kontakt) ? quelle.kontakt : {};
+  const logo = objekt(quelle.logo) ? quelle.logo : {};
+  const text = (wert: unknown): string => typeof wert === 'string' ? wert : '';
+  return {
+    name: text(quelle.name) || 'Verein',
+    kuerzel: text(quelle.kuerzel),
+    adresse: { strasse: text(adresse.strasse), plz: text(adresse.plz), ort: text(adresse.ort) },
+    kontakt: { email: text(kontakt.email), telefon: text(kontakt.telefon), website: text(kontakt.website) },
+    logo: typeof logo.url === 'string' && logo.url && typeof logo.publicId === 'string' && logo.publicId
+      ? { url: logo.url, publicId: logo.publicId }
+      : null
+  };
+}
