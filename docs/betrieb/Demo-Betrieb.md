@@ -10,9 +10,10 @@ Separate Umgebung für die ZHAW-Zwischen- und Schlussabgabe: https://clubmatiq-d
 |---|---|---|
 | Development | clubmatiq_dev | npm run dev |
 | Demo | clubmatiq_demo | npm run dev:demo (Port 5174) |
+| Integrationstests | clubmatiq_test | npm run test:integration |
 | Production | clubmatiq | bestehendes Netlify-Projekt |
 
-Demo verwendet einen eigenen MongoDB-Benutzer mit readWrite ausschliesslich auf clubmatiq_demo. Lokale Konfiguration in .env.demo.local, nicht committen.
+Die CI nutzt gemäss [Pilotbetrieb](../testing/Pilotbetrieb.md) eine temporäre lokale MongoDB-Instanz. Demo verwendet einen eigenen MongoDB-Benutzer mit readWrite ausschliesslich auf clubmatiq_demo. Lokale Konfiguration in .env.demo.local, nicht committen.
 
 ## Initialisierung und Reset
 
@@ -23,7 +24,7 @@ npm run db:seed:demo
 npm run db:seed:demo -- --apply
 ```
 
-Vor Reset Demo-Zugriffe und parallele Schreibvorgänge unterbinden. Reset löscht Demo-Daten und erstellt den Seed innerhalb einer Transaktion neu; bestehende Indizes bleiben erhalten. Manuell erzeugte Testfälle gehen verloren.
+Vor Reset Demo-Zugriffe und parallele Schreibvorgänge unterbinden. Reset löscht Demo-Daten und erstellt den Seed innerhalb einer Transaktion neu; bestehende Indizes bleiben erhalten. Manuell erzeugte Testfälle gehen verloren; insbesondere werden manuelle Teilzahlungen und Retouren nicht automatisch wiederhergestellt.
 
 ```powershell
 npm run db:reset:demo
@@ -38,7 +39,7 @@ Eigenes Projekt clubmatiq-demo, Repository JenSusann/ClubMatiq, Branch main, Bui
 
 ## Abnahme und Freigabe
 
-Lokale Abnahme 10/10, Online-Abnahme 15/15 gemäss Anwenderbestätigung am 27.11.2026, siehe [Systemabnahmetestprotokoll](System_Abnahmetestprotokoll.md). Foto-Upload und E-Mail-Einstellungen gesperrt; vorgesehene Isolationsprüfungen gemäss Anwenderbestätigung bestanden; kein unabhängiger Penetrationstest.
+Lokale Abnahme 10/10, Online-Abnahme 15/15 gemäss Anwenderbestätigung am 27.11.2026, siehe [Systemabnahmetestprotokoll](../testing/System-Abnahmetestprotokoll.md). Foto-Upload und E-Mail-Einstellungen gesperrt; vorgesehene Isolationsprüfungen gemäss Anwenderbestätigung bestanden; kein unabhängiger Penetrationstest.
 
 - [x] Automatische Builds gestoppt (Screenshot 27.11.2026).
 - [x] Stand d2c2d1e am 27.11.2026 um 16:45 Uhr veröffentlicht (Netlify-Screenshot); interne Deployment-ID nicht erfasst.

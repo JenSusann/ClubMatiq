@@ -2,6 +2,33 @@
 
 ZHAW · Prototyping HS2026 · Laufende Dokumentation
 
+## Schnellübersicht
+
+| Nachweis | Ergebnis | Bezug |
+|---|---|---|
+| Automatisierte Tests | 5'013/5'013 | CI 26.11., v0.9.0 |
+| Quantifizierte Issue-Abnahmen | 463/463 | Summe der Übersicht unten |
+| Demo-Prüfungen | 32/32 | 27.11., teilweise überlappend |
+| Produktive Abnahmen und Backup | separat | [Pilotbetrieb](Pilotbetrieb.md) |
+
+Keine gemeinsame Gesamtquote über unterschiedliche Testarten oder Softwarestände.
+
+## Inhaltsverzeichnis
+
+- [1. Ziel und Methodik](#1-ziel-und-methodik)
+- [Automatisierter Testnachweis – Issue #38 (26.11.2026)](#automatisierter-testnachweis--issue-38-26112026)
+- [2. Bisherige Abnahmen](#2-bisherige-abnahmen)
+- [3. Geplanter Regressionstestkatalog](#3-geplanter-regressionstestkatalog)
+- [4. Vorlage für weitere Issue-Abnahmen](#4-vorlage-für-weitere-issue-abnahmen)
+- [5. Pflegeprozess](#5-pflegeprozess)
+- [Manuelle Abnahme #50 – 26.11.2026](#manuelle-abnahme-50--26112026)
+- [Technischer Abschluss – 26.11.2026](#technischer-abschluss--26112026)
+- [Manuelle Abnahme #51 – 26.11.2026](#manuelle-abnahme-51--26112026)
+- [Manuelle Abnahme #65](#manuelle-abnahme-65)
+- [Issue #130 – Kombinierbare Erstbezugsrabatte (27.11.2026)](#issue-130--kombinierbare-erstbezugsrabatte-27112026)
+- [Abschlussabnahme Issue #125 – 27.11.2026](#abschlussabnahme-issue-125--27112026)
+- [Separate Demo-Abnahme – 27.11.2026](#separate-demo-abnahme--27112026)
+
 ## 1. Ziel und Methodik
 
 Manuelle funktionale Systemtests ergänzen die automatisierten Unit- und Integrationstests und dienen der Abnahme der GitHub-Issues. Usability-Tests mit unabhängigen Testpersonen werden separat dokumentiert.
@@ -58,9 +85,11 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 | #50 | Dashboard | 17/17 | Sammelbestätigung 26.11.2026 |
 | #51 | Lagerbewegungsjournal | 21/21 | Sammelbestätigung 26.11.2026 |
 | #65 | Übergabe letztes Lagerstück | 10/10 | Sammelbestätigung |
-| Gesamt | Quantifizierte manuelle Prüfungen | 430/430 | Dokumentierte Durchläufe |
+| #63 | Vereinsbezogene E-Mail-Einstellungen | 10/10 | Einzelbestätigung 27.11.2026 |
+| #125 | ClubDesk-Gruppenimport | 10/10 | Abschlussabnahme 27.11.2026 |
+| Gesamt | Quantifizierte manuelle Prüfungen | 463/463 | Summe der aufgeführten Zeilen |
 
-Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
+Die frühere Summe 430/430 enthielt #130 (13/13) noch nicht. Die aktualisierte Summe enthält zusätzlich #63 und #125; Nachprüfungen und Demo-Prüfungen werden nicht nochmals addiert. Die Übersicht übernimmt die bisherige Chat-Dokumentation; fehlende Originalprotokolle und genaue Testdaten sind nachzutragen. Die Quote bezieht sich nicht auf die gesamte Anwendung.
 
 ### Issue #14 – Session-Verwaltung
 
@@ -922,4 +951,8 @@ Veröffentlichter Stand: d2c2d1e, Netlify, 16:45 Uhr. Automatische Builds gestop
 | DEMO-NP-06 | Keine produktiven Zugangsdaten in Demo-Umgebungsvariablen | Bestanden |
 | DEMO-NP-07 | Keine Verbindung zu produktiven externen Diensten | Bestanden |
 
-7/7 gemäss Einzelbestätigung der Anwenderin. Zusammen mit lokaler Prüfung (10/10) und Online-Abnahme (15/15): 32/32 Prüfergebnisse, teilweise überlappende Prüfgegenstände. Kein unabhängiger Penetrationstest. Finaler Reset noch offen.
+7/7 gemäss Einzelbestätigung der Anwenderin. Zusammen mit lokaler Prüfung (10/10) und Online-Abnahme (15/15): 32/32 Prüfergebnisse, teilweise überlappende Prüfgegenstände. Kein unabhängiger Penetrationstest. Finaler Reset und erwarteter Datenbestand am 27.11.2026 durch Anwenderin bestätigt; siehe [Demo-Betrieb](../betrieb/Demo-Betrieb.md).
+
+## Historischer Übernahmehinweis – Coverage-Paket 7
+
+Zusätzliche Integrationstests für Sammelbestellungen, Gesamt-PDF und Excel-Export wurden auf den Quellcode vom 20.11.2026 abgestimmt. Bei Erstellung des Übernahmepakets war keine lokale Vitest-Ausführung möglich; dies ist kein aktueller Testnachweis. Der damalige Übernahmehinweis verwies auf `tests/integration/coverage-p7/` und `npm run test:integration`. Die Export-API erzeugt XLSX (ExcelJS), nicht CSV.

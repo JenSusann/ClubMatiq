@@ -11,8 +11,8 @@
 | Projekttitel | ClubMatiq – Digitale Material-, Inventar- und Vereinskleiderverwaltung |
 | Verfasser/in | Jennifer Mentner, WIN-03-23HS-TZDSRH *(Angabe aus bisheriger README; vor Abgabe prüfen)* |
 | GitHub-Repository | https://github.com/JenSusann/ClubMatiq |
-| Aktuelle App | https://clubmatiq.netlify.app |
-| Getestete Version | https://clubmatiq-demo.netlify.app – separate Demo, Online-Abnahme 27.11.2026; veröffentlichter Stand: [`d2c2d1e`](https://github.com/JenSusann/ClubMatiq/commit/d2c2d1e10c8c381e05bb72088b6138160085dda8), 27.11.2026, 16:45 Uhr; Nachprüfung ausstehend |
+| Produktive App | https://clubmatiq.netlify.app |
+| Getestete Version | https://clubmatiq-demo.netlify.app – separate Demo, Online-Abnahme 27.11.2026; veröffentlichter Stand: [`d2c2d1e`](https://github.com/JenSusann/ClubMatiq/commit/d2c2d1e10c8c381e05bb72088b6138160085dda8), 27.11.2026, 16:45 Uhr; finale Nachprüfung 7/7 bestanden; Reset bestätigt |
 | Testzugänge | Vier Demo-Rollen; Zugangsdaten separat über Moodle, keine Passwörter im Repository |
 | Referenz-Mockup (PowerPoint) | [Interaktives Mockup](docs/konzeption/ClubMatiq_Mockup.pptx) · [Design- und Workflow-Dokumentation](docs/konzeption/ui-prototyping.pdf) |
 | Weitere Artefakte [Optional] | [Crazy 8s](docs/images/crazy8s.png) · [User Journey Map](docs/images/user-journey.png) · [GitHub Issues](https://github.com/JenSusann/ClubMatiq/issues) |
@@ -21,9 +21,23 @@
 
 > **Testzugänge:** Keine persönlichen Passwörter, API-Schlüssel oder MongoDB-Zugangsdaten im Repository veröffentlichen. Testkonten gegebenenfalls separat bereitstellen.
 
+## Dokumentenverzeichnis
+
+| Bereich | Dokument | Zweck |
+|---|---|---|
+| Planung | [Roadmap](ROADMAP.md) | Zielversionen und Funktionsumfang |
+| Entwicklung | [AGENTS](AGENTS.md) | Entwicklungs- und KI-Richtlinien |
+| Versionierung | [Changelog](CHANGELOG.md) | Änderungshistorie |
+| Release | [Release-Management](docs/releases/Release-Management.md) | Branches, Versionierung und Freigabe |
+| Release | [Release-Checkliste](docs/releases/Release-Checkliste.md) | Wiederverwendbare Freigabekriterien |
+| Betrieb | [Demo-Betrieb](docs/betrieb/Demo-Betrieb.md) | Demo-Deployment, Daten und Reset |
+| Betrieb | [E-Mail-Konfiguration](docs/betrieb/E-Mail-Konfiguration.md) | Microsoft 365, SMTP und Resend |
+| Qualitätssicherung | [Systemabnahmetestprotokoll](docs/testing/System-Abnahmetestprotokoll.md) | Automatisierte und manuelle Nachweise |
+| Qualitätssicherung | [Pilotbetrieb](docs/testing/Pilotbetrieb.md) | Produktive Abnahmen, Backup und Live-Test |
+
 ## Inhaltsverzeichnis
 
-[Projektübersicht & Zugänge](#projektübersicht--zugänge)
+[Projektübersicht & Zugänge](#projektübersicht--zugänge) · [Dokumentenverzeichnis](#dokumentenverzeichnis)
 
 - [1. Ausgangslage](#1-ausgangslage)
 - [2. Lösungsidee](#2-lösungsidee)
@@ -254,7 +268,7 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 
 **Umsetzung:** Die Authentifizierung erfolgt über SvelteKit-API-Endpunkte und Sessions. Passwörter werden mit Argon2 gehasht. Einladungen werden über Resend versendet und über zeitlich begrenzte Tokens verarbeitet. Die Benutzerrollen und Einzelberechtigungen werden zentral verwaltet und bei geschützten API-Aufrufen geprüft.
 
-**Nachweise:** [Benutzerverwaltung](https://github.com/JenSusann/ClubMatiq/tree/main/src/routes/benutzer) · [Berechtigungslogik](https://github.com/JenSusann/ClubMatiq/blob/main/src/lib/server/berechtigungen.ts) · [Resend-Einrichtung](https://github.com/JenSusann/ClubMatiq/blob/main/docs/resend-einladungen.md) · [Pull Request #59](https://github.com/JenSusann/ClubMatiq/pull/59)
+**Nachweise:** [Benutzerverwaltung](https://github.com/JenSusann/ClubMatiq/tree/main/src/routes/benutzer) · [Berechtigungslogik](https://github.com/JenSusann/ClubMatiq/blob/main/src/lib/server/berechtigungen.ts) · [E-Mail-Konfiguration](docs/betrieb/E-Mail-Konfiguration.md) · [Pull Request #59](https://github.com/JenSusann/ClubMatiq/pull/59)
 
 **Bezug zur Evaluation:** Die Funktion wurde während der technischen Umsetzung lokal getestet. Eine separate Nutzerevaluation ist dadurch nicht ersetzt.
 
@@ -333,8 +347,8 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 
 - **Beschreibung & Nutzen:** Die Weiterentwicklung wird über Zielversionen, eine Produkt-Roadmap und einen dokumentierten Freigabeprozess strukturiert. Dadurch bleiben Abgabeumfang und spätere Produktentwicklung nachvollziehbar getrennt.
 - **Abgrenzung zum Mindestumfang:** Zusätzlich zur Git-Versionsverwaltung werden Release-Planung, Zielversionslabels, Changelog und Freigabekriterien gepflegt. Geplante Funktionen sind keine umgesetzten Software-Erweiterungen.
-- **Umsetzung:** Am 25.11.2026 wurden die 43 optionalen Issues #72–114 den Zielversionen v1.1 bis v3.0 zugeordnet. Die bestehenden Projektmeilensteine M1–M5 bleiben erhalten. Sechs Versionsmeilensteine (v1.0.0 bis v3.0.0) wurden eingerichtet; alle 43 optionalen Issues sind den fünf Folgeversionen zugeordnet. Die interne Entwicklungsversion 0.9.0 wird zentral in `package.json` gepflegt und über Vite automatisch im globalen Footer angezeigt (Commit [`f56bf71`](https://github.com/JenSusann/ClubMatiq/commit/f56bf71)). Roadmap, Changelog, Release-Management und Freigabecheckliste wurden im Repository angelegt. Die separat deployte Evaluationsversion und der erste stabile Release sind noch ausstehend; Zielnummern werden vor Freigabe gemäss Semantic Versioning überprüft.
-- **Nachweise:** [Produkt-Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Release-Management](docs/releases/Release_Management.md) · [Freigabecheckliste](docs/releases/Release_Checkliste.md) · [GitHub-Labels](https://github.com/JenSusann/ClubMatiq/labels) · [Versionsmeilensteine](https://github.com/JenSusann/ClubMatiq/milestones). Screenshot und tatsächliche Release-Nachweise nach Einrichtung ergänzen.
+- **Umsetzung:** Am 25.11.2026 wurden die 43 optionalen Issues #72–114 den Zielversionen v1.1 bis v3.0 zugeordnet. Die bestehenden Projektmeilensteine M1–M5 bleiben erhalten. Sechs Versionsmeilensteine (v1.0.0 bis v3.0.0) wurden eingerichtet; alle 43 optionalen Issues sind den fünf Folgeversionen zugeordnet. Die ursprünglich eingeführte interne Entwicklungsversion 0.9.0 wurde zentral in `package.json` gepflegt und über Vite automatisch im globalen Footer angezeigt (Commit [`f56bf71`](https://github.com/JenSusann/ClubMatiq/commit/f56bf71)). Roadmap, Changelog, Release-Management und Freigabecheckliste wurden im Repository angelegt. Die separate Demo wurde am 27.11.2026 veröffentlicht und nachgeprüft; die Pilotversion v0.9.2 wurde produktiv kurzabgenommen. Der erste stabile Release steht noch aus; Zielnummern werden vor Freigabe gemäss Semantic Versioning überprüft.
+- **Nachweise:** [Produkt-Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Release-Management](docs/releases/Release-Management.md) · [Freigabecheckliste](docs/releases/Release-Checkliste.md) · [GitHub-Labels](https://github.com/JenSusann/ClubMatiq/labels) · [Versionsmeilensteine](https://github.com/JenSusann/ClubMatiq/milestones). Produktive Release-Nachweise siehe [Pilotbetrieb](docs/testing/Pilotbetrieb.md).
 - **Bezug zur Evaluation:** Nein. Die Planung entstand als zusätzliche organisatorische Erweiterung; die eingefrorene Evaluationsversion wird nach Durchführung separat nachgewiesen.
 
 ## 5. Projektorganisation [Optional]
@@ -430,9 +444,9 @@ KI-generierter Code wird anhand statischer Prüfungen, automatisierter Unit- und
 
 Manuelle Tests werden durch die entwickelnde Person ausgeführt. Die Ergebnisse werden erst nach entsprechender Rückmeldung als bestanden dokumentiert. Historisch rekonstruierte Testbeschreibungen werden gekennzeichnet. Die unabhängige Usability-Evaluation ergänzt diese funktionalen Prüfungen.
 
-Die Übersicht im System- und Abnahmetestprotokoll weist 430/430 quantifizierte manuelle Prüfungen aus (eingesehen am 27.11.2026). Neuere Einzelabnahmen sind dort separat dokumentiert; die Übersicht ist keine abschliessende Gesamtzählung. Der aktuelle automatisierte Nachweis vom 26.11.2026 ist in Kapitel 9.4 dokumentiert.
+Die Übersicht im System- und Abnahmetestprotokoll weist 463/463 quantifizierte manuelle Prüfungen aus (eingesehen am 27.11.2026). Die Übersicht ist keine abschliessende Gesamtzählung; Demo-Prüfungen (32/32) und technische Nachprüfungen werden separat ausgewiesen. Der aktuelle automatisierte Nachweis vom 26.11.2026 ist in Kapitel 9.4 dokumentiert.
 
-**Nachweise:** [System- und Abnahmetestprotokoll](docs/testing/System_Abnahmetestprotokoll.md) · [Testdateien](tests) · [Kapitel 9](#9-lokale-installation-und-tests)
+**Nachweise:** [System- und Abnahmetestprotokoll](docs/testing/System-Abnahmetestprotokoll.md) · [Testdateien](tests) · [Kapitel 9](#9-lokale-installation-und-tests)
 
 ### 6.6 Datenschutz, Sicherheit und Urheberrecht
 
@@ -600,7 +614,7 @@ Vor dem Abschluss eines Issues werden relevante Funktionen anhand konkreter manu
 
 Die laufende Dokumentation enthält pro Issue Test-IDs, Aufgaben, erwartete Ergebnisse, bestätigte Resultate, Fehlerkorrekturen und Nachtests sowie verfügbare technische Nachweise.
 
-**Artefakt:** [System- und Abnahmetestprotokoll](docs/testing/System_Abnahmetestprotokoll.md)
+**Artefakt:** [System- und Abnahmetestprotokoll](docs/testing/System-Abnahmetestprotokoll.md)
 
 Historischer Auszug vom 25.11.2026 (nicht der aktuelle Gesamtstand):
 
@@ -615,7 +629,7 @@ Historischer Auszug vom 25.11.2026 (nicht der aktuelle Gesamtstand):
 | [#34](https://github.com/JenSusann/ClubMatiq/issues/34) | Vereinskleider, Erstbezüge und Stornierungen | 20/20 |
 | **Gesamt** | | **98/98** |
 
-Die Ergebnisse beziehen sich auf die jeweiligen dokumentierten Abnahmen, nicht auf eine vollständige Prüfung des aktuellen Gesamtstands. Der zunächst festgestellte Grössenfehler bei #21 wurde korrigiert und erfolgreich nachgeprüft. Historisch rekonstruierte Aufgaben sind im Protokoll gekennzeichnet. Weitere 56 Regressionstestfälle sind dort als geplant erfasst und nicht in der Erfolgsquote enthalten. Massgeblich für den laufenden Stand ist das verlinkte Protokoll. Dessen Übersicht weist bei Einsicht am 27.11.2026 430/430 quantifizierte Prüfungen aus; neuere Einzelabnahmen sind separat aufgeführt.
+Die Ergebnisse beziehen sich auf die jeweiligen dokumentierten Abnahmen, nicht auf eine vollständige Prüfung des aktuellen Gesamtstands. Der zunächst festgestellte Grössenfehler bei #21 wurde korrigiert und erfolgreich nachgeprüft. Historisch rekonstruierte Aufgaben sind im Protokoll gekennzeichnet. Weitere 56 Regressionstestfälle sind dort als geplant erfasst und nicht in der Erfolgsquote enthalten. Massgeblich für den laufenden Stand ist das verlinkte Protokoll. Dessen Übersicht weist bei Einsicht am 27.11.2026 463/463 quantifizierte Prüfungen aus; Demo-Prüfungen (32/32) und technische Nachprüfungen sind separat aufgeführt.
 
 ### 9.6 Usability-Tests und Evaluation
 
@@ -710,13 +724,13 @@ Die folgende Übersicht beschreibt den im Repository vorhandenen Funktionsumfang
 
 ### 10.4 E-Mail-Versand und Konfiguration
 
-Administratoren können die Versandmethode vereinsbezogen konfigurieren. Der Einladungsprozess unterstützt Resend, SMTP und Microsoft 365. Einladungen können erneut versendet und widerrufen werden. Die Resend-Einrichtungsanleitung beschreibt den ursprünglichen Versandweg; der aktuelle Code umfasst zusätzlich die beiden weiteren Methoden.
+Administratoren können die Versandmethode vereinsbezogen konfigurieren. Der Einladungsprozess unterstützt Resend, SMTP und Microsoft 365. Einladungen können erneut versendet und widerrufen werden. Die E-Mail-Konfigurationsanleitung beschreibt den ursprünglichen Versandweg; der aktuelle Code umfasst zusätzlich die beiden weiteren Methoden.
 
 - [E-Mail-Versand](src/lib/server/email.ts)
 - [Microsoft-365-Anbindung](src/lib/server/microsoft365.ts)
 - [Mail-Konfiguration und Verschlüsselung](src/lib/server/mail-einstellungen.ts)
 - [Einladungs-API](src/routes/api/benutzer/einladen)
-- [Resend-Einrichtungsanleitung](docs/resend-einladungen.md)
+- [E-Mail-Konfigurationsanleitung](docs/betrieb/E-Mail-Konfiguration.md)
 
 SMTP-Geheimnisse und Microsoft-365-Zertifikatsdaten werden serverseitig mit AES-256-GCM geschützt. Microsoft 365 verwendet vereinsbezogene Zertifikate und private Schlüssel ohne globalen Zertifikats-Fallback. Die Implementierung prüft Gültigkeitszeitraum und Übereinstimmung des Schlüssels mit dem Zertifikat. Der tatsächliche Versand über alle Anbieter muss mit geeigneten Testkonfigurationen separat nachgewiesen werden.
 
@@ -742,7 +756,7 @@ Diese Übersicht enthält keine geheimen Werte und ist keine abschliessende List
 - Bild-Upload mit Anmeldung, Dateityp- und Signaturprüfung, maximal 5 MB sowie Registrierung der Bildreferenz in MongoDB.
 - Geheimnisse ausschliesslich serverseitig konfigurieren; keine produktiven Zugangsdaten oder persönlichen Testdaten veröffentlichen.
 
-**Nachweise:** [Berechtigungsmodul](src/lib/server/berechtigungen.ts) · [Testprotokoll](docs/testing/System_Abnahmetestprotokoll.md) · [Kapitel 9](#9-lokale-installation-und-tests)
+**Nachweise:** [Berechtigungsmodul](src/lib/server/berechtigungen.ts) · [Testprotokoll](docs/testing/System-Abnahmetestprotokoll.md) · [Kapitel 9](#9-lokale-installation-und-tests)
 
 Die dokumentierten Massnahmen ersetzen keinen vollständigen Sicherheits-, Datenschutz- oder Lasttest.
 
@@ -755,12 +769,12 @@ Stand der Dokumentationsüberarbeitung: 25.11.2026. Die Funktionsübersicht basi
 | Fachliche Module | Oberflächen und API-Routen gemäss Kapitel 10.2 vorhanden |
 | Externe Dienste | Implementierungen gemäss Kapitel 10.3 und 10.4 vorhanden; Live-Nachweise je Dienst separat erforderlich |
 | Automatisierte Tests | 5'013/5'013 bestanden; kombiniertes 95-%-Quality-Gate bestanden (26.11.2026, Kapitel 9.4) |
-| Manuelle Abnahmen | 430/430 quantifizierte Prüfungen gemäss Übersicht im Testprotokoll (eingesehen am 27.11.2026); weitere Einzelabnahmen separat dokumentiert |
+| Manuelle Abnahmen | 463/463 quantifizierte Prüfungen gemäss Übersicht im Testprotokoll (eingesehen am 27.11.2026); Demo-Prüfungen (32/32) separat dokumentiert |
 | Regressionstests | Weitere 56 Fälle geplant; laufende Issue-Abnahmen ergänzen den Katalog |
 | Usability | Unabhängige Evaluation noch durchzuführen bzw. auszuwerten |
 | Abgabedokumentation | Laufende Pflege; finaler Abgabestand noch festzulegen |
 
-Die detaillierte Änderungshistorie wird über [GitHub-Commits](https://github.com/JenSusann/ClubMatiq/commits/main/) und [GitHub-Issues](https://github.com/JenSusann/ClubMatiq/issues) geführt. Das [Abnahmetestprotokoll](docs/testing/System_Abnahmetestprotokoll.md) ist die zentrale Quelle für manuelle Testresultate. Der Grössenfehler im Inventur-PDF wurde im Rahmen von #21 korrigiert und erfolgreich nachgeprüft.
+Die detaillierte Änderungshistorie wird über [GitHub-Commits](https://github.com/JenSusann/ClubMatiq/commits/main/) und [GitHub-Issues](https://github.com/JenSusann/ClubMatiq/issues) geführt. Das [Abnahmetestprotokoll](docs/testing/System-Abnahmetestprotokoll.md) ist die zentrale Quelle für manuelle Testresultate. Der Grössenfehler im Inventur-PDF wurde im Rahmen von #21 korrigiert und erfolgreich nachgeprüft.
 
 ### 10.7 Offene Aufgaben bis zur Abgabe
 

@@ -2,6 +2,18 @@
 
 Termin: 28.11.2026. Status: Vorbereitung, keine Go-Live-Freigabe.
 
+## Inhaltsverzeichnis
+
+- [Umgebungen](#umgebungen)
+- [Freigabe – aktueller Stand 27.11.2026](#freigabe--aktueller-stand-27112026)
+- [Live-Test](#live-test)
+- [Abnahmenachweis Datenbankumgebungen – 27.11.2026](#abnahmenachweis-datenbankumgebungen--27112026)
+- [Produktive Abnahme – 27.11.2026](#produktive-abnahme--27112026)
+- [Backup-Abnahme – 27.11.2026](#backup-abnahme--27112026)
+- [Produktive Abnahme v0.9.2 – 27.11.2026](#produktive-abnahme-v092--27112026)
+- [PROD-Backup vor Pilotbetrieb – 27.11.2026](#prod-backup-vor-pilotbetrieb--27112026)
+- [Abschlussabnahme Issue #125 – 27.11.2026](#abschlussabnahme-issue-125--27112026)
+
 ## Umgebungen
 
 | Umgebung | Datenbank | Atlas-Benutzer |
@@ -13,13 +25,15 @@ Termin: 28.11.2026. Status: Vorbereitung, keine Go-Live-Freigabe.
 
 CI verwendet eine temporäre lokale MongoDB-Instanz. MONGODB_DB_NAME muss explizit gesetzt sein. MONGODB_TEST_URI bleibt für echte Integrationstests separat. Keine produktiven Geheimnisse in Preview-Deployments. Testdatenbereinigung ist für clubmatiq gesperrt. Produktive Journalindexänderungen erfordern --confirm-production.
 
-## Freigabe
+## Freigabe – aktueller Stand 27.11.2026
+
+Die nachfolgenden historischen Nachweise bleiben unverändert; frühere offene Punkte können durch spätere Nachweise erledigt sein.
 - [x] CI erfolgreich (Stand 3633ad09)
-- [ ] Backup und Wiederherstellung geprüft
-- [ ] Netlify Production und lokale Entwicklung getrennt konfiguriert
+- [x] Verschlüsselte DEV-Wiederherstellung und PROD-Archivprüfung bestanden (kein vollständiger PROD-Restore)
+- [x] Datenbanktrennung und produktiver Smoke-Test bestätigt
 - [x] Lesende Zugriffsprüfung je Datenbank inklusive verweigerter Fremdzugriffe
 - [ ] Alte Admin-Verbindung überall ersetzt und erst danach Benutzer entfernen
-- [ ] Vereinsdaten, Bestände, Preise und Erstbezüge geprüft
+- [ ] Vollständige Prüfung der Vereinsdaten, Bestände, Preise und Erstbezüge (produktive Kurzabnahme v0.9.2 vorhanden)
 - [ ] Generalprobe und Rückfalllösung verfügbar
 
 ## Live-Test
