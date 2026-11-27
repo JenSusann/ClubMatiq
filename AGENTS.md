@@ -31,7 +31,7 @@ ClubMatiq ist eine mandantenfähige Webanwendung zur Material-, Inventar- und Ve
 - `npm run build` für den Produktions-Build.
 - Kombiniertes Coverage-Ziel: mindestens 95 % je Kennzahl gemäss dokumentiertem Quality Gate.
 - Fehlerfälle, Berechtigungen und Regressionen gezielt testen.
-- Manuelle Abnahme durch die entwickelnde Person; Ergebnisse in docs/testing/System_Abnahmetestprotokoll.md dokumentieren.
+- Manuelle Abnahme durch die entwickelnde Person; Ergebnisse in docs/testing/System-Abnahmetestprotokoll.md dokumentieren.
 - Nie nicht ausgeführte Tests als bestanden ausweisen.
 
 ## Dokumentation und KI
