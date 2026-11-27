@@ -14,6 +14,7 @@
 	},
 	"scripts": {
 		"dev": "vite dev",
+		"dev:demo": "node scripts/dev-demo.mjs",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
