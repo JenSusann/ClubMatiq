@@ -876,3 +876,8 @@ Manuelle Einzelbestätigung auf dem Hotfix-Branch, Zielversion 0.9.2.
 | ST-130-13 | Gemischter Warenkorb mit Direktverkauf und Bestellung | Bestanden |
 
 Ergebnis: 13/13 bestanden. Vollständiger lokaler Svelte-Check sowie Unit- und Integrationstests laut Rückmeldung fehlerfrei; genaue Gesamtzahlen nicht übermittelt. Stornierungen bezahlter Verkäufe ohne Beleg, gemischte Rabatte bei Teilrechnungen und zusätzliche manuelle Rabatte bei Rabattstornierungen bleiben gesperrt. Die manuelle TWINT-Abnahme bestätigt den Verkauf, nicht die Aufhebung dieser Sperren. #127 und #128 wurden zuvor zusammenfassend positiv bestätigt, ohne Einzeltestnachweise.
+
+
+## Abschlussabnahme Issue #125 – 27.11.2026
+
+ClubDesk-Gruppenimport korrigiert in PR #124, produktiv seit v0.9.1. ST-125-01 bis ST-125-08: Versionsanzeige, erneuter Import, keine Duplikate, Gruppenauswahl, Zuordnung, automatische Mitgliederzuordnung, Mehrfachmitgliedschaften und Funktionen bestanden. ST-125-09 Erstbezugsrabatt und ST-125-10 Riegenrabatte durch Anwenderin bestätigt. Gesamt: 10/10 bestanden. Hotfix in beide Entwicklungsbranches übernommen (PR #132 und #133).
