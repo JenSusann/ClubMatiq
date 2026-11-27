@@ -740,3 +740,55 @@ describe('Issue #34 – einmalige Erstbezüge', () => {
     expect(mocks.insertOne).not.toHaveBeenCalled();
   });
 });
+
+describe('Issue #130 – kombinierbare Erstbezüge', () => {
+  const ids = [artikelId, new ObjectId().toString(), new ObjectId().toString()];
+  const regelIds = ids.map(() => new ObjectId().toString());
+  const mitgliedId = new ObjectId().toString();
+  beforeEach(() => {
+    regeln = ids.map((id, i) => ({
+      _id: new ObjectId(regelIds[i]), name: 'Erstbezug ' + i,
+      rabattart: 'fixpreis', wert: i === 0 ? 50 : 0,
+      geltungsbereich: 'artikel', artikelIds: [id], maximaleMenge: 1,
+      einmaligProMitglied: true, kombinierbar: true
+    }));
+    mocks.findOne.mockImplementation(async (name: string, filter: Record<string, unknown>) => {
+      if (name === 'clubdesk_mitglieder') return { _id: new ObjectId(mitgliedId), vereinId };
+      if (name === 'artikel') return { ...artikel, _id: filter._id };
+      if (name === 'vereinskleider_preise') return { preistyp: 'fix', verkaufspreis: [115, 98, 70][ids.indexOf(String(filter.artikelId))] };
+      return null;
+    });
+  });
+  const daten = (n = 2) => eingabe({
+    mitgliedId, verkaufsart: 'bestellung', zahlungsart: 'rechnung', zahlungErhalten: false,
+    positionen: ids.slice(0,n).map(artikelId => ({ artikelId, groesseId: null, menge: 1 })),
+    rabattIds: regelIds.slice(0,n)
+  });
+  it.each([2,3])('berechnet %i separate Erstbezüge und speichert Ansprüche', async n => {
+    regeln = regeln.slice(0,n);
+    const response = await verkaufen(daten(n));
+    expect(response.status).toBe(201);
+    const { verkauf } = await response.json();
+    expect(verkauf.endbetrag).toBe(50);
+    expect(verkauf.erstbezugsIds).toEqual(ids.slice(0,n));
+    expect(verkauf.erstbezugsPositionen).toHaveLength(n);
+    expect(verkauf.rabatte).toHaveLength(n);
+  });
+  it('sperrt nicht kombinierbare Regeln', async () => {
+    regeln = regeln.slice(0,2);
+    regeln[1].kombinierbar = false;
+    await verkaufsfehler(daten(),400,'nicht kombiniert');
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('sperrt überschneidende Erstbezüge', async () => {
+    regeln = regeln.slice(0,2);
+    regeln[1].artikelIds = [ids[0]];
+    await verkaufsfehler(daten(),409,'überschneiden');
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('sperrt identische Anspruchsgruppen', async () => {
+    regeln = regeln.slice(0,2);
+    regeln.forEach(r => { r.anspruchsgruppe = 'set'; });
+    await verkaufsfehler(daten(),409,'überschneiden');
+  });
+});
