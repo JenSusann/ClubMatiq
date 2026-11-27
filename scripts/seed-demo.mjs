@@ -94,6 +94,16 @@ const sales = [
 ];
 add('vereinskleider_sammelbestellungen','demo-reserve',{lieferantId:ref('lieferanten','Demo Textilwerk'),lieferantName:'Demo Textilwerk',status:'entwurf',positionen:[{artikelId:ref('artikel','Polo'),groesseId:ref('groessen','M'),artikelname:'Polo',menge:4,geliefertMenge:0,kundenbedarfMenge:0,lagerreserveMenge:4}],bemerkung:'Demo: Lagerreserve',erstelltAm:now,aktualisiertAm:now});
 add('vereinskleider_sammelbestellungen','demo-kundenbedarf',{lieferantId:ref('lieferanten','Demo Textilwerk'),lieferantName:'Demo Textilwerk',status:'bestellt',positionen:[{artikelId:ref('artikel','Trainerjacke'),groesseId:ref('groessen','128'),artikelname:'Trainerjacke',menge:3,geliefertMenge:0,kundenbedarfMenge:2,lagerreserveMenge:1},{artikelId:ref('artikel','Shorts'),groesseId:ref('groessen','140'),artikelname:'Shorts',menge:3,geliefertMenge:0,kundenbedarfMenge:2,lagerreserveMenge:1}],bemerkung:'Demo: Kundenbedarf und Lagerreserve',bestelltAm:now,erstelltAm:now,aktualisiertAm:now});
+for(const [artikelName,rolle,beschreibung,status,notiz] of [
+ ['Gymnastikmatte','mitglied','Naht am Rand aufgegangen.','offen',''],
+ ['Sprungbrett','leiter','Rutschfester Belag löst sich.','in_bearbeitung','Materialverantwortliche prüfen eine Reparatur.'],
+ ['Volleyball','leiter','Ball verliert Luft am Ventil.','erledigt','Ventil geprüft und repariert.']
+]) {
+  const bearbeitet=status!=='offen';
+  const erstelltAm=new Date(now.getTime()-86400000);
+  const bearbeiter={bearbeitetVonId:ref('benutzer','materialverantwortlich'),bearbeitetVonName:'Demo materialverantwortlich'};
+  add('schadensmeldungen',artikelName,{artikelId:ref('artikel',artikelName),artikelName,beschreibung,fotos:[],gemeldetVonId:ref('benutzer',rolle),gemeldetVonName:'Demo '+rolle,status,bearbeitungsnotiz:notiz,erstelltAm,aktualisiertAm:bearbeitet?now:erstelltAm,...(bearbeitet?{...bearbeiter,bearbeitungsverlauf:[{datum:now,alterStatus:'offen',alteNotiz:'',neuerStatus:status,notiz,...bearbeiter}]}:{})});
+}
 const client = new MongoClient(config.MONGODB_URI);
 try {
   await client.connect();
