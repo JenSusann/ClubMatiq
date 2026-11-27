@@ -17,12 +17,14 @@ vi.mock('mongodb', () => ({
 describe('MongoDB-Konfiguration (isolierte Modulimporte)', () => {
   const original = process.env.MONGODB_URI;
   beforeEach(() => {
+    vi.stubEnv('MONGODB_DB_NAME', 'clubmatiq_test');
     vi.resetModules();
     constructor.mockClear();
     database.mockReset();
     database.mockReturnValue({ name: 'mock-db' });
   });
   afterEach(() => {
+    vi.unstubAllEnvs();
     if (original === undefined) delete process.env.MONGODB_URI;
     else process.env.MONGODB_URI = original;
   });
@@ -33,12 +35,17 @@ describe('MongoDB-Konfiguration (isolierte Modulimporte)', () => {
     expect(constructor).not.toHaveBeenCalled();
   });
 
-  it('erzeugt Client und clubmatiq-Datenbank bei gültiger URI', async () => {
+  it('erzeugt Client und Testdatenbank bei gültiger URI', async () => {
     process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017';
     const modul = await import('../../../src/lib/server/mongodb');
     expect(constructor).toHaveBeenCalledWith('mongodb://127.0.0.1:27017');
-    expect(database).toHaveBeenCalledWith('clubmatiq');
+    expect(database).toHaveBeenCalledWith('clubmatiq_test');
     expect(modul.db).toEqual({ name: 'mock-db' });
     expect(modul.client).toBeDefined();
+  });
+  it.each(['', 'unbekannt'])('verweigert ungültigen Datenbanknamen %s', async (name) => {
+    vi.stubEnv('MONGODB_URI', 'mongodb://127.0.0.1:27017');
+    vi.stubEnv('MONGODB_DB_NAME', name);
+    await expect(import('../../../src/lib/server/mongodb')).rejects.toThrow('MONGODB_DB_NAME');
   });
 });

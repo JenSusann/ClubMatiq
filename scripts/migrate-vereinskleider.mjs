@@ -33,10 +33,10 @@ for (const argument of argumente) {
 const apply = process.argv.includes('--apply');
 const vereinId = process.argv.find((a) => a.startsWith('--verein='))?.slice('--verein='.length);
 const confirm = process.argv.find((a) => a.startsWith('--confirm='))?.slice('--confirm='.length);
-const dbName = process.argv.find((a) => a.startsWith('--db='))?.slice('--db='.length) ?? 'clubmatiq';
+const dbName = process.argv.find((a) => a.startsWith('--db='))?.slice('--db='.length) ?? process.env.MONGODB_DB_NAME;
 if (!vereinId) throw new Error('Sicherheitsabbruch: --verein=<vereinId> ist erforderlich.');
 if (apply && confirm !== vereinId) throw new Error('Sicherheitsabbruch: --confirm=<vereinId> muss übereinstimmen.');
-if (!['clubmatiq', 'clubmatiq_test'].includes(dbName)) throw new Error('Unzulässige Datenbank.');
+if (!['clubmatiq', 'clubmatiq_test', 'clubmatiq_dev', 'clubmatiq_demo'].includes(dbName)) throw new Error('Unzulässige Datenbank.');
 const uri = dbName === 'clubmatiq_test' ? process.env.MONGODB_TEST_URI : process.env.MONGODB_URI;
 if (!uri) throw new Error(dbName === 'clubmatiq_test' ? 'MONGODB_TEST_URI fehlt.' : 'MONGODB_URI fehlt.');
 const client = new MongoClient(uri);
