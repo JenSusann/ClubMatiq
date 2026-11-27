@@ -12,13 +12,13 @@ Semantic Versioning: MAJOR für inkompatible Änderungen, MINOR für kompatible 
 ### Branches
 
 - `main`: stabiler, produktiv einsetzbarer Stand.
-- `develop/v2.0.0`, `develop/v3.0.0`: getrennte Entwicklungsstände der Zielversionen.
+- `develop/vX.Y.Z`: getrennte Entwicklungsstände der Zielversionen; bestehende Branches `develop/v2.0.0` und `develop/v3.0.0` weiterverwenden, weitere bei Bedarf erstellen.
 - `feature/issue-XX-beschreibung`: einzelne Funktionen, ausgehend vom jeweiligen Versionsbranch.
 - `hotfix/issue-XX-beschreibung`: dringende Korrekturen ausgehend von main.
 
 ### Ablauf
 
-1. Issue unabhängig von der Versionsreihenfolge auswählen; Meilenstein beibehalten.
+1. Issue gemäss priorisierter Roadmap auswählen; Abhängigkeiten prüfen und Zielmeilenstein gemäss bestätigter Planung synchronisieren.
 2. Abhängigkeiten prüfen und Feature Branch erstellen.
 3. Implementieren, Unit- und Integrationstests sowie CI ausführen.
 4. Manuelle Abnahme durchführen und im Abnahmetestprotokoll dokumentieren.
@@ -54,7 +54,7 @@ Lokale Entwicklung, Preview, separat eingefrorene Evaluation mit getrennten Test
 
 ## Planung
 
-[Roadmap](../../ROADMAP.md), [Changelog](../../CHANGELOG.md), [Freigabecheckliste](Release-Checkliste.md). Projektmeilensteine M1–M5 und Release-Meilensteine v1.0.0–v3.0.0 getrennt nutzen. Die 43 optionalen Issues sind den fünf Folgeversionen zugeordnet. v1.0.0 verweist organisatorisch auf M1–M5. Zielversionslabels ergänzen die Zuordnung.
+[Roadmap](../../ROADMAP.md), [Changelog](../../CHANGELOG.md), [Freigabecheckliste](Release-Checkliste.md). Projektmeilensteine M1–M5 und Release-Meilensteine getrennt nutzen. v1.0.0 verweist organisatorisch auf M1–M5. Die bestätigte Roadmap vom 27.11.2026 priorisiert 24 Issues für v2.0.0 (7), v2.1.0 (4), v2.2.0 (5), v2.3.0 (5) und v3.0.0 (3). Weitere Erweiterungen bleiben im Backlog ohne neu bestätigte Zielversion. Die bisherigen v1.1.0 und v1.2.0 sind keine Pflichtreleases mehr. GitHub-Meilensteine und Zielversionslabels sind noch mit dem neuen Plan zu synchronisieren. Zielversionen bleiben Planungswerte; tatsächliche Versionsnummern folgen der SemVer-Prüfung vor Freigabe.
 
 ## Automatisierung
 
