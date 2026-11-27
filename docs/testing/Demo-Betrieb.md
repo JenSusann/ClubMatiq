@@ -44,5 +44,5 @@ Lokale Abnahme 10/10, Online-Abnahme 15/15 gemäss Anwenderbestätigung am 27.11
 - [x] Stand d2c2d1e am 27.11.2026 um 16:45 Uhr veröffentlicht (Netlify-Screenshot); interne Deployment-ID nicht erfasst.
 - [x] Demo-Banner, Foto-Hinweis und Schadensmeldung ohne Foto nachgeprüft.
 - [x] Vorgesehene Prüfungen externer Schnittstellen und Datenbanktrennung bestanden (Anwenderbestätigung 27.11.2026; finale Nachprüfung 7/7).
-- [ ] Demo-Daten vor Abgabe zurücksetzen und Anmeldung prüfen.
+- [x] Finaler Demo-Reset durchgeführt und erwarteter Datenbestand gemäss Anwenderbestätigung am 27.11.2026 geprüft.
 - [ ] Demo-Link, Repository-Link und Zugangsdaten über Moodle bereitstellen.
