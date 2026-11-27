@@ -4,6 +4,10 @@ import { readFile, readdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir, tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+
+const windowsTool = join(process.env.ProgramFiles || 'C:\\Program Files', 'MongoDB', 'Tools', '100', 'bin', 'mongorestore.exe');
+const executable = process.platform === 'win32' && existsSync(windowsTool) ? windowsTool : 'mongorestore';
 
 const config = parse(await readFile('.env.restore.local'));
 if (config.MONGODB_DB_NAME !== 'clubmatiq_restore' || !config.MONGODB_URI) throw new Error('Restore-Konfiguration ungültig.');
@@ -22,8 +26,9 @@ try {
   temp = await mkdtemp(join(tmpdir(),'clubmatiq-restore-'));
   const credentials = join(temp,'mongo.yml');
   await writeFile(credentials,'uri: '+JSON.stringify(config.MONGODB_URI)+'\n',{mode:0o600,flag:'wx'});
-  const result = spawnSync('mongorestore',['--config='+credentials,'--archive='+join(root,file),'--gzip','--nsInclude=clubmatiq_dev.*','--nsFrom=clubmatiq_dev.*','--nsTo=clubmatiq_restore.*','--stopOnError'],{stdio:'ignore',windowsHide:true});
-  if (result.error || result.status !== 0) throw new Error('Restore fehlgeschlagen. Ziel kann teilweise befüllt sein.');
+  const result = spawnSync(executable,['--config='+credentials,'--archive='+join(root,file),'--gzip','--nsInclude=clubmatiq_dev.*','--nsFrom=clubmatiq_dev.*','--nsTo=clubmatiq_restore.*','--stopOnError'],{stdio:'ignore',windowsHide:true});
+  if (result.error) throw new Error('MongoDB Tool konnte nicht gestartet werden: '+(result.error.code || 'unbekannt'));
+  if (result.status !== 0) throw new Error('Restore fehlgeschlagen. Ziel kann teilweise befüllt sein.');
   const rows = [];
   for (const c of await db.listCollections().toArray()) {
     if (c.type !== 'collection') continue;
