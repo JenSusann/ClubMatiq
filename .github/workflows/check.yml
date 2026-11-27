@@ -12,12 +12,6 @@ on:
       - 'docs/testing/**/*.md'
   pull_request:
     branches: [main, 'develop/**']
-    paths-ignore:
-      - 'README.md'
-      - 'CHANGELOG.md'
-      - 'ROADMAP.md'
-      - 'docs/releases/**'
-      - 'docs/testing/**/*.md'
   workflow_dispatch:
 
 permissions:
