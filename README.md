@@ -336,7 +336,16 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 - **Beschreibung & Nutzen:** Zusätzliche Funktionen unterstützen den schnellen Zugriff auf Materialinformationen, das Auffinden von Artikeln und die finanzielle Übersicht des Inventars.
 - **Abgrenzung zum Mindestumfang:** Ergänzt die Basisverwaltung um Such-, Identifikations- und Auswertungsfunktionen, sofern diese nicht verbindlich gefordert sind.
 - **Umsetzung:** Eigene Seiten für QR-Code, Materialsuche und Inventarbewertung; die Abhängigkeit `qrcode` ist im Projekt enthalten.
-- **Nachweise:** [QR-Code](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/qr-code/%2Bpage.svelte) · [Materialsuche](src/routes/inventar) · [Inventarbewertung](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/inventarbewertung/%2Bpage.svelte) · **Screenshots und Funktionsprüfungen ergänzen**.
+- **Nachweise:** [QR-Code](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/qr-code/%2Bpage.svelte) · [Materialsuche](src/routes/inventar) · [Inventarbewertung](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/inventarbewertung/%2Bpage.svelte) · Screenshot der Materialsuche noch ergänzen.
+
+  ![QR-gestützter Artikelzugriff](docs/images/qr-code.png)
+
+  *QR-gestützter Artikelzugriff.*
+
+  ![Übersicht der Inventarwerte](docs/images/inventarbewertung.png)
+
+  *Übersicht der Inventarwerte.*
+
 - **Bezug zur Evaluation:** Nein.
 
 
@@ -345,7 +354,12 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 - **Beschreibung & Nutzen:** Bestandsänderungen werden artikelbezogen und übergreifend nachvollziehbar; Excel unterstützt externe Auswertungen.
 - **Abgrenzung zum Mindestumfang:** Zusätzliche Bewegungshistorie statt ausschliesslich aktueller Bestandswerte.
 - **Umsetzung:** Journal für Bestandsbewegungen mit Suche vor der Vorschaugrenze und Export.
-- **Nachweise:** [Journal](src/routes/inventar/lagerbewegungen) · [Serverlogik](src/lib/server/lagerbewegungen.ts) · [Export](src/routes/api/export/lagerbewegungen) · [Issue #51](https://github.com/JenSusann/ClubMatiq/issues/51). Screenshot noch ergänzen.
+- **Nachweise:** [Journal](src/routes/inventar/lagerbewegungen) · [Serverlogik](src/lib/server/lagerbewegungen.ts) · [Export](src/routes/api/export/lagerbewegungen) · [Issue #51](https://github.com/JenSusann/ClubMatiq/issues/51).
+
+  ![Nachvollziehbarkeit der Lagerbewegungen](docs/images/lagerbewegungsjournal.png)
+
+  *Nachvollziehbarkeit der Lagerbewegungen.*
+
 - **Bezug zur Evaluation:** Nein.
 
 #### 4.1.8 Schadensmeldungen mit Bildanhängen
@@ -353,7 +367,12 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 - **Beschreibung & Nutzen:** Schäden können dokumentiert und bearbeitet werden; Bilder unterstützen die Beschreibung.
 - **Abgrenzung zum Mindestumfang:** Zusätzlicher Meldeprozess ausserhalb der Ausleihe und Bestandsverwaltung.
 - **Umsetzung:** Meldungsoberfläche und Upload-Schnittstelle; in der Demo sind externe Foto-Uploads gesperrt.
-- **Nachweise:** [Meldungen](src/routes/meldungen) · [Upload](src/routes/api/upload) · [Demo-Betrieb](docs/betrieb/Demo-Betrieb.md). Screenshot noch ergänzen.
+- **Nachweise:** [Meldungen](src/routes/meldungen) · [Upload](src/routes/api/upload) · [Demo-Betrieb](docs/betrieb/Demo-Betrieb.md).
+
+  ![Erfassung einer Schadensmeldung](docs/images/schadensmeldung.png)
+
+  *Erfassung einer Schadensmeldung.*
+
 - **Bezug zur Evaluation:** Nein.
 
 #### 4.1.9 Mitgliederimport und Riegenzuordnung
@@ -361,7 +380,16 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 - **Beschreibung & Nutzen:** CSV-Import und Mehrfachmitgliedschaften reduzieren manuelle Pflege und unterstützen die Anspruchsprüfung.
 - **Abgrenzung zum Mindestumfang:** Vereinsbezogene Mitglieder- und Gruppenverwaltung zusätzlich zur Materialverwaltung.
 - **Umsetzung:** ClubDesk-CSV importieren, Gruppen Riegen zuordnen und Mitglieder im Verkauf suchen. Keine direkte ClubDesk-API-Synchronisation. Gruppenimport #125 mit 10/10 Prüfungen abgenommen.
-- **Nachweise:** [Mitglieder](src/routes/stammdaten/mitglieder) · [Riegen](src/routes/stammdaten/riegen) · [Zuordnungslogik](src/lib/server/riegenzuordnung.ts) · [Pilotbetrieb](docs/testing/Pilotbetrieb.md). Screenshot noch ergänzen.
+- **Nachweise:** [Mitglieder](src/routes/stammdaten/mitglieder) · [Riegen](src/routes/stammdaten/riegen) · [Zuordnungslogik](src/lib/server/riegenzuordnung.ts) · [Pilotbetrieb](docs/testing/Pilotbetrieb.md).
+
+  ![CSV-basierter Mitgliederimport](docs/images/mitgliederimport.png)
+
+  *CSV-basierter Mitgliederimport.*
+
+  ![Zuordnung der Mitglieder zu Riegen](docs/images/riegenzuordnung.png)
+
+  *Zuordnung der Mitglieder zu Riegen.*
+
 - **Bezug zur Evaluation:** Nein.
 
 #### 4.1.10 Erstbezugsansprüche und dynamische Rabatte
@@ -369,7 +397,16 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 - **Beschreibung & Nutzen:** Vereinsregeln für kostenlose Erstbezüge und Riegenrabatte werden im Verkauf berücksichtigt.
 - **Abgrenzung zum Mindestumfang:** Fachliche Preis- und Anspruchslogik über einfache Artikelpreise hinaus.
 - **Umsetzung:** Anspruch serverseitig prüfen, Riegen berücksichtigen und kombinierbare Rabatte positionsbezogen zuordnen. Einschränkungen bei Stornierungen bleiben gemäss Pilotprotokoll bestehen.
-- **Nachweise:** [Verkaufs-API](src/routes/api/vereinskleider) · [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34) · [Issue #71](https://github.com/JenSusann/ClubMatiq/issues/71) · [Pilotbetrieb](docs/testing/Pilotbetrieb.md). Screenshot noch ergänzen.
+- **Nachweise:** [Verkaufs-API](src/routes/api/vereinskleider) · [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34) · [Issue #71](https://github.com/JenSusann/ClubMatiq/issues/71) · [Pilotbetrieb](docs/testing/Pilotbetrieb.md).
+
+  ![Verwaltung der Erstbezugsansprüche](docs/images/erstbezugsansprueche.png)
+
+  *Verwaltung der Erstbezugsansprüche.*
+
+  ![Konfiguration dynamischer Rabatte](docs/images/rabatte.png)
+
+  *Konfiguration dynamischer Rabatte.*
+
 - **Bezug zur Evaluation:** Nein.
 
 #### 4.1.11 Retouren und Gutschriften
@@ -385,7 +422,12 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 - **Beschreibung & Nutzen:** Vereine können ihren eigenen Versandweg für Einladungen nutzen.
 - **Abgrenzung zum Mindestumfang:** Zusätzliche konfigurierbare Integration statt fest vorgegebenem Versanddienst.
 - **Umsetzung:** Resend, SMTP mit TLS und Microsoft Graph mit Zertifikat; verschlüsselte Konfiguration und administrativer Testversand. Microsoft-365-Testversand bestätigt; kein vollständiger Zustellnachweis aller Anbieter.
-- **Nachweise:** [Mail-Einstellungen](src/routes/mail-einstellungen) · [Versandlogik](src/lib/server/email.ts) · [Graph](src/lib/server/microsoft365.ts) · [Konfiguration](docs/betrieb/E-Mail-Konfiguration.md) · [Issue #63](https://github.com/JenSusann/ClubMatiq/issues/63). Screenshot noch ergänzen.
+- **Nachweise:** [Mail-Einstellungen](src/routes/mail-einstellungen) · [Versandlogik](src/lib/server/email.ts) · [Graph](src/lib/server/microsoft365.ts) · [Konfiguration](docs/betrieb/E-Mail-Konfiguration.md) · [Issue #63](https://github.com/JenSusann/ClubMatiq/issues/63).
+
+  ![Vereinsbezogene Versandkonfiguration](docs/images/e-mail_einstellungen.png)
+
+  *Vereinsbezogene Versandkonfiguration.*
+
 - **Bezug zur Evaluation:** Nein.
 
 #### 4.1.13 Integrierte Hilfedokumentation
@@ -393,7 +435,12 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 - **Beschreibung & Nutzen:** Anleitungen sind innerhalb der Anwendung erreichbar und unterstützen die selbstständige Bedienung.
 - **Abgrenzung zum Mindestumfang:** Zusätzliche Hilfe für Nutzende neben der technischen Projektdokumentation.
 - **Umsetzung:** Eigener Dokumentationsbereich mit Anleitungen, unter anderem zur E-Mail-Konfiguration.
-- **Nachweise:** [Dokumentationsbereich](src/routes/docs) · [E-Mail-Konfiguration](docs/betrieb/E-Mail-Konfiguration.md). Screenshot noch ergänzen.
+- **Nachweise:** [Dokumentationsbereich](src/routes/docs) · [E-Mail-Konfiguration](docs/betrieb/E-Mail-Konfiguration.md).
+
+  ![Integrierte Hilfedokumentation](docs/images/hilfsdokumentation.png)
+
+  *Integrierte Hilfedokumentation.*
+
 - **Bezug zur Evaluation:** Nein.
 
 ### 4.2 Weitere Erweiterungen
@@ -424,7 +471,20 @@ Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und o
 
 - **Umsetzung:** Issue und Akzeptanzkriterien prüfen, Code und Tests erarbeiten, lokale Ergebnisse zurückmelden, Korrekturen und Freigaben dokumentieren. AGENTS.md wurde am 27.11. aus der bisherigen Praxis abgeleitet; keine rückwirkende Nutzung behauptet. Kapitel 6 beschreibt Aufgabenverteilung und Grenzen.
 
-- **Nachweise:** [AGENTS.md](AGENTS.md) · [Kapitel 6](#6-ki-deklaration) · [PR #134](https://github.com/JenSusann/ClubMatiq/pull/134). Die versionierten Regeln sind der direkte Nachweis; Screenshot des Arbeitsablaufs noch ergänzen.
+- **Nachweise:** [AGENTS.md](AGENTS.md) · [Kapitel 6](#6-ki-deklaration) · [PR #134](https://github.com/JenSusann/ClubMatiq/pull/134). Die versionierten Regeln sind der direkte Nachweis; Der folgende Ablauf beschreibt die dokumentierte Arbeitsweise; Issue #34 und das Systemabnahmetestprotokoll dienen als konkretes Beispiel.
+
+```mermaid
+flowchart TD
+ A[Anforderung und Issue] --> B[KI-gestützte Analyse und Implementierung]
+ B --> C[Lokale Prüfung durch Entwicklerin]
+ C --> D[Automatisierte Tests und CI]
+ D --> E[Manuelle Abnahme]
+ E --> F[Freigabe und Issue-Abschluss]
+ D -->|Fehler| B
+ E -->|Korrekturbedarf| B
+```
+
+Die Regeln in AGENTS.md wurden nachträglich aus der bisherigen Praxis abgeleitet.
 
 - **Bezug zur Evaluation:** Nein.
 
@@ -538,7 +598,16 @@ Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und o
 
 - **Umsetzung:** PROD, DEV, TEST und DEMO trennen; Referenzschema initialisieren, Demo-Daten deterministisch erzeugen, externe Mail- und Upload-Funktionen in der Demo sperren. 16/16 lesende Datenbank-Zugriffsprüfungen sowie 10/10 lokale, 15/15 Online- und 7/7 finale Demo-Prüfungen dokumentiert; keine unabhängige Sicherheitsprüfung.
 
-- **Nachweise:** [Demo-Betrieb](docs/betrieb/Demo-Betrieb.md) · [Pilotbetrieb](docs/testing/Pilotbetrieb.md) · [Seed/Reset](scripts/seed-demo.mjs) · [Initialisierung](scripts/init-database.mjs) · [Demo-Schutz](src/hooks.server.ts). Screenshot des Demo-Banners und anonymisierte Umgebungsübersicht noch ergänzen.
+- **Nachweise:** [Demo-Betrieb](docs/betrieb/Demo-Betrieb.md) · [Pilotbetrieb](docs/testing/Pilotbetrieb.md) · [Seed/Reset](scripts/seed-demo.mjs) · [Initialisierung](scripts/init-database.mjs) · [Demo-Schutz](src/hooks.server.ts). Screenshot des Demo-Banners noch ergänzen. Die folgende konzeptionelle Übersicht zeigt die getrennten Umgebungen; die tatsächlichen Zugriffstests sind im Pilotbetrieb dokumentiert.
+
+```mermaid
+flowchart TD
+ P[Produktion] --> PD[(PROD)]
+ D[Lokale Entwicklung] --> DD[(DEV)]
+ M[Demo] --> MD[(DEMO)]
+ T[Integrationstests] --> TD[(TEST)]
+```
+
 
 - **Bezug zur Evaluation:** Nein.
 
@@ -550,7 +619,7 @@ Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und o
 
 - **Umsetzung:** Verschlüsselte Archive mit AES-256-GCM, Schutz vor Restore in nicht leere Datenbanken und automatisierter Inhalts-/Indexvergleich. DEV-Restore mit 28 Collections, 9 Dokumenten und 36 Indizes bestätigt; PROD-Archiv offline verifiziert, kein vollständiger PROD-Restore.
 
-- **Nachweise:** [Pilotbetrieb](docs/testing/Pilotbetrieb.md) · [Backup](scripts/backup-database.mjs) · [Restore](scripts/restore-database.mjs) · [Vergleich](scripts/verify-restore.mjs) · [Unit-Tests](tests/unit). Anonymisierten Konsolennachweis noch ergänzen; keine Schlüssel oder Archive veröffentlichen.
+- **Nachweise:** [Pilotbetrieb](docs/testing/Pilotbetrieb.md) · [Backup](scripts/backup-database.mjs) · [Restore](scripts/restore-database.mjs) · [Vergleich](scripts/verify-restore.mjs) · [Unit-Tests](tests/unit). Das Pilotprotokoll dokumentiert den tatsächlich durchgeführten DEV-Restore und die Offline-Verifikation des PROD-Archivs. Ein historischer Konsolenscreenshot liegt hier nicht vor; keine Schlüssel oder Archive veröffentlichen.
 
 - **Bezug zur Evaluation:** Nein.
 
@@ -562,7 +631,11 @@ Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und o
 
 - **Umsetzung:** PR #134 konsolidiert zwölf auf zehn Markdown-Dateien und schafft ein zentrales Dokumentenverzeichnis. Sieben alte Branches wurden nach Prüfung entfernt; main und beide Versionsbranches synchronisiert. Die abschliessende CI wurde bestätigt.
 
-- **Nachweise:** [PR #134](https://github.com/JenSusann/ClubMatiq/pull/134) · [Dokumentenverzeichnis](#dokumentenverzeichnis) · [PR #135](https://github.com/JenSusann/ClubMatiq/pull/135) · [PR #136](https://github.com/JenSusann/ClubMatiq/pull/136). Screenshot der finalen Branch-Übersicht noch ergänzen.
+- **Nachweise:** [PR #134](https://github.com/JenSusann/ClubMatiq/pull/134) · [Dokumentenverzeichnis](#dokumentenverzeichnis) · [PR #135](https://github.com/JenSusann/ClubMatiq/pull/135) · [PR #136](https://github.com/JenSusann/ClubMatiq/pull/136). 
+
+  ![Bereinigte Branch-Struktur auf GitHub](docs/images/github_branches.png)
+
+  *Bereinigte Branch-Struktur auf GitHub.*
 
 - **Bezug zur Evaluation:** Nein.
 
@@ -574,7 +647,7 @@ Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und o
 
 - **Umsetzung:** Issue #115, Umgebungsprüfungen, Backup-Nachweise und produktive Kurzabnahmen v0.9.2 (7/7) sowie Gruppenimport #125 (10/10) dokumentieren die Vorbereitung. Live-Verkauf am 28.11. und vollständige Freigabe sind noch nicht nachgewiesen.
 
-- **Nachweise:** [Pilotbetrieb](docs/testing/Pilotbetrieb.md) · [Issue #115](https://github.com/JenSusann/ClubMatiq/issues/115) · [Release-Checkliste](docs/releases/Release-Checkliste.md). Anonymisierte Abnahmebelege noch ergänzen; keine personenbezogenen Vereinsdaten veröffentlichen.
+- **Nachweise:** [Pilotbetrieb](docs/testing/Pilotbetrieb.md) · [Issue #115](https://github.com/JenSusann/ClubMatiq/issues/115) · [Release-Checkliste](docs/releases/Release-Checkliste.md). Die tatsächliche Pilotabnahme nach dem Live-Einsatz bleibt offen; keine personenbezogenen Vereinsdaten veröffentlichen.
 
 - **Bezug zur Evaluation:** Nein; Pilotvorbereitung ist keine abgeschlossene Nutzerevaluation.
 
