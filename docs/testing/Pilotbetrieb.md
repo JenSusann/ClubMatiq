@@ -81,3 +81,7 @@ MongoDB Database Tools 100.20.1 installiert. DEV-Backup um 01:23:33 MEZ und PROD
 - PROD-Verschlüsselung, sichere Schlüsselablage und CI-Sicherheitstests noch offen.
 
 - Lokale Unit-Tests zur Backup-Kryptografie laut Rückmeldung erfolgreich: Roundtrip, falscher Schlüssel, manipulierte Daten und Authentifizierungstag, abgeschnittenes Archiv, unterschiedliche Nonces. CI und produktive verschlüsselte Sicherung noch ausstehend.
+
+- Verschlüsseltes PROD-Backup am 27.11.2026 laut Anwenderbestätigung erstellt.
+- JSDoc-Typisierung korrigiert; lokale Prüfung und CI laut Anwenderbestätigung erfolgreich (Commit a148e20).
+- Offline-Archivprüfung PROD und sichere Schlüsselablage noch nicht bestätigt. Kein vollständiger PROD-Restore durchgeführt.
