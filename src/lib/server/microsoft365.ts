@@ -10,6 +10,7 @@ export async function versendeMicrosoft365Mail(
   nachricht: { an: string; betreff: string; text: string; html?: string }
 ): Promise<void> {
 
+  if (process.env.MONGODB_DB_NAME === 'clubmatiq_demo') throw new Error('Microsoft-365-Versand ist in der Demo deaktiviert.');
   const { tenantId, clientId, absender } = konfiguration;
   if (![tenantId, clientId].every((wert) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(wert))) {
     throw new Error('Ungültige Microsoft-365-Konfiguration.');
