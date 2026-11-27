@@ -40,8 +40,8 @@ Eigenes Projekt clubmatiq-demo, Repository JenSusann/ClubMatiq, Branch main, Bui
 
 Lokale Abnahme 10/10, Online-Abnahme 15/15 gemäss Anwenderbestätigung am 27.11.2026, siehe [Systemabnahmetestprotokoll](System_Abnahmetestprotokoll.md). Foto-Upload und E-Mail-Einstellungen gesperrt; vollständige Isolation weiterer Schnittstellen noch separat zu prüfen.
 
-- [ ] Automatische Deployments deaktivieren bzw. manuellen Freigabeprozess prüfen.
-- [ ] Finalen Commit deployen und Deployment-ID dokumentieren.
+- [x] Automatische Builds gestoppt (Screenshot 27.11.2026).
+- [x] Stand d2c2d1e am 27.11.2026 um 16:45 Uhr veröffentlicht (Netlify-Screenshot); interne Deployment-ID nicht erfasst.
 - [ ] Demo-Banner, Foto-Hinweis und Schadensmeldung ohne Foto nachprüfen.
 - [ ] Externe Schnittstellen und Datenbanktrennung abschliessend prüfen.
 - [ ] Demo-Daten vor Abgabe zurücksetzen und Anmeldung prüfen.
