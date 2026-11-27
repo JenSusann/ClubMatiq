@@ -85,3 +85,5 @@ MongoDB Database Tools 100.20.1 installiert. DEV-Backup um 01:23:33 MEZ und PROD
 - Verschlüsseltes PROD-Backup am 27.11.2026 laut Anwenderbestätigung erstellt.
 - JSDoc-Typisierung korrigiert; lokale Prüfung und CI laut Anwenderbestätigung erfolgreich (Commit a148e20).
 - Offline-Archivprüfung PROD und sichere Schlüsselablage noch nicht bestätigt. Kein vollständiger PROD-Restore durchgeführt.
+
+- PROD-Offline-Archivprüfung bestanden: `clubmatiq_2026-11-27T10-46-12-010Z.archive.gz.enc` (27.11.2026, 11:46:12 MEZ). AES-GCM-Authentifizierung und GZIP-Integrität erfolgreich. Kein produktiver Restore durchgeführt. Sichere Schlüsselablage weiterhin separat zu bestätigen.
