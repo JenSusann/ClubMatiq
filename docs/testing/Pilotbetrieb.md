@@ -67,3 +67,5 @@ MongoDB Database Tools 100.20.1 installiert. DEV-Backup um 01:23:33 MEZ und PROD
 - 28 Collections und 35 Indizes laut Konsolenausgabe wiederhergestellt; Anzahl entspricht dem bekannten Schema.
 - Alle Collections enthielten 0 Dokumente. Wiederherstellung von Dokumentinhalten und exakte Indexdefinitionen noch nicht nachgewiesen.
 - Verschlüsselte Ablage weiterhin offen.
+
+- Zweiter DEV-Restore (Backup 01:33:40 MEZ): 28 Collections, 9 Dokumente, 36 Indizes erfolgreich wiederhergestellt. Exakter Vergleich noch ausstehend.
