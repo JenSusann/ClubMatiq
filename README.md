@@ -57,6 +57,13 @@
         - [4.1.4 Verrechnung, Stornierung und Verkaufshistorie](#414-verrechnung-stornierung-und-verkaufshistorie)
         - [4.1.5 Anmeldung, Benutzerverwaltung und Berechtigungen](#415-anmeldung-benutzerverwaltung-und-berechtigungen)
         - [4.1.6 QR-Code, Materialsuche und Inventarbewertung](#416-qr-code-materialsuche-und-inventarbewertung)
+        - [4.1.7 Lagerbewegungsjournal und Excel-Export](#417-lagerbewegungsjournal-und-excel-export)
+        - [4.1.8 Schadensmeldungen mit Bildanhängen](#418-schadensmeldungen-mit-bildanhängen)
+        - [4.1.9 Mitgliederimport und Riegenzuordnung](#419-mitgliederimport-und-riegenzuordnung)
+        - [4.1.10 Erstbezugsansprüche und dynamische Rabatte](#4110-erstbezugsansprüche-und-dynamische-rabatte)
+        - [4.1.11 Retouren und Gutschriften](#4111-retouren-und-gutschriften)
+        - [4.1.12 Vereinsbezogene E-Mail-Konfiguration](#4112-vereinsbezogene-e-mail-konfiguration)
+        - [4.1.13 Integrierte Hilfedokumentation](#4113-integrierte-hilfedokumentation)
     - [4.2 Weitere Erweiterungen](#42-weitere-erweiterungen)
         - [4.2.1 GitHub-basiertes Issue- und Änderungsmanagement](#421-github-basiertes-issue--und-änderungsmanagement)
         - [4.2.2 Strukturierter KI-gestützter Entwicklungsworkflow](#422-strukturierter-ki-gestützter-entwicklungsworkflow)
@@ -176,7 +183,23 @@ Das Projekt folgt dem phasenorientierten Prototyping-Prozess. Die nachfolgenden 
 #### 3.4.1. Entwurf (Design)
 
 - **Informationsarchitektur:** Die Startseite dient als Einstieg in die Module. Die Anwendung ist nach Aufgabenbereichen strukturiert: Inventar, QR-Code, Ausleihen, Vereinskleider, Inventur, Inventarbewertung, Meldungen, Materialsuche und Stammdaten. Die Vereinskleiderverwaltung ist zusätzlich in Bestand, Verkauf, Bestellungen, Sammelbestellungen, Verrechnung und Historie gegliedert.
-- **User Interface Design:** Die Benutzeroberfläche nutzt getrennte Listen-, Detail- und Formularseiten. Inventarartikel können über eigene Seiten angelegt, bearbeitet und angezeigt werden. Für Vereinskleider stehen eigene Arbeitsoberflächen für Bestandsverwaltung, Verkauf und Folgeprozesse zur Verfügung. **Noch ergänzen:** echte Screenshots der wichtigsten Ansichten mit kurzen Erläuterungen.
+- **User Interface Design:** Die Benutzeroberfläche nutzt getrennte Listen-, Detail- und Formularseiten. Inventarartikel können über eigene Seiten angelegt, bearbeitet und angezeigt werden. Für Vereinskleider stehen eigene Arbeitsoberflächen für Bestandsverwaltung, Verkauf und Folgeprozesse zur Verfügung.
+
+  ![Dashboard als Einstieg in die Aufgabenbereiche](docs/images/dashboard_navigation.png)
+
+  *Dashboard als Einstieg in die Aufgabenbereiche.*
+
+  ![Artikelübersicht für die Inventarverwaltung](docs/images/artikeluebersicht.png)
+
+  *Artikelübersicht für die Inventarverwaltung.*
+
+  ![Erfassung einer Materialausleihe](docs/images/ausleihe.png)
+
+  *Erfassung einer Materialausleihe.*
+
+  ![Rückgabe als Abschluss des Kernworkflows](docs/images/rueckgabe.png)
+
+  *Rückgabe als Abschluss des Kernworkflows.*
 - **Referenz-Mockup:** PowerPoint wurde anstelle von Figma aufgrund der einfacheren Handhabung gewählt. Die Workflows Artikelerfassung, QR-Code und Vereinskleiderbestellung werden mit statischen Beispieldaten simuliert; eine tatsächliche Datenverarbeitung ist nicht Bestandteil des Mockups. Die manuelle Prüfung der zentralen Workflows ist in [Aufgabe 10](docs/konzeption/ui-prototyping.pdf) dokumentiert.
 - **Designentscheidungen:** Funktionskacheln vereinfachen den Einstieg; separate Detailseiten reduzieren die Komplexität umfangreicher Formulare. Stammdaten werden unabhängig von Bewegungsprozessen gepflegt. Die Vereinskleiderprozesse sind getrennt, damit Bestellungen, Übergaben und Verrechnungen nachvollziehbar bleiben.
 
@@ -248,28 +271,48 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 - **Beschreibung & Nutzen:** Bestandsaufnahmen können über einen eigenen Inventurprozess erfasst, abgeschlossen und bei Bedarf korrigiert oder storniert werden. Eine Historie und PDF-Ausgabe unterstützen Nachvollziehbarkeit und Dokumentation.
 - **Abgrenzung zum Mindestumfang:** Geht über eine einfache Artikelliste und manuelle Bestandsbearbeitung hinaus, sofern Inventur nicht bereits zum verbindlichen Mindestumfang gehört.
 - **Umsetzung:** Eigene Inventurseiten und API-Routen für Abschluss, Korrektur, Korrekturhistorie, Zurücksetzen, Stornierung und PDF.
-- **Nachweise:** [Inventur-Oberfläche](https://github.com/JenSusann/ClubMatiq/tree/main/src/routes/inventur) · [Inventur-API](https://github.com/JenSusann/ClubMatiq/tree/main/src/routes/api/inventuren) · **Screenshot ergänzen**.
+- **Nachweise:** [Inventur-Oberfläche](https://github.com/JenSusann/ClubMatiq/tree/main/src/routes/inventur) · [Inventur-API](https://github.com/JenSusann/ClubMatiq/tree/main/src/routes/api/inventuren).
+
+  ![Inventurerfassung für die Bestandsaufnahme](docs/images/inventur_erfassung.png)
+
+  *Inventurerfassung für die Bestandsaufnahme.*
+
 - **Bezug zur Evaluation:** Nein; kein belegter Zusammenhang mit einer durchgeführten Nutzerevaluation vorhanden.
 
 #### 4.1.2 Vereinskleiderverkauf und Bestellabwicklung
 - **Beschreibung & Nutzen:** Vereinskleider werden nicht nur als Lagerartikel geführt, sondern über separate Verkaufs-, Bestell- und Übergabeprozesse bearbeitet. Das erleichtert die Nachverfolgung von Bestellungen und Bestandsbewegungen.
 - **Abgrenzung zum Mindestumfang:** Erweitert die reine Inventar- und Grössenverwaltung um geschäftsprozessbezogene Vorgänge.
 - **Umsetzung:** Eigene Ansichten für Verkauf, Bestellungen, Bestand und Historie sowie API-Endpunkte für Bestellungen und Übergaben.
-- **Nachweise:** [Verkauf](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/vereinskleider/verkauf/%2Bpage.svelte) · [Bestell-API](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/api/vereinskleider/bestellungen/%2Bserver.ts) · [Übergabe-API](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/api/vereinskleider/bestellungen/uebergabe/%2Bserver.ts) · [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34) · **Screenshot ergänzen**.
+- **Nachweise:** [Verkauf](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/vereinskleider/verkauf/%2Bpage.svelte) · [Bestell-API](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/api/vereinskleider/bestellungen/%2Bserver.ts) · [Übergabe-API](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/api/vereinskleider/bestellungen/uebergabe/%2Bserver.ts) · [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34).
+
+  ![Verkaufsoberfläche für Vereinskleider](docs/images/kleiderverkauf.png)
+
+  *Verkaufsoberfläche für Vereinskleider.*
+
 - **Bezug zur Evaluation:** Nein; die Funktion wurde im Rahmen der fachlichen Erweiterung entwickelt, ohne hier nachgewiesenen Evaluationstest.
 
 #### 4.1.3 Sammelbestellungen und PDF-Export
 - **Beschreibung & Nutzen:** Mehrere Bestellungen können für eine gemeinsame Beschaffung aufbereitet werden. Eine PDF-Ausgabe unterstützt die Weitergabe der Bestellinformationen.
 - **Abgrenzung zum Mindestumfang:** Ergänzt die Einzelbestellung um einen zusammengefassten Beschaffungsprozess.
 - **Umsetzung:** Eigene Sammelbestellungsseiten und API-Endpunkte für einzelne und gemeinsame PDF-Ausgaben.
-- **Nachweise:** [Sammelbestellungsseite](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/vereinskleider/sammelbestellungen/%2Bpage.svelte) · [PDF-Endpunkt](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/api/vereinskleider/sammelbestellungen/pdf/%2Bserver.ts) · [Commit `a011ff1`](https://github.com/JenSusann/ClubMatiq/commit/a011ff127515143f9feab1a581ad0bd9bdee8c57) · **Screenshot ergänzen**.
+- **Nachweise:** [Sammelbestellungsseite](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/vereinskleider/sammelbestellungen/%2Bpage.svelte) · [PDF-Endpunkt](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/api/vereinskleider/sammelbestellungen/pdf/%2Bserver.ts) · [Commit `a011ff1`](https://github.com/JenSusann/ClubMatiq/commit/a011ff127515143f9feab1a581ad0bd9bdee8c57).
+
+  ![Übersicht der Lieferantenbestellungen](docs/images/lieferantenbestellungen.png)
+
+  *Übersicht der Lieferantenbestellungen.*
+
 - **Bezug zur Evaluation:** Nein; kein entsprechender Testnachweis vorhanden.
 
 #### 4.1.4 Verrechnung, Stornierung und Verkaufshistorie
 - **Beschreibung & Nutzen:** Verkäufe können für die Verrechnung aufbereitet werden. Separate Prozesse für Stornierungen und eine durchsuchbare Historie verbessern die Nachvollziehbarkeit.
 - **Abgrenzung zum Mindestumfang:** Geht über die reine Erfassung von Inventar- oder Kleiderbeständen hinaus und unterstützt administrative Folgeprozesse.
 - **Umsetzung:** Verrechnungs-, Stornierungs- und Historienrouten einschliesslich PDF-Endpunkt für Verrechnungen.
-- **Nachweise:** [Verrechnung](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/vereinskleider/verrechnung/%2Bpage.svelte) · [Stornierungs-API](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/api/vereinskleider/stornierungen/%2Bserver.ts) · [Historie](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/vereinskleider/historie/%2Bpage.svelte) · [Commit `2044bf7`](https://github.com/JenSusann/ClubMatiq/commit/2044bf7d9fc4508be1bc32ce678c2ab7c1b00499) · [Commit `9f2e7bc`](https://github.com/JenSusann/ClubMatiq/commit/9f2e7bc816b91b1f3878c4c269f2403f143fc4f9) · **Screenshot ergänzen**.
+- **Nachweise:** [Verrechnung](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/vereinskleider/verrechnung/%2Bpage.svelte) · [Stornierungs-API](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/api/vereinskleider/stornierungen/%2Bserver.ts) · [Historie](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/vereinskleider/historie/%2Bpage.svelte) · [Commit `2044bf7`](https://github.com/JenSusann/ClubMatiq/commit/2044bf7d9fc4508be1bc32ce678c2ab7c1b00499) · [Commit `9f2e7bc`](https://github.com/JenSusann/ClubMatiq/commit/9f2e7bc816b91b1f3878c4c269f2403f143fc4f9).
+
+  ![Verrechnungsoberfläche für finanzielle Folgeprozesse](docs/images/verrechnung.png)
+
+  *Verrechnungsoberfläche für finanzielle Folgeprozesse.*
+
 - **Bezug zur Evaluation:** Nein; kein entsprechender Testnachweis vorhanden.
 
 #### 4.1.5 Anmeldung, Benutzerverwaltung und Berechtigungen
@@ -278,17 +321,80 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 
 **Abgrenzung zum Mindestumfang:** Zusätzlich zur fachlichen Materialverwaltung wurden eine zentrale Benutzerverwaltung, serverseitige Berechtigungsprüfungen und ein vollständiger Einladungsprozess mit externem E-Mail-Versand umgesetzt.
 
-**Umsetzung:** Die Authentifizierung erfolgt über SvelteKit-API-Endpunkte und Sessions. Passwörter werden mit Argon2 gehasht. Einladungen werden über Resend versendet und über zeitlich begrenzte Tokens verarbeitet. Die Benutzerrollen und Einzelberechtigungen werden zentral verwaltet und bei geschützten API-Aufrufen geprüft.
+**Umsetzung:** Die Authentifizierung erfolgt über SvelteKit-API-Endpunkte und Sessions. Passwörter werden mit Argon2 gehasht. Einladungen werden über Resend, SMTP oder Microsoft 365 versendet und über zeitlich begrenzte Tokens verarbeitet. Die Benutzerrollen und Einzelberechtigungen werden zentral verwaltet und bei geschützten API-Aufrufen geprüft.
 
 **Nachweise:** [Benutzerverwaltung](https://github.com/JenSusann/ClubMatiq/tree/main/src/routes/benutzer) · [Berechtigungslogik](https://github.com/JenSusann/ClubMatiq/blob/main/src/lib/server/berechtigungen.ts) · [E-Mail-Konfiguration](docs/betrieb/E-Mail-Konfiguration.md) · [Pull Request #59](https://github.com/JenSusann/ClubMatiq/pull/59)
 
-**Bezug zur Evaluation:** Die Funktion wurde während der technischen Umsetzung lokal getestet. Eine separate Nutzerevaluation ist dadurch nicht ersetzt.
+
+  ![Benutzerverwaltung für administrative Aufgaben](docs/images/benutzerverwaltung.png)
+
+  *Benutzerverwaltung für administrative Aufgaben.*
+
+**Bezug zur Evaluation:** Nein. Technische Prüfungen ersetzen keine Nutzerevaluation.
 
 #### 4.1.6 QR-Code, Materialsuche und Inventarbewertung
 - **Beschreibung & Nutzen:** Zusätzliche Funktionen unterstützen den schnellen Zugriff auf Materialinformationen, das Auffinden von Artikeln und die finanzielle Übersicht des Inventars.
 - **Abgrenzung zum Mindestumfang:** Ergänzt die Basisverwaltung um Such-, Identifikations- und Auswertungsfunktionen, sofern diese nicht verbindlich gefordert sind.
 - **Umsetzung:** Eigene Seiten für QR-Code, Materialsuche und Inventarbewertung; die Abhängigkeit `qrcode` ist im Projekt enthalten.
 - **Nachweise:** [QR-Code](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/qr-code/%2Bpage.svelte) · [Materialsuche](src/routes/inventar) · [Inventarbewertung](https://github.com/JenSusann/ClubMatiq/blob/main/src/routes/inventarbewertung/%2Bpage.svelte) · **Screenshots und Funktionsprüfungen ergänzen**.
+- **Bezug zur Evaluation:** Nein.
+
+
+#### 4.1.7 Lagerbewegungsjournal und Excel-Export
+
+- **Beschreibung & Nutzen:** Bestandsänderungen werden artikelbezogen und übergreifend nachvollziehbar; Excel unterstützt externe Auswertungen.
+- **Abgrenzung zum Mindestumfang:** Zusätzliche Bewegungshistorie statt ausschliesslich aktueller Bestandswerte.
+- **Umsetzung:** Journal für Bestandsbewegungen mit Suche vor der Vorschaugrenze und Export.
+- **Nachweise:** [Journal](src/routes/inventar/lagerbewegungen) · [Serverlogik](src/lib/server/lagerbewegungen.ts) · [Export](src/routes/api/export/lagerbewegungen) · [Issue #51](https://github.com/JenSusann/ClubMatiq/issues/51). Screenshot noch ergänzen.
+- **Bezug zur Evaluation:** Nein.
+
+#### 4.1.8 Schadensmeldungen mit Bildanhängen
+
+- **Beschreibung & Nutzen:** Schäden können dokumentiert und bearbeitet werden; Bilder unterstützen die Beschreibung.
+- **Abgrenzung zum Mindestumfang:** Zusätzlicher Meldeprozess ausserhalb der Ausleihe und Bestandsverwaltung.
+- **Umsetzung:** Meldungsoberfläche und Upload-Schnittstelle; in der Demo sind externe Foto-Uploads gesperrt.
+- **Nachweise:** [Meldungen](src/routes/meldungen) · [Upload](src/routes/api/upload) · [Demo-Betrieb](docs/betrieb/Demo-Betrieb.md). Screenshot noch ergänzen.
+- **Bezug zur Evaluation:** Nein.
+
+#### 4.1.9 Mitgliederimport und Riegenzuordnung
+
+- **Beschreibung & Nutzen:** CSV-Import und Mehrfachmitgliedschaften reduzieren manuelle Pflege und unterstützen die Anspruchsprüfung.
+- **Abgrenzung zum Mindestumfang:** Vereinsbezogene Mitglieder- und Gruppenverwaltung zusätzlich zur Materialverwaltung.
+- **Umsetzung:** ClubDesk-CSV importieren, Gruppen Riegen zuordnen und Mitglieder im Verkauf suchen. Keine direkte ClubDesk-API-Synchronisation. Gruppenimport #125 mit 10/10 Prüfungen abgenommen.
+- **Nachweise:** [Mitglieder](src/routes/stammdaten/mitglieder) · [Riegen](src/routes/stammdaten/riegen) · [Zuordnungslogik](src/lib/server/riegenzuordnung.ts) · [Pilotbetrieb](docs/testing/Pilotbetrieb.md). Screenshot noch ergänzen.
+- **Bezug zur Evaluation:** Nein.
+
+#### 4.1.10 Erstbezugsansprüche und dynamische Rabatte
+
+- **Beschreibung & Nutzen:** Vereinsregeln für kostenlose Erstbezüge und Riegenrabatte werden im Verkauf berücksichtigt.
+- **Abgrenzung zum Mindestumfang:** Fachliche Preis- und Anspruchslogik über einfache Artikelpreise hinaus.
+- **Umsetzung:** Anspruch serverseitig prüfen, Riegen berücksichtigen und kombinierbare Rabatte positionsbezogen zuordnen. Einschränkungen bei Stornierungen bleiben gemäss Pilotprotokoll bestehen.
+- **Nachweise:** [Verkaufs-API](src/routes/api/vereinskleider) · [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34) · [Issue #71](https://github.com/JenSusann/ClubMatiq/issues/71) · [Pilotbetrieb](docs/testing/Pilotbetrieb.md). Screenshot noch ergänzen.
+- **Bezug zur Evaluation:** Nein.
+
+#### 4.1.11 Retouren und Gutschriften
+
+- **Beschreibung & Nutzen:** Rückgaben verkaufter Kleidungsartikel und finanzielle Korrekturen bleiben nachvollziehbar.
+- **Abgrenzung zum Mindestumfang:** Zusätzlicher Rückabwicklungsprozess neben dem Verkauf; keine vollständige Buchhaltung.
+- **Umsetzung:** Retourenerfassung, Rückerstattungsstatus und Gutschriftenexport; manuelle Buchungsbestätigung für ClubDesk ohne externe Buchung.
+- **Nachweise:** [Retouren](src/routes/vereinskleider/retouren) · [Retouren-API](src/routes/api/vereinskleider/retouren) · [Gutschriften](src/routes/api/vereinskleider/gutschriften) · [Buchungsabgleich](src/routes/api/vereinskleider/clubdesk-abgleich). Screenshot noch ergänzen.
+- **Bezug zur Evaluation:** Nein.
+
+#### 4.1.12 Vereinsbezogene E-Mail-Konfiguration
+
+- **Beschreibung & Nutzen:** Vereine können ihren eigenen Versandweg für Einladungen nutzen.
+- **Abgrenzung zum Mindestumfang:** Zusätzliche konfigurierbare Integration statt fest vorgegebenem Versanddienst.
+- **Umsetzung:** Resend, SMTP mit TLS und Microsoft Graph mit Zertifikat; verschlüsselte Konfiguration und administrativer Testversand. Microsoft-365-Testversand bestätigt; kein vollständiger Zustellnachweis aller Anbieter.
+- **Nachweise:** [Mail-Einstellungen](src/routes/mail-einstellungen) · [Versandlogik](src/lib/server/email.ts) · [Graph](src/lib/server/microsoft365.ts) · [Konfiguration](docs/betrieb/E-Mail-Konfiguration.md) · [Issue #63](https://github.com/JenSusann/ClubMatiq/issues/63). Screenshot noch ergänzen.
+- **Bezug zur Evaluation:** Nein.
+
+#### 4.1.13 Integrierte Hilfedokumentation
+
+- **Beschreibung & Nutzen:** Anleitungen sind innerhalb der Anwendung erreichbar und unterstützen die selbstständige Bedienung.
+- **Abgrenzung zum Mindestumfang:** Zusätzliche Hilfe für Nutzende neben der technischen Projektdokumentation.
+- **Umsetzung:** Eigener Dokumentationsbereich mit Anleitungen, unter anderem zur E-Mail-Konfiguration.
+- **Nachweise:** [Dokumentationsbereich](src/routes/docs) · [E-Mail-Konfiguration](docs/betrieb/E-Mail-Konfiguration.md). Screenshot noch ergänzen.
+- **Bezug zur Evaluation:** Nein.
 
 ### 4.2 Weitere Erweiterungen
 
@@ -302,7 +408,11 @@ Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und o
 
 - **Umsetzung:** Issues fachlich definieren, Änderungen referenzieren, Abnahme dokumentieren und erst danach abschliessen. Beispiel #34; PR #134 dokumentiert die Konsolidierung.
 
-- **Nachweise:** [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34) · [PR #134](https://github.com/JenSusann/ClubMatiq/pull/134) · [Commit-Historie](https://github.com/JenSusann/ClubMatiq/commits/main). Screenshot der Issue-Übersicht noch ergänzen.
+- **Nachweise:** [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34) · [PR #134](https://github.com/JenSusann/ClubMatiq/pull/134) · [Commit-Historie](https://github.com/JenSusann/ClubMatiq/commits/main). 
+
+  ![GitHub-Issue als Nachweis der Anforderungsorganisation](docs/images/github_issue.png)
+
+  *GitHub-Issue als Nachweis der Anforderungsorganisation.*
 
 - **Bezug zur Evaluation:** Nein.
 
@@ -327,7 +437,7 @@ Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und o
 - **Umsetzung:** MongoDB-Collections und Referenzen analysieren, mit dbdiagram.io visualisieren und ein Referenzschema für die Initialisierung pflegen. Das Diagramm bildet logische Beziehungen ab, nicht relationale Fremdschlüssel.
 
 - **Nachweise:** ![Logisches ER-Diagramm der zentralen Domänen](docs/images/ER-Diagram_ClubMatiq.png)
-  Das Diagramm visualisiert die fachlichen Datenbeziehungen. [Schema](database-schema.json) · [Initialisierung](scripts/init-database.mjs) · [MongoDB-Anbindung](src/lib/server/mongodb.ts).
+  Das Diagramm visualisiert die fachlichen Datenbeziehungen. [Initialisierung](scripts/init-database.mjs) · [MongoDB-Anbindung](src/lib/server/mongodb.ts).
 
 - **Bezug zur Evaluation:** Nein.
 
@@ -339,7 +449,11 @@ Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und o
 
 - **Umsetzung:** Tests nach Modulen strukturieren, positive und negative Fälle prüfen, kombinierte Coverage mit Ziel mindestens 95 % je Kennzahl ermitteln. Historischer CI-Nachweis 26.11.: 5'013 Tests; manuelle Übersicht 463/463, Demo-Prüfungen separat. Keine Gleichsetzung mit Nutzerevaluation.
 
-- **Nachweise:** [Systemabnahmetestprotokoll](docs/testing/System-Abnahmetestprotokoll.md) · [Unit-Tests](tests/unit) · [Integrationstests](tests/integration) · [Coverage-Skript](scripts/merge-coverage.mjs) · [CI-Nachweis](https://github.com/JenSusann/ClubMatiq/actions/runs/45735645776). Screenshot der Coverage noch ergänzen; maschinenlesbare Berichte sind der präzisere Nachweis.
+- **Nachweise:** [Systemabnahmetestprotokoll](docs/testing/System-Abnahmetestprotokoll.md) · [Unit-Tests](tests/unit) · [Integrationstests](tests/integration) · [Coverage-Skript](scripts/merge-coverage.mjs) · [CI-Nachweis](https://github.com/JenSusann/ClubMatiq/actions/runs/45735645776). Maschinenlesbare Berichte ergänzen den visuellen Nachweis.
+
+  ![Kombinierter Coverage-Bericht](docs/images/github_kombinierter_coverage_bericht.png)
+
+  *Kombinierter Coverage-Bericht.*
 
 - **Bezug zur Evaluation:** Nein.
 
@@ -354,7 +468,7 @@ Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und o
   | Anforderung | Umsetzung | Nachweis |
   |---|---|---|
   | Material erfassen und bearbeiten | [Artikel-API](src/routes/api/artikel) | [Systemabnahme](docs/testing/System-Abnahmetestprotokoll.md) |
-  | Ausleihe und Rückgabe | [Ausleih-API](src/routes/api/ausleihen) | [Integrationstests](tests/integration/ausleihen) |
+  | Ausleihe und Rückgabe | [Ausleih-API](src/routes/api/ausleihen) | [Integrationstests](tests/integration) |
   | Vereinskleider und Erstbezug | [Issue #34](https://github.com/JenSusann/ClubMatiq/issues/34) | [Systemabnahme](docs/testing/System-Abnahmetestprotokoll.md) |
   | E-Mail-Konfiguration | [Issue #63](https://github.com/JenSusann/ClubMatiq/issues/63) | [Systemabnahme](docs/testing/System-Abnahmetestprotokoll.md) |
   | Pilot und Datenbanktrennung | [Issue #115](https://github.com/JenSusann/ClubMatiq/issues/115) | [Pilotbetrieb](docs/testing/Pilotbetrieb.md) |
@@ -372,7 +486,11 @@ Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und o
 
 - **Umsetzung:** Rollen und Berechtigungen aus der zentralen Definition ableiten und mit serverseitigen Prüfungen sowie negativen Tests abgleichen.
 
-- **Nachweise:** [Berechtigungskonzept (PDF)](docs/architektur/ClubMatiq_Benutzer_Berechtigungskonzept.pdf) · [Berechtigungslogik](src/lib/server/berechtigungen.ts) · [Session-Verwaltung](src/hooks.server.ts) · [Berechtigungstests](tests/unit/benutzer/berechtigungen.test.ts). Screenshot der Rechteübersicht noch ergänzen.
+- **Nachweise:** [Berechtigungskonzept (PDF)](docs/architektur/ClubMatiq_Benutzer_Berechtigungskonzept.pdf) · [Berechtigungslogik](src/lib/server/berechtigungen.ts) · [Session-Verwaltung](src/hooks.server.ts) · [Unit-Tests](tests/unit). 
+
+  ![Rollenvorschau zur Kontrolle unterschiedlicher Benutzeransichten](docs/images/rollenvorschau.png)
+
+  *Rollenvorschau zur Kontrolle unterschiedlicher Benutzeransichten.*
 
 - **Bezug zur Evaluation:** Nein.
 
@@ -384,7 +502,11 @@ Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und o
 
 - **Umsetzung:** 43 optionale Issues #72–114 wurden fünf Folgeversionen zugeordnet; Projektmeilensteine bleiben getrennt. Semantic Versioning, zentrale Paketversion, Footer-Anzeige, Changelog und Release-Tags. Pilotversion v0.9.2 produktiv kurzabgenommen; stabiler Release ausstehend. Geplante Funktionen zählen nicht als umgesetzt.
 
-- **Nachweise:** [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Release-Management](docs/releases/Release-Management.md) · [Checkliste](docs/releases/Release-Checkliste.md) · [Release v0.9.2](https://github.com/JenSusann/ClubMatiq/releases/tag/v0.9.2). Screenshot der Meilensteine noch ergänzen.
+- **Nachweise:** [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Release-Management](docs/releases/Release-Management.md) · [Checkliste](docs/releases/Release-Checkliste.md) · [Release v0.9.2](https://github.com/JenSusann/ClubMatiq/releases/tag/v0.9.2). 
+
+  ![GitHub-Meilensteine zur Release-Planung](docs/images/github_milestones.png)
+
+  *GitHub-Meilensteine zur Release-Planung.*
 
 - **Bezug zur Evaluation:** Nein.
 
@@ -396,7 +518,15 @@ Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und o
 
 - **Umsetzung:** GitHub Actions führt Svelte/TypeScript-Check, Unit-Tests, Build, Integrationstests mit temporärem MongoDB Replica Set und kombinierte Coverage aus. Tags lösen nach Versionsprüfung GitHub Releases aus. PR #137 erweitert Push- und PR-Filter auf develop/**; PR #135 und #136 synchronisieren die Entwicklungsbranches. Alle abschliessenden CI-Läufe wurden durch die Entwicklerin als erfolgreich bestätigt; konkrete Run-IDs dieser letzten Läufe noch ergänzen.
 
-- **Nachweise:** [Workflow](.github/workflows/check.yml) · [PR #137](https://github.com/JenSusann/ClubMatiq/pull/137) · [PR #135](https://github.com/JenSusann/ClubMatiq/pull/135) · [PR #136](https://github.com/JenSusann/ClubMatiq/pull/136) · [Actions](https://github.com/JenSusann/ClubMatiq/actions). Screenshot der drei erfolgreichen Branch-Läufe noch ergänzen.
+- **Nachweise:** [Workflow](.github/workflows/check.yml) · [PR #137](https://github.com/JenSusann/ClubMatiq/pull/137) · [PR #135](https://github.com/JenSusann/ClubMatiq/pull/135) · [PR #136](https://github.com/JenSusann/ClubMatiq/pull/136) · [Actions](https://github.com/JenSusann/ClubMatiq/actions). 
+
+  ![GitHub Actions als Übersicht der automatisierten Prüfungen](docs/images/github_actions.png)
+
+  *GitHub Actions als Übersicht der automatisierten Prüfungen.*
+
+  ![Detailansicht eines CI-Laufs](docs/images/github_ci_lauf.png)
+
+  *Detailansicht eines CI-Laufs.*
 
 - **Bezug zur Evaluation:** Nein.
 
@@ -420,7 +550,7 @@ Die folgenden Erweiterungen dokumentieren zusätzliche Methoden, Artefakte und o
 
 - **Umsetzung:** Verschlüsselte Archive mit AES-256-GCM, Schutz vor Restore in nicht leere Datenbanken und automatisierter Inhalts-/Indexvergleich. DEV-Restore mit 28 Collections, 9 Dokumenten und 36 Indizes bestätigt; PROD-Archiv offline verifiziert, kein vollständiger PROD-Restore.
 
-- **Nachweise:** [Pilotbetrieb](docs/testing/Pilotbetrieb.md) · [Backup](scripts/backup-database.mjs) · [Kryptografie](scripts/backup-crypto.mjs) · [Restore](scripts/restore-database.mjs) · [Vergleich](scripts/verify-restore.mjs) · [Kryptografie-Tests](tests/unit/infrastruktur/backup-crypto.test.ts). Anonymisierten Konsolennachweis noch ergänzen; keine Schlüssel oder Archive veröffentlichen.
+- **Nachweise:** [Pilotbetrieb](docs/testing/Pilotbetrieb.md) · [Backup](scripts/backup-database.mjs) · [Restore](scripts/restore-database.mjs) · [Vergleich](scripts/verify-restore.mjs) · [Unit-Tests](tests/unit). Anonymisierten Konsolennachweis noch ergänzen; keine Schlüssel oder Archive veröffentlichen.
 
 - **Bezug zur Evaluation:** Nein.
 
@@ -821,7 +951,7 @@ Die folgende Übersicht beschreibt den im Repository vorhandenen Funktionsumfang
 
 ### 10.4 E-Mail-Versand und Konfiguration
 
-Administratoren können die Versandmethode vereinsbezogen konfigurieren. Der Einladungsprozess unterstützt Resend, SMTP und Microsoft 365. Einladungen können erneut versendet und widerrufen werden. Die E-Mail-Konfigurationsanleitung beschreibt den ursprünglichen Versandweg; der aktuelle Code umfasst zusätzlich die beiden weiteren Methoden.
+Administratoren können die Versandmethode vereinsbezogen konfigurieren. Der Einladungsprozess unterstützt Resend, SMTP und Microsoft 365. Einladungen können erneut versendet und widerrufen werden. Die E-Mail-Konfigurationsanleitung beschreibt alle drei Versandmethoden.
 
 - [E-Mail-Versand](src/lib/server/email.ts)
 - [Microsoft-365-Anbindung](src/lib/server/microsoft365.ts)
