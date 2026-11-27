@@ -5,7 +5,8 @@ import { hash, argon2id } from 'argon2';
 import { createHash } from 'node:crypto';
 
 const args = process.argv.slice(2);
-if (args.length > 1 || args.some(a => a !== '--apply')) throw new Error('Nur --apply erlaubt.');
+const reset = args.includes('--reset');
+if (new Set(args).size !== args.length || args.some(a => !['--apply','--reset','--confirm=clubmatiq_demo'].includes(a)) || (args.includes('--confirm=clubmatiq_demo') !== (reset && args.includes('--apply')))) throw new Error('Reset erfordert --reset --apply --confirm=clubmatiq_demo.');
 const apply = args.includes('--apply');
 const config = parse(await readFile('.env.demo.local'));
 const name = 'clubmatiq_demo';
@@ -121,6 +122,12 @@ try {
   console.log('vereinskleider_verkaeufe: '+sales.length+' vorgesehene Geschäftsvorfälle');
   console.log('vereinskleider_rechnungen: 3 vorgesehene Rechnungen');
   console.log('inventuren: 1 vorgesehene Inventur mit aktuellen Soll-Beständen');
+  const resetCollections = ['clubdesk_mitglieder','lieferanten','riegen','ausleihen','vereine','schadensmeldungen','lagerbewegungen','kategorien','inventarbewertung_aufnahmen','artikelvarianten','rabattregeln','vereinskleider_preise','vereinskleider_rechnungen','benutzer','vereinskleider_gutschriften','vereinskleider_verkaeufe','artikel','clubdesk_gruppenzuordnungen','inventuren','einladungen','vereinskleider_sammelbestellungen','sessions','lagerorte','inventurpositionen','bildUploads','inventurprotokoll','vereinskleider_rechnungsnummern','groessen'];
+  if(reset) {
+    const actual=(await db.listCollections({}, {nameOnly:true}).toArray()).map(c=>c.name);
+    if(actual.some(c=>!resetCollections.includes(c))) throw new Error('Unbekannte Collection: Reset abgebrochen.');
+    for(const c of actual) console.log('Reset '+c+': '+await db.collection(c).countDocuments({})+' Dokumente');
+  }
   if (!apply) {
     console.log('Vorschau: keine Änderungen.');
   } else {
@@ -132,6 +139,9 @@ try {
     const session = client.startSession();
     try {
       await session.withTransaction(async () => {
+        if(reset) {
+          for(const c of resetCollections) await db.collection(c).deleteMany({}, {session});
+        }
         for (const {collection, document} of plan) {
           const existing = await db.collection(collection).findOne({_id: document._id}, {session});
           if (existing && (collection === 'vereine' ? existing.name !== document.name : existing.vereinId !== vereinId)) throw new Error('ID-Konflikt: ' + collection);
@@ -245,6 +255,6 @@ try {
         }
       });
     } finally { await session.endSession(); }
-    console.log('Demo-Grundstruktur sichergestellt. Bestehende Datensätze unverändert.');
+    console.log(reset?'Demo-Daten atomar zurückgesetzt und neu erstellt.':'Demo-Grundstruktur sichergestellt. Bestehende Datensätze unverändert.');
   }
 } finally { await client.close(); }
