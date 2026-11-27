@@ -110,6 +110,7 @@ try {
   console.log('ausleihen: ' + loans.length + ' vorgesehene Geschäftsvorfälle');
   console.log('vereinskleider_verkaeufe: '+sales.length+' vorgesehene Geschäftsvorfälle');
   console.log('vereinskleider_rechnungen: 3 vorgesehene Rechnungen');
+  console.log('inventuren: 1 vorgesehene Inventur mit aktuellen Soll-Beständen');
   if (!apply) {
     console.log('Vorschau: keine Änderungen.');
   } else {
@@ -196,6 +197,20 @@ try {
           await invoices.insertOne({_id,vereinId,verkaufId,rechnungsnummer:jahr+'-'+String(counter.nummer).padStart(5,'0'),empfaenger:v.kaeufer,riegen:v.riegen,zahlungsart:v.zahlungsart,bemerkung:v.bemerkung,positionen:v.positionen,rabatte:v.rabatte,zusaetzlicherRabatt:v.zusaetzlicherRabatt,zwischentotal:v.zwischentotal,rabattTotal:v.rabattTotal,gesamtbetrag:v.endbetrag,bezahltBetrag:v.bezahltBetrag,zahlungen:v.zahlungen,status,erstelltAm:now,aktualisiertAm:now,clubdeskExportStatus:'nicht_exportiert'},{session});
           const result=await verkaeufe.updateOne({_id:v._id,vereinId,rechnungId:{$exists:false},trancheRechnungIds:{$exists:false}},{$set:{rechnungId:_id.toHexString(),aktualisiertAm:now}},{session});
           if(result.modifiedCount!==1) throw new Error('Demo-Rechnung: Verkaufsreferenz konnte nicht gespeichert werden.');
+        }
+        const inventurId=id('demo-inventur:geraeteraum');
+        const inventuren=db.collection('inventuren');
+        const vorhandeneInventur=await inventuren.findOne({_id:inventurId},{session});
+        if(vorhandeneInventur && vorhandeneInventur.vereinId!==vereinId) throw new Error('Inventur-ID-Konflikt.');
+        if(!vorhandeneInventur) {
+          const lagerortId=ref('lagerorte','Geräteraum');
+          const lagerort=await db.collection('lagerorte').findOne({_id:new ObjectId(lagerortId),vereinId},{session});
+          if(!lagerort) throw new Error('Demo-Inventur: Lagerort fehlt.');
+          const artikel=await db.collection('artikel').find({vereinId,lagerortId},{session}).sort({name:1}).toArray();
+          if(!artikel.length || artikel.some(a=>a.hatGroessen)) throw new Error('Demo-Inventur: unerwarteter Artikelbestand.');
+          const positionen=artikel.map((a,i)=>({_id:id('demo-inventur-position:'+a._id.toHexString()),vereinId,inventurId:inventurId.toHexString(),artikelId:a._id.toHexString(),artikelName:a.name,lagerortId,groesseId:null,sollBestand:a.menge,istBestand:i===0?a.menge:null,einzelwert:a.einzelwert??0,bemerkung:'',kontrolliertAm:i===0?now:null}));
+          await inventuren.insertOne({_id:inventurId,vereinId,name:'Demo-Inventur Geräteraum',typ:'lagerort',lagerortId,lagerortName:lagerort.name,status:'offen',anzahlArtikel:artikel.length,anzahlPositionen:positionen.length,erstelltAm:now,erstelltVon:ref('benutzer','admin')},{session});
+          await db.collection('inventurpositionen').insertMany(positionen,{session});
         }
       });
     } finally { await session.endSession(); }
