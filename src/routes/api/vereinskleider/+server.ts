@@ -228,6 +228,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         if (regeln.length > 1 && regeln.some((r) => !r.kombinierbar)) {
           throw new Verkaufsfehler('Diese Rabattregeln dürfen nicht kombiniert werden.');
         }
+        const betrifft = (r: Rabattregel, p: typeof geprueft[number]) =>
+          r.geltungsbereich === 'warenkorb' ||
+          (r.geltungsbereich === 'artikel' && r.artikelIds?.includes(p.artikelId)) ||
+          (r.geltungsbereich === 'kategorie' && r.kategorieIds?.includes(p.kategorieId));
+        if (regeln.some((a, i) => regeln.slice(i + 1).some(b =>
+          (a.einmaligProMitglied || b.einmaligProMitglied) &&
+          (geprueft.some(p => betrifft(a, p) && betrifft(b, p)) ||
+            (a.einmaligProMitglied && b.einmaligProMitglied && a.anspruchsgruppe && a.anspruchsgruppe === b.anspruchsgruppe))
+        ))) throw new Verkaufsfehler('Erstbezugsregeln dürfen sich nicht überschneiden.', 409);
         const heute = new Date().toISOString().slice(0, 10);
         for (const regel of regeln) {
 
