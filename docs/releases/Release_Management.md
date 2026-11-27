@@ -4,7 +4,40 @@
 
 Semantic Versioning: MAJOR für inkompatible Änderungen, MINOR für kompatible Funktionen, PATCH für kompatible Fehlerkorrekturen. Vorabversionen mit -beta.1 oder -rc.1. Roadmap-Zielnummern sind vorläufig.
 
-Die aktuelle interne Entwicklungsversion ist 0.9.0. `package.json` ist die zentrale Versionsquelle; Vite übernimmt die Version beim Build in die globale Footer-Anzeige. Versionsänderungen vor Freigabe mit `npm version <version> --no-git-tag-version` durchführen und Lockfile mitführen. Ein Versionswechsel allein ist keine Freigabe.
+`package.json` ist die zentrale Versionsquelle; Vite übernimmt die Version beim Build in die globale Footer-Anzeige. Versionsänderungen vor Freigabe mit `npm version <version> --no-git-tag-version` durchführen und Lockfile mitführen. Ein Versionswechsel allein ist keine Freigabe.
+
+## Branch- und Statusstrategie
+
+
+### Branches
+
+- `main`: stabiler, produktiv einsetzbarer Stand.
+- `develop/v2.0.0`, `develop/v3.0.0`: getrennte Entwicklungsstände der Zielversionen.
+- `feature/issue-XX-beschreibung`: einzelne Funktionen, ausgehend vom jeweiligen Versionsbranch.
+- `hotfix/issue-XX-beschreibung`: dringende Korrekturen ausgehend von main.
+
+### Ablauf
+
+1. Issue unabhängig von der Versionsreihenfolge auswählen; Meilenstein beibehalten.
+2. Abhängigkeiten prüfen und Feature Branch erstellen.
+3. Implementieren, Unit- und Integrationstests sowie CI ausführen.
+4. Manuelle Abnahme durchführen und im Abnahmetestprotokoll dokumentieren.
+5. Feature per Pull Request in den Zielversionsbranch übernehmen; Issue mit `Ready for Release` kennzeichnen.
+6. Vor Release frühere Versionen und Hotfixes integrieren, Konflikte lösen und Regressionstests ausführen.
+7. Zielversion nach erfolgreicher Abnahme in main übernehmen, Version taggen und GitHub Release erstellen. Zugehörige Issues abschliessen und als `Released` kennzeichnen.
+
+### Statuslabels
+
+- `In Development`: Umsetzung läuft.
+- `Ready for Testing`: bereit zur Abnahme.
+- `Ready for Release`: abgenommen, noch nicht veröffentlicht.
+- `Released`: veröffentlicht.
+
+Je Issue nur einen dieser Status verwenden. Bestehende fachliche Labels bleiben erhalten. Vor dem Release keine automatisch schliessenden Issue-Referenzen in Pull Requests nach main verwenden.
+
+### Produktionsschutz
+
+Produktionsdeployment ausschliesslich aus dem freigegebenen Stand von main bzw. Release-Tags. Entwicklungsbranches nur mit separater Testumgebung und Testdaten betreiben. Datenbankmigrationen auf Kompatibilität und Rückrollbarkeit prüfen. Hotfixes aus main in alle aktiven Versionsbranches übernehmen. Spätere Versionsbranches regelmässig mit freigegebenen Vorgängerversionen synchronisieren; keine späteren Funktionen in frühere Releases übernehmen.
 
 ## Workflow
 
@@ -17,12 +50,12 @@ Die aktuelle interne Entwicklungsversion ist 0.9.0. `package.json` ist die zentr
 
 ## Umgebungen
 
-Lokale Entwicklung, Preview, separat eingefrorene Evaluation mit getrennten Testdaten und stabile Produktion. Keine produktiven Daten in Evaluation kopieren. Evaluationstag und Deployment erst nach tatsächlicher Einrichtung dokumentieren. Bei Fehlern Rollback auf geprüften Stand unter Beachtung der Datenbankmigrationen.
+Lokale Entwicklung, Preview, separat eingefrorene Evaluation mit getrennten Testdaten und stabile Produktion. Keine produktiven Daten in Evaluation kopieren. Die separate Demo ist eingerichtet; siehe [Demo-Betrieb](../testing/Demo-Betrieb.md). Bei Fehlern Rollback auf geprüften Stand unter Beachtung der Datenbankmigrationen.
 
 ## Planung
 
 [Roadmap](../../ROADMAP.md), [Changelog](../../CHANGELOG.md), [Freigabecheckliste](Release_Checkliste.md). Projektmeilensteine M1–M5 und Release-Meilensteine v1.0.0–v3.0.0 getrennt nutzen. Die 43 optionalen Issues sind den fünf Folgeversionen zugeordnet. v1.0.0 verweist organisatorisch auf M1–M5. Zielversionslabels ergänzen die Zuordnung.
 
-## Automatisierung (geplant)
+## Automatisierung
 
-GitHub Actions soll statische Prüfungen, Unit-Tests und Build automatisieren. MongoDB-Integrationstests benötigen eine getrennte Testdatenbank und geeignete Geheimnisverwaltung. Release-Erstellung erst nach erfolgreicher Prüfung und ausdrücklicher Freigabe; keine automatische Freigabe allein aufgrund eines Pushs. Die Einrichtung und ihr Nachweis stehen noch aus.
+GitHub Actions automatisiert Qualitätsprüfungen; erfolgreiche CI-Läufe sind im Pilotbetrieb und Systemabnahmetestprotokoll dokumentiert. MongoDB-Integrationstests benötigen eine getrennte Testdatenbank und geeignete Geheimnisverwaltung. Release-Erstellung erst nach erfolgreicher Prüfung und ausdrücklicher Freigabe; keine automatische Freigabe allein aufgrund eines Pushs. Die Freigabe bleibt eine separate Entscheidung.
