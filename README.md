@@ -200,6 +200,12 @@ Das Projekt folgt dem phasenorientierten Prototyping-Prozess. Die nachfolgenden 
   ![Rückgabe als Abschluss des Kernworkflows](docs/images/rueckgabe.png)
 
   *Rückgabe als Abschluss des Kernworkflows.*
+
+
+![Übersicht der Materialrückgaben](docs/images/retouren_material.png)
+
+*Übersicht der Materialrückgaben.*
+
 - **Referenz-Mockup:** PowerPoint wurde anstelle von Figma aufgrund der einfacheren Handhabung gewählt. Die Workflows Artikelerfassung, QR-Code und Vereinskleiderbestellung werden mit statischen Beispieldaten simuliert; eine tatsächliche Datenverarbeitung ist nicht Bestandteil des Mockups. Die manuelle Prüfung der zentralen Workflows ist in [Aufgabe 10](docs/konzeption/ui-prototyping.pdf) dokumentiert.
 - **Designentscheidungen:** Funktionskacheln vereinfachen den Einstieg; separate Detailseiten reduzieren die Komplexität umfangreicher Formulare. Stammdaten werden unabhängig von Bewegungsprozessen gepflegt. Die Vereinskleiderprozesse sind getrennt, damit Bestellungen, Übergaben und Verrechnungen nachvollziehbar bleiben.
 
@@ -313,6 +319,11 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 
   *Verrechnungsoberfläche für finanzielle Folgeprozesse.*
 
+
+![Historie der Vereinskleiderverkäufe](docs/images/verkaufshistorie.png)
+
+*Historie der Vereinskleiderverkäufe.*
+
 - **Bezug zur Evaluation:** Nein; kein entsprechender Testnachweis vorhanden.
 
 #### 4.1.5 Anmeldung, Benutzerverwaltung und Berechtigungen
@@ -414,7 +425,12 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 - **Beschreibung & Nutzen:** Rückgaben verkaufter Kleidungsartikel und finanzielle Korrekturen bleiben nachvollziehbar.
 - **Abgrenzung zum Mindestumfang:** Zusätzlicher Rückabwicklungsprozess neben dem Verkauf; keine vollständige Buchhaltung.
 - **Umsetzung:** Retourenerfassung, Rückerstattungsstatus und Gutschriftenexport; manuelle Buchungsbestätigung für ClubDesk ohne externe Buchung.
-- **Nachweise:** [Retouren](src/routes/vereinskleider/retouren) · [Retouren-API](src/routes/api/vereinskleider/retouren) · [Gutschriften](src/routes/api/vereinskleider/gutschriften) · [Buchungsabgleich](src/routes/api/vereinskleider/clubdesk-abgleich). Screenshot noch ergänzen.
+- **Nachweise:** [Retouren](src/routes/vereinskleider/retouren) · [Retouren-API](src/routes/api/vereinskleider/retouren) · [Gutschriften](src/routes/api/vereinskleider/gutschriften) · [Buchungsabgleich](src/routes/api/vereinskleider/clubdesk-abgleich). Die Retourenübersicht sowie die dokumentierten Abnahmen zu #34 und #69 belegen die Rückabwicklung. Ein aktueller Gutschriftenbeleg liegt weder in der Demo noch im produktiven Bestand vor; deshalb wird kein Gutschriften-Screenshot behauptet. [Systemabnahme](docs/testing/System-Abnahmetestprotokoll.md).
+
+![Retourenübersicht für Vereinskleider](docs/images/retouren_kleider.png)
+
+*Retourenübersicht für Vereinskleider.*
+
 - **Bezug zur Evaluation:** Nein.
 
 #### 4.1.12 Vereinsbezogene E-Mail-Konfiguration
@@ -598,7 +614,12 @@ Die Regeln in AGENTS.md wurden nachträglich aus der bisherigen Praxis abgeleite
 
 - **Umsetzung:** PROD, DEV, TEST und DEMO trennen; Referenzschema initialisieren, Demo-Daten deterministisch erzeugen, externe Mail- und Upload-Funktionen in der Demo sperren. 16/16 lesende Datenbank-Zugriffsprüfungen sowie 10/10 lokale, 15/15 Online- und 7/7 finale Demo-Prüfungen dokumentiert; keine unabhängige Sicherheitsprüfung.
 
-- **Nachweise:** [Demo-Betrieb](docs/betrieb/Demo-Betrieb.md) · [Pilotbetrieb](docs/testing/Pilotbetrieb.md) · [Seed/Reset](scripts/seed-demo.mjs) · [Initialisierung](scripts/init-database.mjs) · [Demo-Schutz](src/hooks.server.ts). Screenshot des Demo-Banners noch ergänzen. Die folgende konzeptionelle Übersicht zeigt die getrennten Umgebungen; die tatsächlichen Zugriffstests sind im Pilotbetrieb dokumentiert.
+- **Nachweise:** [Demo-Betrieb](docs/betrieb/Demo-Betrieb.md) · [Pilotbetrieb](docs/testing/Pilotbetrieb.md) · [Seed/Reset](scripts/seed-demo.mjs) · [Initialisierung](scripts/init-database.mjs) · [Demo-Schutz](src/hooks.server.ts). 
+
+![Kennzeichnung der separaten Demo-Umgebung](docs/images/demo_banner.png)
+
+*Kennzeichnung der separaten Demo-Umgebung.*
+ Die folgende konzeptionelle Übersicht zeigt die getrennten Umgebungen; die tatsächlichen Zugriffstests sind im Pilotbetrieb dokumentiert.
 
 ```mermaid
 flowchart TD
