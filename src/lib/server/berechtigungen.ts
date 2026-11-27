@@ -8,6 +8,7 @@ export type Berechtigung =
   | 'ausleihen:verwalten'
   | 'stammdaten:verwalten'
   | 'benutzer:verwalten'
+  | 'verein:verwalten'
   | 'inventur:lesen'
   | 'inventur:erstellen'
   | 'inventur:zaehlen'
@@ -27,6 +28,7 @@ const rollenBerechtigungen: Record<
     'ausleihen:verwalten',
     'stammdaten:verwalten',
     'benutzer:verwalten',
+    'verein:verwalten',
     'inventur:lesen',
     'inventur:erstellen',
     'inventur:zaehlen',
