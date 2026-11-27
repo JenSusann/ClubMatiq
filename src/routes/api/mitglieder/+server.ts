@@ -140,7 +140,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   const zeilen = csvLesen(inhalt);
   if (zeilen.length < 2) throw error(400, 'Die CSV enthält keine Mitglieder.');
   const kopf = zeilen[0].map((v) => v.trim());
-  const index = (name: string): number => kopf.indexOf(name);
+  const index = (name: string): number => {
+    const direkt = kopf.indexOf(name);
+    return direkt >= 0 ? direkt : kopf.indexOf(`[${name}]`);
+  };
 
   for (const pflicht of ['[Id]', 'Vorname', 'Nachname']) {
     if (index(pflicht) < 0) throw error(400, `Pflichtspalte fehlt: ${pflicht}`);
@@ -189,7 +192,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   const sammlung: Collection<Mitglied> = db.collection<Mitglied>('clubdesk_mitglieder');
   await sammlung.createIndex({ vereinId: 1, clubdeskId: 1 }, { unique: true });
-  if (index('Gruppen') >= 0 && index('Gruppe') >= 0) {
+  if (index('Gruppen') >= 0 || index('Gruppe') >= 0) {
     const [regeln, riegen] = await Promise.all([
       db.collection<Riegenregel & { vereinId: string }>('clubdesk_gruppenzuordnungen').find({ vereinId }).toArray(),
       db.collection<Zuordnungsriege & { vereinId: string }>('riegen').find({ vereinId, aktiv: true }).toArray()
