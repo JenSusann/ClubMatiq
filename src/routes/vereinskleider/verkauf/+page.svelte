@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { verteileRabatte } from '../../../lib/rabattverteilung';
   import Aktionsmeldung from '../../../lib/Aktionsmeldung.svelte';
   import { onMount } from 'svelte';
 
@@ -175,14 +176,30 @@
   }
   function kompatibel(a: Rabattregel, b: Rabattregel): boolean {
     return a.kombinierbar && b.kombinierbar && !(
-      (a.einmaligProMitglied || b.einmaligProMitglied) &&
+      (a.einmaligProMitglied && b.einmaligProMitglied) &&
       (positionen.some(p => betrifft(a,p) && betrifft(b,p)) ||
        (a.einmaligProMitglied && b.einmaligProMitglied && a.anspruchsgruppe && a.anspruchsgruppe === b.anspruchsgruppe))
     );
   }
+  function gemischteVerteilung(regeln: Rabattregel[]) {
+    if (!regeln.some(r => r.einmaligProMitglied) || !regeln.some(r => !r.einmaligProMitglied)) return null;
+    return verteileRabatte(positionen, regeln.map(r => ({
+      id: r._id, einmalig: r.einmaligProMitglied === true, kombinierbar: r.kombinierbar,
+      art: r.rabattart, wert: r.wert, maximaleMenge: r.maximaleMenge,
+      passendeIndizes: positionen.flatMap((p,i) => betrifft(r,p) ? [i] : [])
+    })));
+  }
+  function kombinationGueltig(regeln: Rabattregel[]): boolean {
+    if (!regeln.every((a,i) => regeln.slice(i+1).every(b => kompatibel(a,b)))) return false;
+    try { gemischteVerteilung(regeln); return true; } catch { return false; }
+  }
+  const verteilung = $derived.by(() => {
+    try { return gemischteVerteilung(ausgewaehlteRabatte); } catch { return null; }
+  });
   function rappen(wert: number): number { return Math.round((wert + Number.EPSILON) * 100); }
   function rabattBerechnen(regel: Rabattregel | undefined): number {
     if (!regel) return 0;
+    if (verteilung) return (verteilung.summen[regel._id] ?? 0) / 100;
     const passend = positionen.filter((p) => p.einzelpreis !== null && (regel.geltungsbereich === 'warenkorb' ||
       (regel.geltungsbereich === 'artikel' && regel.artikelIds.includes(p.artikelId)) ||
       (regel.geltungsbereich === 'kategorie' && regel.kategorieIds.includes(
@@ -208,7 +225,7 @@
     return Math.min(wert, rappen(gesamtpreis)) / 100;
   }
   const regelRabatt = $derived(Math.min(rappen(gesamtpreis), ausgewaehlteRabatte.reduce((summe,r) => summe + rappen(rabattBerechnen(r)), 0)) / 100);
-  const rabattAuswahlGueltig = $derived(rabattIds.length === ausgewaehlteRabatte.length && ausgewaehlteRabatte.every((a,i) => ausgewaehlteRabatte.slice(i+1).every(b => kompatibel(a,b))));
+  const rabattAuswahlGueltig = $derived(rabattIds.length === ausgewaehlteRabatte.length && kombinationGueltig(ausgewaehlteRabatte));
   const restNachSonderrabatt = $derived(Math.max(0, Math.round((gesamtpreis - regelRabatt) * 100) / 100));
   const rabattGueltig = $derived(Number.isFinite(rabattZahl) && rabattZahl >= 0 && rabattZahl <= restNachSonderrabatt && Math.abs(rabattZahl * 100 - Math.round(rabattZahl * 100)) < 0.000001);
   const endbetrag = $derived(Math.max(0, Math.round((restNachSonderrabatt - (rabattGueltig ? rabattZahl : 0)) * 100) / 100));
@@ -666,7 +683,7 @@
             <p>Gespeicherte Rabattregeln (optional)</p>
              {#each passendeRegeln as regel (regel._id)}
                <label class="checkzeile rabattoption"><input type="checkbox" checked={rabattIds.includes(regel._id)}
-                 disabled={!rabattIds.includes(regel._id) && (hatOffenePreise || ausgewaehlteRabatte.some(r => !kompatibel(r, regel)))}
+                 disabled={!rabattIds.includes(regel._id) && (hatOffenePreise || !kombinationGueltig([...ausgewaehlteRabatte, regel]))}
                  onchange={(e) => { rabattIds = e.currentTarget.checked ? [...rabattIds, regel._id] : rabattIds.filter(id => id !== regel._id); }} />
                  {regel.name} ({regel.rabattart === 'prozent' ? `${regel.wert} %` : formatCHF(regel.wert)})
                </label>
@@ -680,7 +697,7 @@
             {#if !rabattAuswahlGueltig}
               <p class="warnung" role="alert">Die ausgewählte Rabattregel ist nicht mehr gültig. Bitte neu auswählen.</p>
             {/if}
-            <p class="hinweis">Mehrere Regeln sind nur bei erlaubter Kombination und ohne überschneidende Erstbezüge auswählbar. Für Erstbezüge muss ein ClubDesk-Mitglied ausgewählt werden.</p>
+            <p class="hinweis">Mehrere Regeln sind bei erlaubter Kombination auswählbar. Erstbezüge haben Vorrang; weitere Regeln gelten für verbleibende Stücke. Für Erstbezüge muss ein ClubDesk-Mitglied ausgewählt werden.</p>
             <label for="zusatzrabatt">Weiterer Rabatt in CHF (optional)</label>
             <input id="zusatzrabatt" type="text" inputmode="decimal" bind:value={zusaetzlicherRabatt} />
             {#if !rabattGueltig}<p class="warnung" role="alert">Bitte einen gültigen Rabatt zwischen CHF 0 und {formatCHF(restNachSonderrabatt)} eingeben.</p>{/if}
