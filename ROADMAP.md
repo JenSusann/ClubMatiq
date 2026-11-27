@@ -1,10 +1,10 @@
 # ClubMatiq – Produkt-Roadmap
 
-Stand: 26.11.2026. Zielversionen sind Planungswerte, keine Lieferzusagen. GitHub-Issues sind führend für den Umsetzungsstatus. Die technische Umsetzung und Veröffentlichung richten sich nach der [Entwicklungs- und Release-Strategie](docs/releases/Release_Management.md).
+Stand: 26.11.2026. Zielversionen sind Planungswerte, keine Lieferzusagen. GitHub-Issues sind führend für den Umsetzungsstatus. Die technische Umsetzung und Veröffentlichung richten sich nach der [Entwicklungs- und Release-Strategie](docs/releases/Release-Management.md).
 
 ## Evaluation und Abgabe
 
-- v0.9.x: Pilot- und Evaluationsphase. Produktive Abnahme v0.9.2 und separater Demo-Stand sind im [Pilotbetrieb](docs/testing/Pilotbetrieb.md) und [Demo-Betrieb](docs/testing/Demo-Betrieb.md) dokumentiert.
+- v0.9.x: Pilot- und Evaluationsphase. Produktive Abnahme v0.9.2 und separater Demo-Stand sind im [Pilotbetrieb](docs/testing/Pilotbetrieb.md) und [Demo-Betrieb](docs/betrieb/Demo-Betrieb.md) dokumentiert.
 - v1.0.0: ZHAW-Abgabe; Issues #1–71 als vorläufiger Abgabekandidatenpool, nicht als pauschale Freigabezusage. Offene Kriterien und Umfang vor Freeze prüfen.
 
 ## Entwicklungsreihenfolge und Veröffentlichung
