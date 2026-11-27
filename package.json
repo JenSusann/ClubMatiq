@@ -27,6 +27,7 @@
 		"test:all": "npm run test:coverage && npm run test:integration && npm run coverage:merge",
 		"db:init:dev": "node scripts/init-database.mjs --environment=dev",
 		"db:seed:demo": "node scripts/seed-demo.mjs",
+		"db:reset:demo": "node scripts/seed-demo.mjs --reset",
 		"db:init:demo": "node scripts/init-database.mjs --environment=demo",
 		"db:init:prod": "node scripts/init-database.mjs --environment=prod",
 		"db:schema:export": "node scripts/init-database.mjs --environment=prod --export",
