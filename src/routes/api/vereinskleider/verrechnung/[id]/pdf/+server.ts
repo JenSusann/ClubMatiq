@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { db } from '../../../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../../../lib/server/berechtigungen';
+import { erstelleAusstellerdaten, type Ausstellerdaten } from '../../../../../../lib/server/vereinseinstellungen';
 import type { RequestHandler } from './$types';
 
 type Position = {
@@ -15,6 +16,7 @@ type Position = {
 
 type Zahlung = { betrag: number; datum: Date | string; zahlungsart: string };
 type Gutschrift = {
+  aussteller?: Ausstellerdaten;
   vereinId: string;
   rechnungId: string;
   rechnungsnummer: string;
@@ -28,6 +30,7 @@ type Gutschrift = {
   erstelltAm: Date;
 };
 type Rechnung = {
+  aussteller?: Ausstellerdaten;
   vereinId: string;
   rechnungsnummer: string;
   empfaenger: string;
@@ -96,13 +99,13 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
         _id: new ObjectId(gutschriftId), vereinId, rechnungId: params.id
       });
       if (!gutschrift) return json({ fehler: 'Gutschrift nicht gefunden.' }, { status: 404 });
-      const vereinFuerGutschrift = await db.collection('vereine').findOne({
+      const vereinFuerGutschrift = gutschrift.aussteller || rechnung.aussteller ? null : await db.collection('vereine').findOne({
         $or: [
           ...(ObjectId.isValid(vereinId) ? [{ _id: new ObjectId(vereinId) }] : []),
           { vereinId }
         ]
       });
-      const vereinsnameGutschrift = String(vereinFuerGutschrift?.name ?? 'Verein');
+      const vereinsnameGutschrift = erstelleAusstellerdaten(gutschrift.aussteller ?? rechnung.aussteller ?? vereinFuerGutschrift?.ausstellerVorErsterAenderung ?? vereinFuerGutschrift).name;
       const groesse = gutschrift.groesseId && /^[a-f\d]{24}$/i.test(gutschrift.groesseId)
         ? await db.collection('groessen').findOne({ _id: new ObjectId(gutschrift.groesseId), vereinId })
         : null;
@@ -159,13 +162,13 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
       });
     }
 
-    const verein = await db.collection('vereine').findOne({
+    const verein = rechnung.aussteller ? null : await db.collection('vereine').findOne({
       $or: [
         ...(ObjectId.isValid(vereinId) ? [{ _id: new ObjectId(vereinId) }] : []),
         { vereinId }
       ]
     });
-    const vereinsname = String(verein?.name ?? 'Verein');
+    const vereinsname = erstelleAusstellerdaten(rechnung.aussteller ?? verein?.ausstellerVorErsterAenderung ?? verein).name;
 
     const gesamtRappen = Math.round(rechnung.gesamtbetrag * 100);
     const bezahltRappen = Math.max(0, Math.round((rechnung.bezahltBetrag ?? 0) * 100));
