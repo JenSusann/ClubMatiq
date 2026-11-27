@@ -71,3 +71,11 @@ MongoDB Database Tools 100.20.1 installiert. DEV-Backup um 01:23:33 MEZ und PROD
 - Zweiter DEV-Restore (Backup 01:33:40 MEZ): 28 Collections, 9 Dokumente, 36 Indizes erfolgreich wiederhergestellt. Exakter Vergleich noch ausstehend.
 
 - Automatisierter Vergleich mit scripts/verify-restore.mjs: alle 28 Collections mit inhalte=true und indizes=true; 9 Dokumente und 36 Indizes. DEV-Restore-Abnahme bestanden. Kein produktiver Restore durchgeführt. Verschlüsselte Ablage weiterhin offen.
+
+### Verschlüsselter Backup-Test
+
+- Windows-Tool-Erkennung: DEV-Backup um 01:36:45 MEZ erfolgreich.
+- AES-256-GCM DEV-Backup vom 27.11.2026, 11:41:15 MEZ erfolgreich wiederhergestellt.
+- Automatisierter Datenvergleich: 28 Collections, 9 Dokumente, 36 Indizes; alle Inhalte und Indexdefinitionen stimmen überein.
+- BitLocker-Status mangels Administratorrechten nicht überprüfbar. DEV-Testschlüssel nicht für PROD verwenden.
+- PROD-Verschlüsselung, sichere Schlüsselablage und CI-Sicherheitstests noch offen.
