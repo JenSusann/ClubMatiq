@@ -25,7 +25,7 @@ type Mitglied = {
 };
 
 function gruppendetails(gruppen: string): { gruppe: string; funktion: string | null }[] {
-  return [...new Set(gruppen.split(',').map(g => g.trim()).filter(Boolean))].map(g => {
+  return [...new Set(gruppen.split(',').map(g => g.trim().replace(/\s+/g, ' ')).filter(Boolean))].map(g => {
     const treffer = /^(.+?) \((.*)\)$/.exec(g);
     return treffer ? { gruppe: treffer[1].trim(), funktion: treffer[2].trim() } : { gruppe: g, funktion: null };
   });
@@ -177,7 +177,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       status: wert('Status'),
       ...(index('Gruppe') >= 0 ? { clubdeskHauptgruppe: wert('Gruppe') } : {}),
       ...(index('Gruppen') >= 0 ? { clubdeskGruppendetails: gruppendetails(wert('Gruppen')) } : {}),
-      ...(index('Gruppen') >= 0 ? { clubdeskGruppen: [...new Set(wert('Gruppen').split(',').map(g => g.trim()).filter(Boolean))] } : {}),
+      ...(index('Gruppen') >= 0 ? { clubdeskGruppen: [...new Set(wert('Gruppen').split(',').map(g => g.trim().replace(/\s+/g, ' ')).filter(Boolean))] } : {}),
       ...(index('Riegen') >= 0 ? { riegen: [...new Set(wert('Riegen').split('|').map(r => r.trim()).filter(Boolean))] } : {}),
       aktiv: true,
       importiertAm: new Date()
