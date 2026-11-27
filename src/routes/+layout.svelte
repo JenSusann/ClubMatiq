@@ -53,6 +53,7 @@
     { titel:'Schadensmeldungen', link:'/meldungen', rollen:['admin','materialverantwortlich','leiter','mitglied'] },
     { titel:'Stammdaten', link:'/stammdaten', rollen:['admin','materialverantwortlich'] },
     { titel:'Benutzerverwaltung', link:'/benutzer', rollen:['admin'] },
+    { titel:'Vereinseinstellungen', link:'/vereinseinstellungen', rollen:['admin'] },
     { titel:'E-Mail-Einstellungen', link:'/mail-einstellungen', rollen:['admin'] }
   ];
   const sichtbareNavigation = $derived(navigation.filter((n)=>n.rollen.includes(angezeigteRolle) && (!data.demo || n.link !== '/mail-einstellungen')));
