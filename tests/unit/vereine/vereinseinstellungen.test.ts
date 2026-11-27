@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validiereVereinseinstellungen } from '../../../src/lib/server/vereinseinstellungen';
+import { validiereVereinseinstellungen, erstelleAusstellerdaten } from '../../../src/lib/server/vereinseinstellungen';
 
 describe('Vereinseinstellungen', () => {
   it('akzeptiert einen Namen und ergänzt optionale Standardwerte', () => {
@@ -50,4 +50,34 @@ describe('Vereinseinstellungen', () => {
       }
     });
   });
+});
+
+describe('Aussteller-Snapshot', () => {
+  it('ergänzt fehlende historische Daten', () => {
+    expect(erstelleAusstellerdaten(null)).toEqual({
+      name: 'Verein', kuerzel: '',
+      adresse: { strasse: '', plz: '', ort: '' },
+      kontakt: { email: '', telefon: '', website: '' }, logo: null
+    });
+  });
+  it('kopiert die Ausstellerdaten unabhängig von der Quelle', () => {
+    const verein = {
+      name: 'TV', adresse: { ort: 'Weiningen' },
+      logo: { url: 'https://example.org/logo.png', publicId: 'logo-alt' },
+      mailEinstellungen: { passwort: 'geheim' }
+    };
+    const snapshot = erstelleAusstellerdaten(verein);
+    verein.name = 'Neu';
+    verein.adresse.ort = 'Zürich';
+    verein.logo.publicId = 'logo-neu';
+    expect(snapshot.name).toBe('TV');
+    expect(snapshot.adresse.ort).toBe('Weiningen');
+    expect(snapshot.logo?.publicId).toBe('logo-alt');
+    expect(snapshot).not.toHaveProperty('mailEinstellungen');
+  });
+  it.each([null, {}, { url: 'https://example.org/logo.png' }, { url: '', publicId: 'logo' }])(
+    'ignoriert unvollständige Logos: %j', (logo) => {
+      expect(erstelleAusstellerdaten({ name: 'TV', logo }).logo).toBeNull();
+    }
+  );
 });
