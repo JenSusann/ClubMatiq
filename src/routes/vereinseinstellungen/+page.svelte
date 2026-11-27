@@ -57,6 +57,8 @@
 <svelte:head><title>Vereinseinstellungen | ClubMatiq</title></svelte:head>
 <Aktionsmeldung {fehler} {erfolg} fehlerSchliessen={() => fehler = ''} erfolgSchliessen={() => erfolg = ''} />
 <div class="seite">
+  <a href="/administration" class="zurueck">← Zurück zur Administration</a>
+
   <header class="kopf"><div><p class="untertitel">Administration</p><h1>Vereinseinstellungen</h1><p>Stammdaten und Kontaktinformationen deines Vereins verwalten.</p></div></header>
   {#if laden}
     <p>Vereinsdaten werden geladen …</p>
@@ -94,6 +96,13 @@
   <section class="karte"><h2>E-Mail-Versand</h2><p class="beschreibung">Die Versandkonfiguration wird separat verwaltet.</p><p><a href="/mail-einstellungen">Zu den E-Mail-Einstellungen</a></p></section>
 </div>
 <style>
+  .zurueck {
+    display: inline-block;
+    margin-bottom: 25px;
+    color: #64748b;
+    text-decoration: none;
+  }
+
   .seite {
     max-width: 1100px;
     margin: 0 auto;
