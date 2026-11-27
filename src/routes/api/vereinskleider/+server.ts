@@ -392,6 +392,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
        // deterministisch in Warenkorbreihenfolge.
        const verbleibendDirekt = new Map(direkteMengen);
        const aufgeteiltePositionen: Array<PositionGeprueft & { verkaufsart: 'direkt' | 'bestellung' }> = [];
+       const finaleRabattAbschnitte: RabattAbschnitt[] = [];
        const erstbezugsPositionen: { anspruch: string; rabattId: string; positionsIndex: number; rabattBetrag: number }[] = [];
        for (const [warenkorbIndex, p] of geprueft.entries()) {
          for (const zuordnung of erstbezugsZuordnungen.filter(z => z.warenkorbIndex === warenkorbIndex)) {
@@ -401,6 +402,21 @@ export const POST: RequestHandler = async ({ request, locals }) => {
          const direkt = Math.min(p.menge, verbleibendDirekt.get(schluessel) ?? 0);
          verbleibendDirekt.set(schluessel, (verbleibendDirekt.get(schluessel) ?? 0) - direkt);
          const bestellt = p.menge - direkt;
+         // Rabattabschnitte auf die endgültigen Direkt-/Bestellpositionen abbilden.
+         const basisIndex = aufgeteiltePositionen.length;
+         for (const a of rabattAbschnitte.filter(a => a.positionsIndex === warenkorbIndex)) {
+           const ende = a.abStueck + a.menge;
+           const direktAnteil = Math.max(0, Math.min(ende, direkt) - a.abStueck);
+           const direktRabatt = Math.round(a.rabattRappen * direktAnteil / a.menge);
+           if (direktAnteil > 0) finaleRabattAbschnitte.push({
+             ...a, positionsIndex: basisIndex, menge: direktAnteil, rabattRappen: direktRabatt
+           });
+           if (a.menge > direktAnteil) finaleRabattAbschnitte.push({
+             ...a, positionsIndex: basisIndex + (direkt > 0 ? 1 : 0),
+             abStueck: Math.max(0, a.abStueck - direkt),
+             menge: a.menge - direktAnteil, rabattRappen: a.rabattRappen - direktRabatt
+           });
+         }
          if (direkt > 0) aufgeteiltePositionen.push({
            ...p, menge: direkt, positionsbetrag: p.einzelpreis === null ? 0 : geld(p.einzelpreis) * direkt, verkaufsart: 'direkt'
          });
@@ -448,7 +464,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         bemerkung: eingabe.bemerkung,
         positionen: aufgeteiltePositionen.map(({ kategorieId, positionsbetrag, ...p }) => ({ ...p, positionsbetrag: positionsbetrag / 100 })),
         rabatte: angewendeteRabatte,
-        ...(rabattAbschnitte.length ? { rabattAbschnitte } : {}),
+        ...(finaleRabattAbschnitte.length ? { rabattAbschnitte: finaleRabattAbschnitte } : {}),
         ...(erstbezugsIds.length ? { erstbezugsIds, erstbezugsPositionen } : {}),
         zusaetzlicherRabatt: eingabe.zusaetzlicherRabatt,
         zwischentotal: zwischentotalRappen / 100,
