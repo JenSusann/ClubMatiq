@@ -143,3 +143,45 @@ describe('Stornierungen – weitere Validierungen und Transaktionen', () => {
     spy.mockRestore();
   });
 });
+
+describe('Issue #130 – Stornierung mehrerer Erstbezüge', () => {
+  const hoseId = 'dddddddddddddddddddddddd';
+  const mitgliedId = 'eeeeeeeeeeeeeeeeeeeeeeee';
+  const regelIds = ['111111111111111111111111','222222222222222222222222'];
+  const positionen = [
+    { ...position(), menge: 1, reserviertMenge: 0, einzelpreis: 115, positionsbetrag: 115 },
+    { ...position(), artikelId: hoseId, menge: 1, reserviertMenge: 0, einzelpreis: 98, positionsbetrag: 98 }
+  ];
+  const vorgang = () => ({
+    ...verkauf(), mitgliedId, positionen, zwischentotal: 213, rabattTotal: 163, endbetrag: 50,
+    erstbezugsIds: [AID,hoseId],
+    erstbezugsPositionen: [AID,hoseId].map((anspruch,i) => ({
+      anspruch, rabattId: regelIds[i], positionsIndex: i, rabattBetrag: [65,98][i]
+    })),
+    rabatte: regelIds.map((rabattId,i) => ({ rabattId, betrag: [65,98][i], einmaligProMitglied: true }))
+  });
+  it('gibt nur den Anspruch der kostenlosen Hose frei', async () => {
+    mocks.findOne.mockResolvedValue(vorgang());
+    const res = await send({ ...valid(), positionsIndex: 1 });
+    expect(res.status).toBe(200);
+    expect(mocks.updateOne).toHaveBeenCalledWith('clubdesk_mitglieder', expect.anything(),
+      { $pullAll: { erstbezugsRabattIds: [hoseId] } }, expect.anything());
+    expect(mocks.updateOne).toHaveBeenCalledWith('vereinskleider_verkaeufe', expect.anything(),
+      { $set: expect.objectContaining({ endbetrag: 50, rabattTotal: 65, erstbezugsIds: [AID] }) }, expect.anything());
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it('erstellt eine Gutschrift von CHF 50 für das Gwändli und behält den Hosenanspruch', async () => {
+    mocks.findOne.mockImplementation((name: string) => name === 'vereinskleider_verkaeufe'
+      ? { ...vorgang(), rechnungId: RID }
+      : { ...rechnung(), gesamtbetrag: 50, positionen });
+    const res = await send(valid());
+    expect(res.status).toBe(200);
+    expect((await res.json()).stornierung.gutschriftBetrag).toBe(50);
+    expect(mocks.insertOne).toHaveBeenCalledWith('vereinskleider_gutschriften',
+      expect.objectContaining({ betrag: 50, rabattBetrag: 65 }), expect.anything());
+    expect(mocks.updateOne).toHaveBeenCalledWith('clubdesk_mitglieder', expect.anything(),
+      { $pullAll: { erstbezugsRabattIds: [AID] } }, expect.anything());
+    expect(mocks.updateOne).toHaveBeenCalledWith('vereinskleider_verkaeufe', expect.anything(),
+      { $set: expect.objectContaining({ endbetrag: 0, rabattTotal: 98, erstbezugsIds: [hoseId] }) }, expect.anything());
+  });
+});
