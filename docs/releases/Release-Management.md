@@ -59,3 +59,45 @@ Lokale Entwicklung, Preview, separat eingefrorene Evaluation mit getrennten Test
 ## Automatisierung
 
 GitHub Actions automatisiert Qualitätsprüfungen; erfolgreiche CI-Läufe sind im Pilotbetrieb und Systemabnahmetestprotokoll dokumentiert. MongoDB-Integrationstests benötigen eine getrennte Testdatenbank und geeignete Geheimnisverwaltung. Release-Erstellung erst nach erfolgreicher Prüfung und ausdrücklicher Freigabe; keine automatische Freigabe allein aufgrund eines Pushs. Die Freigabe bleibt eine separate Entscheidung.
+
+## Branch-Schutz und GitHub Rulesets
+
+Seit dem 27.11.2026 werden der stabile Hauptbranch und die
+Versionsbranches durch aktive GitHub Rulesets geschützt.
+
+| Ruleset | Zielbranches | ID |
+| --- | --- | --- |
+| Main Branch Protection | main | 28268526 |
+| Development Branch Protection | develop/**/* | 28268682 |
+
+### Verpflichtende Schutzregeln
+
+- Schutz vor Löschung.
+- Schutz vor Force Pushes.
+- Änderungen ausschliesslich über Pull Requests.
+- Erfolgreiche Status Checks vor dem Merge.
+- Aktueller Stand des Zielbranches vor dem Merge.
+- Auflösung aller Review-Konversationen.
+- Keine regulären Bypass-Ausnahmen.
+- Keine zusätzliche verpflichtende Personenfreigabe
+  während der Einzelentwicklung.
+
+### Verpflichtende CI-Prüfungen
+
+- Code Quality & Tests
+- Integration Tests & Coverage
+- Combined Coverage
+
+Die Prüfungen werden auch bei reinen Dokumentationsänderungen
+in Pull Requests ausgeführt. Netlify-Prüfungen und der
+tagbasierte Release-Job sind keine verpflichtenden Status Checks.
+
+Neue Versionsbranches dürfen ohne vorgängige Status Checks
+erstellt werden. Feature Branches bleiben ungeschützt.
+
+### Verifikation
+
+Am 27.11.2026 wurden beide Rulesets mittels GitHub API
+als aktiv bestätigt. Die effektiven Schutzregeln wurden
+für main, develop/v2.0.0 und develop/v3.0.0 nachgewiesen.
+
