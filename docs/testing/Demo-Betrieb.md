@@ -1,0 +1,48 @@
+# ClubMatiq – Demo-Betrieb
+
+## Zweck und Zugang
+
+Separate Umgebung für die ZHAW-Zwischen- und Schlussabgabe: https://clubmatiq-demo.netlify.app. Ausschliesslich fiktive Daten des Turnvereins Musterhausen. Zugangsdaten separat über Moodle, niemals im Repository.
+
+## Umgebungen
+
+| Umgebung | Datenbank | Start |
+|---|---|---|
+| Development | clubmatiq_dev | npm run dev |
+| Demo | clubmatiq_demo | npm run dev:demo (Port 5174) |
+| Production | clubmatiq | bestehendes Netlify-Projekt |
+
+Demo verwendet einen eigenen MongoDB-Benutzer mit readWrite ausschliesslich auf clubmatiq_demo. Lokale Konfiguration in .env.demo.local, nicht committen.
+
+## Initialisierung und Reset
+
+```powershell
+npm run db:init:demo
+npm run db:init:demo -- --apply
+npm run db:seed:demo
+npm run db:seed:demo -- --apply
+```
+
+Vor Reset Demo-Zugriffe und parallele Schreibvorgänge unterbinden. Reset löscht Demo-Daten und erstellt den Seed innerhalb einer Transaktion neu; bestehende Indizes bleiben erhalten. Manuell erzeugte Testfälle gehen verloren.
+
+```powershell
+npm run db:reset:demo
+npm run db:reset:demo -- --apply --confirm=clubmatiq_demo
+```
+
+Anschliessend Anmeldung und Datenbestand prüfen. Keine produktiven Zugangsdaten verwenden.
+
+## Netlify
+
+Eigenes Projekt clubmatiq-demo, Repository JenSusann/ClubMatiq, Branch main, Build npm run build. Publish-Verzeichnis anhand erfolgreicher Projektkonfiguration beibehalten. MONGODB_URI nur mit Demo-Benutzer, MONGODB_DB_NAME=clubmatiq_demo, PUBLIC_APP_URL=https://clubmatiq-demo.netlify.app, SECRETS_SCAN_OMIT_KEYS=MONGODB_DB_NAME. Secrets Scanner nicht vollständig deaktivieren. Keine produktiven Mail-, Cloudinary- oder Verschlüsselungszugangsdaten hinterlegen.
+
+## Abnahme und Freigabe
+
+Lokale Abnahme 10/10, Online-Abnahme 15/15 gemäss Anwenderbestätigung am 27.11.2026, siehe [Systemabnahmetestprotokoll](System_Abnahmetestprotokoll.md). Foto-Upload und E-Mail-Einstellungen gesperrt; vollständige Isolation weiterer Schnittstellen noch separat zu prüfen.
+
+- [ ] Automatische Deployments deaktivieren bzw. manuellen Freigabeprozess prüfen.
+- [ ] Finalen Commit deployen und Deployment-ID dokumentieren.
+- [ ] Demo-Banner, Foto-Hinweis und Schadensmeldung ohne Foto nachprüfen.
+- [ ] Externe Schnittstellen und Datenbanktrennung abschliessend prüfen.
+- [ ] Demo-Daten vor Abgabe zurücksetzen und Anmeldung prüfen.
+- [ ] Demo-Link, Repository-Link und Zugangsdaten über Moodle bereitstellen.
