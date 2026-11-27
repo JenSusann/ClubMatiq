@@ -70,6 +70,21 @@ const rabattBasis={geltungsbereich:'artikel',artikelIds:[ref('artikel','T-Shirt'
 add('rabattregeln','erstbezug',{...rabattBasis,name:'Erstbezug T-Shirt',rabattart:'fixpreis',wert:0,riegen:['TI','TU','TV'],maximaleMenge:1,einmaligProMitglied:true,anspruchsgruppe:'demo-erstbezug'});
 add('rabattregeln','riegenrabatt',{...rabattBasis,name:'Riegenrabatt 20 %',rabattart:'prozent',wert:20,riegen:['TI','TU','TV'],maximaleMenge:null,einmaligProMitglied:false});
 
+for (const [name,einzelwert] of clothing) {
+  for (const size of ['128','140','152','164','XS','S','M','L','XL','XXL']) {
+    const offen = name === 'Regenjacke';
+    add('vereinskleider_preise',name+':'+size,{artikelId:ref('artikel',name),groesseId:ref('groessen',size),preistyp:offen?'variabel':'fix',druckkosten:5,verkaufspreis:offen?null:einzelwert+10,preisOffen:offen,erstelltAm:now,aktualisiertAm:now});
+  }
+}
+const loans = [
+  {key:'offen',name:'Gymnastikmatte',person:'Alex Muster',menge:4,returned:0,due:7},
+  {key:'teilweise',name:'Volleyball',person:'Robin Muster',menge:5,returned:2,due:3},
+  {key:'abgeschlossen',name:'Staffelstab',person:'Kim Muster',menge:4,returned:4,due:-1},
+  {key:'ueberfaellig',name:'Springseil',person:'Noah Muster',menge:6,returned:0,due:-2}
+];
+const day = offset => new Date(now.getTime()+offset*86400000);
+const date = offset => day(offset).toISOString().slice(0,10);
+
 const client = new MongoClient(config.MONGODB_URI);
 try {
   await client.connect();
@@ -83,6 +98,7 @@ try {
   for (const collection of new Set(plan.map(p => p.collection))) {
     console.log(collection + ': ' + plan.filter(p => p.collection === collection).length + ' vorgesehene Datensätze');
   }
+  console.log('ausleihen: ' + loans.length + ' vorgesehene Geschäftsvorfälle');
   if (!apply) {
     console.log('Vorschau: keine Änderungen.');
   } else {
@@ -103,6 +119,23 @@ try {
           }
           const {_id, ...fields} = document;
           await db.collection(collection).updateOne({_id}, {$setOnInsert: fields}, {upsert: true, session});
+        }
+        for (const loan of loans) {
+          const _id = id('ausleihen:'+loan.key);
+          const existing = await db.collection('ausleihen').findOne({_id},{session});
+          if (existing) {
+            if (existing.vereinId !== vereinId) throw new Error('Ausleih-ID-Konflikt.');
+            continue;
+          }
+          const artikelId = ref('artikel',loan.name);
+          const result = await db.collection('artikel').updateOne({_id:new ObjectId(artikelId),vereinId,hatGroessen:false,archiviert:{$ne:true},menge:{$gte:loan.menge}},{$inc:{menge:loan.returned-loan.menge}},{session});
+          if (result.matchedCount !== 1) throw new Error('Demo-Ausleihe: Bestand fehlt.');
+          const status = loan.returned===loan.menge?'abgeschlossen':loan.returned?'teilweise':'offen';
+          await db.collection('ausleihen').insertOne({_id,vereinId,artikelId,groesseId:null,person:loan.person,menge:loan.menge,ausleihdatum:date(-5),rueckgabedatum:date(loan.due),bemerkung:'Fiktive Demo-Ausleihe',status,zurueckgegeben:loan.returned,erstelltAm:now,...(loan.returned?{rueckgaben:[{menge:loan.returned,datum:now}],letzteRueckgabeAm:now}:{}),...(status==='abgeschlossen'?{abgeschlossenAm:now}:{})},{session});
+          for (const [art,mengeDelta] of [['ausleihe',-loan.menge],['rueckgabe',loan.returned]]) {
+            if (!mengeDelta) continue;
+            await db.collection('lagerbewegungen').insertOne({_id:id('loan-movement:'+loan.key+':'+art),vereinId,artikelId,groesseId:null,art,mengeDelta,zeitpunkt:now,artikelName:loan.name,benutzerName:'Demo admin',benutzerId:ref('benutzer','admin'),referenzId:_id.toHexString(),referenzTyp:'ausleihe'},{session});
+          }
         }
       });
     } finally { await session.endSession(); }
