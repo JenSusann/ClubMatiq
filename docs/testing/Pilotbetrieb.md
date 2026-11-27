@@ -112,3 +112,13 @@ Release: [v0.9.2](https://github.com/JenSusann/ClubMatiq/releases/tag/v0.9.2), M
 | Navigation bei neuer Artikelanlage korrekt | Bestanden |
 
 Einzelbestätigung: 7/7 bestanden. Manuelle DEV-Abnahme #130: 13/13 bestanden. Produktive Kurzabnahme bestätigt die genannten Funktionen, nicht sämtliche Stornierungsvarianten. Bestehende Sperren für bezahlte Verkäufe ohne Beleg, rabattierte Teilrechnungen und zusätzliche manuelle Rabatte bei Stornierungen bleiben bestehen. Der eigentliche Pilotverkauf (#115) steht noch aus.
+
+
+## PROD-Backup vor Pilotbetrieb – 27.11.2026
+
+`clubmatiq_2026-11-27T14-36-43-377Z.archive.gz.enc`: Erstellung und AES-GCM-/GZIP-Verifizierung erfolgreich. Kein vollständiger PROD-Restore durchgeführt.
+
+
+## Abschlussabnahme Issue #125 – 27.11.2026
+
+ClubDesk-Gruppenimport korrigiert in PR #124, produktiv seit v0.9.1. ST-125-01 bis ST-125-08: Versionsanzeige, erneuter Import, keine Duplikate, Gruppenauswahl, Zuordnung, automatische Mitgliederzuordnung, Mehrfachmitgliedschaften und Funktionen bestanden. ST-125-09 Erstbezugsrabatt und ST-125-10 Riegenrabatte durch Anwenderin bestätigt. Gesamt: 10/10 bestanden. Hotfix in beide Entwicklungsbranches übernommen (PR #132 und #133).
