@@ -10,9 +10,10 @@ Separate Umgebung für die ZHAW-Zwischen- und Schlussabgabe: https://clubmatiq-d
 |---|---|---|
 | Development | clubmatiq_dev | npm run dev |
 | Demo | clubmatiq_demo | npm run dev:demo (Port 5174) |
+| Integrationstests | clubmatiq_test | npm run test:integration |
 | Production | clubmatiq | bestehendes Netlify-Projekt |
 
-Demo verwendet einen eigenen MongoDB-Benutzer mit readWrite ausschliesslich auf clubmatiq_demo. Lokale Konfiguration in .env.demo.local, nicht committen.
+Die CI nutzt gemäss [Pilotbetrieb](Pilotbetrieb.md) eine temporäre lokale MongoDB-Instanz. Demo verwendet einen eigenen MongoDB-Benutzer mit readWrite ausschliesslich auf clubmatiq_demo. Lokale Konfiguration in .env.demo.local, nicht committen.
 
 ## Initialisierung und Reset
 
@@ -23,7 +24,7 @@ npm run db:seed:demo
 npm run db:seed:demo -- --apply
 ```
 
-Vor Reset Demo-Zugriffe und parallele Schreibvorgänge unterbinden. Reset löscht Demo-Daten und erstellt den Seed innerhalb einer Transaktion neu; bestehende Indizes bleiben erhalten. Manuell erzeugte Testfälle gehen verloren.
+Vor Reset Demo-Zugriffe und parallele Schreibvorgänge unterbinden. Reset löscht Demo-Daten und erstellt den Seed innerhalb einer Transaktion neu; bestehende Indizes bleiben erhalten. Manuell erzeugte Testfälle gehen verloren; insbesondere werden manuelle Teilzahlungen und Retouren nicht automatisch wiederhergestellt.
 
 ```powershell
 npm run db:reset:demo
