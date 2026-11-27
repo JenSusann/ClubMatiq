@@ -192,7 +192,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   const sammlung: Collection<Mitglied> = db.collection<Mitglied>('clubdesk_mitglieder');
   await sammlung.createIndex({ vereinId: 1, clubdeskId: 1 }, { unique: true });
-  if (index('Gruppen') >= 0 || index('Gruppe') >= 0) {
+  if ((index('Gruppen') >= 0 || index('Gruppe') >= 0) && (index('Riegen') < 0 || (index('Gruppen') >= 0 && index('Gruppe') >= 0))) {
     const [regeln, riegen] = await Promise.all([
       db.collection<Riegenregel & { vereinId: string }>('clubdesk_gruppenzuordnungen').find({ vereinId }).toArray(),
       db.collection<Zuordnungsriege & { vereinId: string }>('riegen').find({ vereinId, aktiv: true }).toArray()
