@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { ObjectId, type Document } from 'mongodb';
 import { client, db } from '../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../lib/server/berechtigungen';
+import { erstelleAusstellerdaten } from '../../../../lib/server/vereinseinstellungen';
 import type { RequestHandler } from './$types';
 
 type Verkaufsposition = {
@@ -175,7 +176,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       }
       const rechnungsnummer = `${jahr}-${String(zaehler.nummer).padStart(5, '0')}`;
       const rechnungId = new ObjectId();
+      const verein = ObjectId.isValid(vereinId)
+        ? await db.collection('vereine').findOne({ _id: new ObjectId(vereinId) }, { session })
+        : null;
       const dokument = {
+        aussteller: erstelleAusstellerdaten(verein),
         _id: rechnungId,
         vereinId,
         verkaufId,
