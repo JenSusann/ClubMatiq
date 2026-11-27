@@ -241,7 +241,7 @@ Die Entwicklung erfolgt iterativ anhand von GitHub-Issues. Fachliche Anforderung
 
 **Weiterführende technische Dokumentation:**
 
-- [Kapitel 4.2.3 – Datenmodell](#423-datenmodell)
+- [Kapitel 4.2.3 – Datenmodell](#423-datenmodell-und-schema-referenz
 - [Kapitel 6 – KI-Deklaration](#6-ki-deklaration)
 - [Kapitel 9 – Lokale Installation und Tests](#9-lokale-installation-und-tests)
 - [Kapitel 10 – Technische Architektur, Integrationen und Entwicklungsstand](#10-technische-architektur-integrationen-und-entwicklungsstand)
