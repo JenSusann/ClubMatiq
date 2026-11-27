@@ -1104,11 +1104,11 @@ Die detaillierte Änderungshistorie wird über [GitHub-Commits](https://github.c
 | Kriterium | Stand und verbleibender Nachweis |
 |---|---|
 | Kernfunktionalität & technische Qualität (15 P.) | Kernworkflow implementiert; Code und technische Abnahmen vorhanden. Vollständiger Abgleich mit sämtlichen verbindlichen Wochenübungen noch offen. |
-| Nutzerzentrierung & Bedienbarkeit (15 P.) | Referenz-Mockup und User Journey vorhanden; Screenshots der fertigen App und Nutzernachweise ergänzen. |
+| Nutzerzentrierung & Bedienbarkeit (15 P.) | Referenz-Mockup und User Journey vorhanden; Screenshots der fertigen App eingebunden; Nutzernachweise ergänzen. |
 | Vorgehen (15 P.) | Phasen 3.1–3.4 dokumentiert; Artefakte und Entscheidungen vor Abgabe gegen Übungen prüfen. |
 | Evaluation (10 P.) | Separate Demo technisch abgenommen; tatsächliche Nutzerevaluation, Stichprobe, Beobachtungen und Auswertung noch offen. |
-| Dokumentation & Video (5 P.) | README und KI-Deklaration vorhanden; Screenshots und selbst gesprochener Walkthrough (ca. 5, maximal 10 Minuten) offen. |
-| Erweiterungen (40 P. insgesamt) | Kapitel 4 dokumentiert zusätzliche Leistungen; fehlende Screenshots und Nachweise ergänzen. Keine vorweggenommene Punktevergabe. |
+| Dokumentation & Video (5 P.) | README, Screenshot-Referenzen und KI-Deklaration vorhanden; selbst gesprochener Walkthrough (ca. 5, maximal 10 Minuten) offen. |
+| Erweiterungen (40 P. insgesamt) | Kapitel 4 dokumentiert 25 Erweiterungen; Bilddateien abschliessend verifizieren und Pilotabnahme ergänzen. Keine vorweggenommene Punktevergabe. |
 
 Die Aufgabenstellung verlangt ausserdem Repository-URL und ZIP, Zugang für Dozierende, Einhaltung rechtlicher Vorgaben und transparente KI-Deklaration. Moodle-Fristen und konkrete Wochenübungen sind verbindlich; die vorliegende Übersicht ersetzt deren Prüfung nicht.
 
@@ -1118,7 +1118,7 @@ Die Aufgabenstellung verlangt ausserdem Repository-URL und ZIP, Zugang für Dozi
 - [ ] Externe Versandwege, Bildspeicher und Deployment mit geeigneten Testkonten und Konfigurationen überprüfen.
 - [ ] Usability-Evaluation durchführen, auswerten und Verbesserungen nachvollziehbar umsetzen.
 - [ ] Moodle-Anforderungen, Anforderungsabdeckung und Artefakte abgleichen.
-- [ ] Projektübersicht, Referenz-Mockup, Screenshots, Testzugänge und finale Testversion ergänzen.
+- [ ] Projektübersicht, Referenz-Mockup, Screenshot-Dateien, Testzugänge und finale Testversion abschliessend verifizieren.
 - [ ] Laufendes Abnahmetestprotokoll als Word-Dokument aufbereiten und als PDF abgeben.
 - [ ] Finalen Abgabestand versionieren und Zugänglichkeit aller Links prüfen.
 
