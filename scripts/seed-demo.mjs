@@ -29,6 +29,47 @@ for (const name of ['Geräteraum','Materialschrank','Vereinslager','Kleiderlager
 for (const [sortierung, bezeichnung] of ['104','116','128','140','152','164','XS','S','M','L','XL','XXL'].entries()) add('groessen', bezeichnung, { bezeichnung, sortierung });
 for (const name of ['ELKI','KITU','JUKO','TI','TU','TV']) add('riegen', name, { name, namensschluessel: name.toLocaleLowerCase('de-CH'), bereich: ['ELKI','KITU','JUKO'].includes(name) ? 'juko' : 'aktive', aktiv: true, erstelltAm: now, aktualisiertAm: now });
 
+
+const ref = (collection, key) => id(collection + ':' + key).toHexString();
+for (const name of ['Demo Sportbedarf','Demo Textilwerk','Demo Eventmaterial']) add('lieferanten', name, {name, kontaktperson:'Demo Kontakt', email:'kontakt@lieferant.example', telefon:'', bemerkung:'Fiktiver Lieferant', erstelltAm:now, aktualisiertAm:now});
+const material = [
+ ['Gymnastikmatte','Turngeräte',24,45],['Sprungbrett','Turngeräte',2,350],['Turnbank','Turngeräte',4,280],['Kasten','Turngeräte',3,650],
+ ['Springseil','Kleingeräte',30,8],['Gymnastikreifen','Kleingeräte',20,12],['Keule','Kleingeräte',16,15],['Balancekissen','Trainingshilfen',10,25],
+ ['Fussball','Bälle',12,30],['Volleyball','Bälle',10,45],['Handball','Bälle',8,35],['Softball','Bälle',15,12],
+ ['Markierungshütchen','Trainingshilfen',40,3],['Koordinationsleiter','Trainingshilfen',4,30],['Theraband','Trainingshilfen',2,12],['Stoppuhr','Wettkampfmaterial',6,25],
+ ['Startnummernset','Wettkampfmaterial',3,60],['Staffelstab','Wettkampfmaterial',8,10],['Massband','Wettkampfmaterial',2,20],['Pavillon','Veranstaltungsmaterial',2,250],
+ ['Festbank','Veranstaltungsmaterial',10,80],['Materialkiste','Sonstiges',0,25]
+];
+const clothing = [['T-Shirt',18],['Trainerjacke',55],['Trainerhose',40],['Hoodie',45],['Shorts',25],['Polo',30],['Wettkampfshirt',35],['Regenjacke',65]];
+function movement(name, size, menge) {
+  if (!menge) return;
+  const artikelId = ref('artikel',name);
+  add('lagerbewegungen',name+':'+(size??'standard'),{artikelId, groesseId:size?ref('groessen',size):null, art:'anlage', mengeDelta:menge, zeitpunkt:now, artikelName:name, ...(size?{groesseName:size}:{}), benutzerName:'Demo admin', benutzerId:ref('benutzer','admin'), referenzId:artikelId, referenzTyp:'artikel'});
+}
+for (const [name,category,menge,einzelwert] of material) {
+  add('artikel',name,{name,kategorieId:ref('kategorien',category),lagerortId:ref('lagerorte',category==='Veranstaltungsmaterial'?'Vereinslager':category==='Wettkampfmaterial'?'Wettkampflager':category==='Turngeräte'?'Geräteraum':'Materialschrank'),lieferantId:ref('lieferanten',category==='Veranstaltungsmaterial'?'Demo Eventmaterial':'Demo Sportbedarf'),menge,einzelwert,mindestbestand:3,beschreibung:'Fiktiver Demo-Artikel',hatGroessen:false,istVereinskleidung:false,erstelltAm:now});
+  movement(name,null,menge);
+}
+for (const [name,einzelwert] of clothing) {
+  const sizes=['128','140','152','164','XS','S','M','L','XL','XXL'];
+  const quantities=sizes.map((_,i)=>i===0?0:i===1?1:5);
+  add('artikel',name,{name,kategorieId:ref('kategorien','Vereinskleider'),lagerortId:ref('lagerorte','Kleiderlager'),lieferantId:ref('lieferanten','Demo Textilwerk'),menge:quantities.reduce((a,b)=>a+b,0),einzelwert:0,mindestbestand:0,beschreibung:'Fiktive Vereinskleidung',hatGroessen:true,istVereinskleidung:true,erstelltAm:now});
+  for (const [i,size] of sizes.entries()) {
+    add('artikelvarianten',name+':'+size,{artikelId:ref('artikel',name),groesseId:ref('groessen',size),menge:quantities[i],einzelwert,mindestbestand:2});
+    movement(name,size,quantities[i]);
+  }
+}
+const first=['Alex','Robin','Kim','Noah','Mia','Lina','Lea','Jan','Sam','Nina'];
+const last=['Muster','Beispiel','Testperson','Demoperson'];
+const groups=['ELKI','KITU','JUKO','TI','TU','TV'];
+for(let i=0;i<40;i++) {
+  const key='DEMO-'+String(i+1).padStart(3,'0');
+  add('clubdesk_mitglieder',key,{clubdeskId:key,anrede:'',vorname:first[i%10],nachname:last[Math.floor(i/10)],adresse:'',ort:'Musterhausen',plz:'',status:'Aktiv',aktiv:true,importiertAm:now,erstbezugsRabattIds:[],riegen:i%7===0?[groups[i%6],groups[(i+1)%6]]:[groups[i%6]]});
+}
+const rabattBasis={geltungsbereich:'artikel',artikelIds:[ref('artikel','T-Shirt')],kategorieIds:[],gueltigAb:null,gueltigBis:null,kombinierbar:false,aktiv:true,erstelltAm:now,aktualisiertAm:now};
+add('rabattregeln','erstbezug',{...rabattBasis,name:'Erstbezug T-Shirt',rabattart:'fixpreis',wert:0,riegen:['TI','TU','TV'],maximaleMenge:1,einmaligProMitglied:true,anspruchsgruppe:'demo-erstbezug'});
+add('rabattregeln','riegenrabatt',{...rabattBasis,name:'Riegenrabatt 20 %',rabattart:'prozent',wert:20,riegen:['TI','TU','TV'],maximaleMenge:null,einmaligProMitglied:false});
+
 const client = new MongoClient(config.MONGODB_URI);
 try {
   await client.connect();
