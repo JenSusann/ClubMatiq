@@ -33,6 +33,7 @@ Quality Gate bestanden. Nachweis anhand der CI-Ausgabe und des erfolgreichen Wor
 
 | Issue | Bereich | Bestanden | Nachweis |
 |---|---|---:|---|
+| #130 | Kombinierbare Erstbezugsrabatte | 13/13 | Einzelbestätigung 27.11.2026 |
 | #14 | Session-Verwaltung | 8/8 | Original-Screenshot |
 | #15 | Benutzerverwaltung | 21/21 | Erneute manuelle Abnahme, Einzelbestätigung 25.11.2026 |
 | #16 | Rollenbasierte Berechtigungen | 10/10 | Original-Screenshot |
@@ -852,3 +853,26 @@ Manuelle Abnahme am 27.11.2026 gemäss Rückmeldung der Entwicklerin.
 | ST-63-10 | Persistenz | Bestanden |
 
 **Ergebnis:** 10/10 bestanden. CI nach Sicherheitskorrektur und Regressionstest (14e48dd) gemäss Rückmeldung erfolgreich. Microsoft-365-Testversand, Einladung und erneuter Versand manuell bestätigt. SMTP-Validierung bestanden; realer SMTP-Versand und produktiver Testversand auf Netlify gemäss abschliessender Rückmeldung der Entwicklerin erfolgreich. Keine unabhängigen Versandlogs vorgelegt. Entra-/Exchange-Konfiguration und Postfachbeschränkung wurden bereits früher gemäss Entwicklerin erfolgreich geprüft. Keine unabhängige Wiederholung dieser externen Prüfungen.
+
+
+## Issue #130 – Kombinierbare Erstbezugsrabatte (27.11.2026)
+
+Manuelle Einzelbestätigung auf dem Hotfix-Branch, Zielversion 0.9.2.
+
+| Test-ID | Testfall | Status |
+|---|---|---|
+| ST-130-01 | Mehrere kombinierbare Erstbezugsrabatte auswählen | Bestanden |
+| ST-130-02 | Nicht kombinierbare Rabattregeln werden gesperrt | Bestanden |
+| ST-130-03 | Erstbezug mit normaler Rabattregel kombinieren | Bestanden |
+| ST-130-04 | Zwei Gwändli und eine Jacke ergeben CHF 75 | Bestanden |
+| ST-130-05 | Verkaufsübersicht zeigt die effektiven Einzelpreise | Bestanden |
+| ST-130-06 | Verkauf speichern und erneut öffnen | Bestanden |
+| ST-130-07 | Bereits beanspruchte Erstbezüge nicht erneut anbieten | Bestanden |
+| ST-130-08 | Zweites Gwändli stornieren – CHF 5 | Bestanden |
+| ST-130-09 | Erstes Gwändli stornieren – CHF 50 und Anspruch freigeben | Bestanden |
+| ST-130-10 | Rechnungs-PDF mit korrekten Rabatten und Total | Bestanden |
+| ST-130-11 | Gutschriften-PDF mit korrektem Nettobetrag | Bestanden |
+| ST-130-12 | Gemischte Rabattregeln bei TWINT-Verkauf | Bestanden |
+| ST-130-13 | Gemischter Warenkorb mit Direktverkauf und Bestellung | Bestanden |
+
+Ergebnis: 13/13 bestanden. Vollständiger lokaler Svelte-Check sowie Unit- und Integrationstests laut Rückmeldung fehlerfrei; genaue Gesamtzahlen nicht übermittelt. Stornierungen bezahlter Verkäufe ohne Beleg, gemischte Rabatte bei Teilrechnungen und zusätzliche manuelle Rabatte bei Rabattstornierungen bleiben gesperrt. Die manuelle TWINT-Abnahme bestätigt den Verkauf, nicht die Aufhebung dieser Sperren. #127 und #128 wurden zuvor zusammenfassend positiv bestätigt, ohne Einzeltestnachweise.

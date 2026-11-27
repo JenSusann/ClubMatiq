@@ -4,6 +4,14 @@ Diese Datei dokumentiert Änderungen an ClubMatiq. Geplante Funktionen stehen in
 
 ## [Unreleased]
 
+## [0.9.2] – Pilot-Hotfix (Freigabe ausstehend)
+
+- #130: Kombinierbare Erstbezugs- und weitere Rabattregeln mit stückbezogener Verteilung, Preisübersicht und Rabattkorrektur bei unterstützten Bestellstornierungen.
+- #127: Navigation bei neuer Artikelanlage korrigiert.
+- #128: Verkaufspreise aktiver Grössen gemeinsam bearbeiten.
+- Lokale Regression fehlerfrei gemeldet; manuelle Abnahme #130: 13/13 bestanden. #127 und #128 positiv zusammenfassend bestätigt.
+- Stornierungen bezahlter Verkäufe ohne Beleg, rabattierter Teilrechnungen und zusätzlicher manueller Rabatte bleiben gesperrt. CI und produktive Freigabe ausstehend.
+
 ## [0.9.1] – Hotfix (Freigabe ausstehend)
 
 ### Behoben

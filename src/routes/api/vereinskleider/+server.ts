@@ -1,3 +1,4 @@
+import { verteileRabatte, type RabattAbschnitt } from '../../../lib/rabattverteilung';
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { db, client } from '../../../lib/server/mongodb';
@@ -220,6 +221,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       const angewendeteRabatte: Array<{ rabattId: string; name: string; betrag: number; einmaligProMitglied?: boolean }> = [];
       const erstbezugsIds: string[] = [];
       const erstbezugsZuordnungen: { anspruch: string; rabattId: string; warenkorbIndex: number; rabattRappen: number }[] = [];
+      let rabattAbschnitte: RabattAbschnitt[] = [];
       if (eingabe.rabattIds.length) {
         const regeln = await db.collection<Rabattregel>('rabattregeln').find({
           _id: { $in: eingabe.rabattIds.map((id) => new ObjectId(id)) }, vereinId
@@ -228,8 +230,27 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         if (regeln.length > 1 && regeln.some((r) => !r.kombinierbar)) {
           throw new Verkaufsfehler('Diese Rabattregeln dürfen nicht kombiniert werden.');
         }
+        const betrifft = (r: Rabattregel, p: typeof geprueft[number]) =>
+          r.geltungsbereich === 'warenkorb' ||
+          (r.geltungsbereich === 'artikel' && r.artikelIds?.includes(p.artikelId)) ||
+          (r.geltungsbereich === 'kategorie' && r.kategorieIds?.includes(p.kategorieId));
+        if (regeln.some((a, i) => regeln.slice(i + 1).some(b =>
+          (a.einmaligProMitglied && b.einmaligProMitglied) &&
+          (geprueft.some(p => betrifft(a, p) && betrifft(b, p)) ||
+            (a.einmaligProMitglied && b.einmaligProMitglied && a.anspruchsgruppe && a.anspruchsgruppe === b.anspruchsgruppe))
+        ))) throw new Verkaufsfehler('Erstbezugsregeln dürfen sich nicht überschneiden.', 409);
+        const gemischt = regeln.some(r => r.einmaligProMitglied) && regeln.some(r => !r.einmaligProMitglied);
+        if (gemischt) {
+          try {
+            rabattAbschnitte = verteileRabatte(geprueft, regeln.map(r => ({
+              id: r._id.toString(), einmalig: r.einmaligProMitglied === true, kombinierbar: r.kombinierbar === true,
+              art: r.rabattart, wert: r.wert, maximaleMenge: r.maximaleMenge,
+              passendeIndizes: geprueft.flatMap((p,i) => betrifft(r,p) ? [i] : [])
+            }))).abschnitte;
+          } catch (e) { throw new Verkaufsfehler(e instanceof Error ? e.message : 'Ungültige Rabattkombination.', 409); }
+        }
         const heute = new Date().toISOString().slice(0, 10);
-        for (const regel of regeln) {
+        for (const regel of (gemischt ? [...regeln].sort((a,b) => Number(!!b.einmaligProMitglied)-Number(!!a.einmaligProMitglied) || a._id.toString().localeCompare(b._id.toString())) : regeln)) {
 
           if (regel.aktiv === false || (regel.gueltigAb && heute < regel.gueltigAb) ||
               (regel.gueltigBis && heute > regel.gueltigBis)) {
@@ -307,6 +328,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
               if (restmenge === 0) break;
             }
           } else throw new Verkaufsfehler('Ungültige Rabattart.');
+          if (gemischt) rabatt = rabattAbschnitte.filter(a => a.regelId === regel._id.toString()).reduce((s,a) => s+a.rabattRappen,0);
           rabatt = Math.min(rabatt, Math.max(0, zwischentotalRappen - regelRabattRappen));
           regelRabattRappen += rabatt;
           if (erstbezugsAnspruch !== undefined) {
@@ -370,6 +392,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
        // deterministisch in Warenkorbreihenfolge.
        const verbleibendDirekt = new Map(direkteMengen);
        const aufgeteiltePositionen: Array<PositionGeprueft & { verkaufsart: 'direkt' | 'bestellung' }> = [];
+       const finaleRabattAbschnitte: RabattAbschnitt[] = [];
        const erstbezugsPositionen: { anspruch: string; rabattId: string; positionsIndex: number; rabattBetrag: number }[] = [];
        for (const [warenkorbIndex, p] of geprueft.entries()) {
          for (const zuordnung of erstbezugsZuordnungen.filter(z => z.warenkorbIndex === warenkorbIndex)) {
@@ -379,6 +402,21 @@ export const POST: RequestHandler = async ({ request, locals }) => {
          const direkt = Math.min(p.menge, verbleibendDirekt.get(schluessel) ?? 0);
          verbleibendDirekt.set(schluessel, (verbleibendDirekt.get(schluessel) ?? 0) - direkt);
          const bestellt = p.menge - direkt;
+         // Rabattabschnitte auf die endgültigen Direkt-/Bestellpositionen abbilden.
+         const basisIndex = aufgeteiltePositionen.length;
+         for (const a of rabattAbschnitte.filter(a => a.positionsIndex === warenkorbIndex)) {
+           const ende = a.abStueck + a.menge;
+           const direktAnteil = Math.max(0, Math.min(ende, direkt) - a.abStueck);
+           const direktRabatt = Math.round(a.rabattRappen * direktAnteil / a.menge);
+           if (direktAnteil > 0) finaleRabattAbschnitte.push({
+             ...a, positionsIndex: basisIndex, menge: direktAnteil, rabattRappen: direktRabatt
+           });
+           if (a.menge > direktAnteil) finaleRabattAbschnitte.push({
+             ...a, positionsIndex: basisIndex + (direkt > 0 ? 1 : 0),
+             abStueck: Math.max(0, a.abStueck - direkt),
+             menge: a.menge - direktAnteil, rabattRappen: a.rabattRappen - direktRabatt
+           });
+         }
          if (direkt > 0) aufgeteiltePositionen.push({
            ...p, menge: direkt, positionsbetrag: p.einzelpreis === null ? 0 : geld(p.einzelpreis) * direkt, verkaufsart: 'direkt'
          });
@@ -426,6 +464,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         bemerkung: eingabe.bemerkung,
         positionen: aufgeteiltePositionen.map(({ kategorieId, positionsbetrag, ...p }) => ({ ...p, positionsbetrag: positionsbetrag / 100 })),
         rabatte: angewendeteRabatte,
+        ...(finaleRabattAbschnitte.length ? { rabattAbschnitte: finaleRabattAbschnitte } : {}),
         ...(erstbezugsIds.length ? { erstbezugsIds, erstbezugsPositionen } : {}),
         zusaetzlicherRabatt: eingabe.zusaetzlicherRabatt,
         zwischentotal: zwischentotalRappen / 100,

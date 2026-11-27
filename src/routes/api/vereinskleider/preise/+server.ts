@@ -1,7 +1,7 @@
 
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
-import { db } from '../../../../lib/server/mongodb';
+import { db, client } from '../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 
@@ -326,5 +326,48 @@ export const PUT: RequestHandler = async ({
       },
       { status: 500 }
     );
+  }
+};
+
+ // Gemeinsame Preiserfassung für alle aktiven Grössen.
+export const POST: RequestHandler = async ({ request, locals }) => {
+  const fehler = pruefeBerechtigung(locals.benutzer, 'inventar:bearbeiten');
+  if (fehler) return fehler;
+  const vereinId = locals.benutzer!.vereinId;
+  const d = await request.json().catch(() => null);
+  if (!d || typeof d.artikelId !== 'string' || !ObjectId.isValid(d.artikelId) ||
+      !['fix','variabel'].includes(d.preistyp) || !gueltigerBetrag(d.verkaufspreis) ||
+      (d.druckkosten !== undefined && !gueltigerBetrag(d.druckkosten))) {
+    return json({ fehler: 'Ungültige gemeinsame Preisdaten.' }, { status: 400 });
+  }
+  try {
+    const collection = await preisCollectionVorbereiten();
+    const session = client.startSession();
+    try {
+      return await session.withTransaction(async () => {
+        const artikel = await db.collection('artikel').findOne({
+          _id: new ObjectId(d.artikelId), vereinId, istVereinskleidung: true, hatGroessen: true, archiviert: { $ne: true }
+        }, { session });
+        if (!artikel) return json({ fehler: 'Kleiderartikel mit Grössen nicht gefunden.' }, { status: 404 });
+        const varianten = await db.collection('artikelvarianten').find({
+          artikelId: d.artikelId, vereinId, aktiv: { $ne: false }
+        }, { session }).toArray();
+        const ids = [...new Set(varianten.map(v => String(v.groesseId)))];
+        if (!ids.length) return json({ fehler: 'Keine aktiven Grössen vorhanden.' }, { status: 409 });
+        const jetzt = new Date();
+        for (const groesseId of ids) {
+          await collection.updateOne({ vereinId, artikelId: d.artikelId, groesseId }, {
+            $set: { preistyp: d.preistyp, verkaufspreis: d.verkaufspreis, preisOffen: false, aktualisiertAm: jetzt,
+              ...(d.druckkosten !== undefined ? { druckkosten: d.druckkosten } : {}) },
+            $setOnInsert: { vereinId, artikelId: d.artikelId, groesseId, erstelltAm: jetzt,
+              ...(d.druckkosten === undefined ? { druckkosten: 0 } : {}) }
+          }, { upsert: true, session });
+        }
+        return json({ erfolg: true, anzahl: ids.length });
+      });
+    } finally { await session.endSession(); }
+  } catch (error) {
+    console.error('Gemeinsame Preiserfassung fehlgeschlagen:', error);
+    return json({ fehler: 'Preise konnten nicht gemeinsam gespeichert werden.' }, { status: 500 });
   }
 };
