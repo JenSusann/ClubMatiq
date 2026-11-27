@@ -288,6 +288,44 @@
     }
   }
 
+  let massenArtikel = $state('');
+  let massenVP = $state('');
+  let massenTyp = $state<Preistyp>('fix');
+  let massenDruck = $state(false);
+  let massenKosten = $state('0');
+  let massenSpeichern = $state(false);
+  let massenBestaetigt = $state(false);
+
+  function massenOeffnen(id: string) {
+    massenArtikel = massenArtikel === id ? '' : id;
+    massenVP = ''; massenTyp = 'fix'; massenDruck = false; massenKosten = '0'; massenBestaetigt = false;
+  }
+  async function massenPreisSpeichern(id: string) {
+    if (massenSpeichern || !massenBestaetigt) return;
+    const vp = betragLesen(massenVP, false);
+    const dk = betragLesen(massenKosten, false);
+    if (vp == null || (massenDruck && dk == null)) {
+      preisMeldung(id, 'Bitte gültige Preise eingeben.', true); return;
+    }
+    massenSpeichern = true;
+    try {
+      const antwort = await fetch('/api/vereinskleider/preise', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artikelId: id, preistyp: massenTyp, verkaufspreis: vp,
+          ...(massenDruck ? { druckkosten: dk } : {}) })
+      });
+      const ergebnis = await antwort.json();
+      if (!antwort.ok) throw new Error(ergebnis.fehler ?? 'Speichern fehlgeschlagen.');
+      const neu = await fetch('/api/vereinskleider/preise');
+      if (!neu.ok) throw new Error('Preise gespeichert, bitte Seite neu laden.');
+      preise = await neu.json();
+      preisBearbeitung = preisBearbeitung.filter(k => !k.startsWith(id + ':'));
+      massenArtikel = '';
+      preisMeldung(id, `${ergebnis.anzahl} Grössen erfolgreich aktualisiert.`, false);
+    } catch (e) { preisMeldung(id, e instanceof Error ? e.message : 'Speichern fehlgeschlagen.', true); }
+    finally { massenSpeichern = false; }
+  }
+
   onMount(async () => {
     try {
       const [
@@ -549,6 +587,26 @@
 
               {#if eintrag.hatGroessen &&
                 geoeffneteArtikel.includes(eintrag._id)}
+                <button type="button" disabled={massenSpeichern || Object.values(speichern).some(Boolean)} onclick={() => massenOeffnen(eintrag._id)}>
+                  {massenArtikel === eintrag._id ? 'Abbrechen' : 'Preise für alle Grössen bearbeiten'}
+                </button>
+                {#if massenArtikel === eintrag._id}
+                  <div class="preisformular">
+                    <h4>Preise für alle aktiven Grössen</h4>
+                    <div class="formularfelder">
+                      <label>Preistyp <select bind:value={massenTyp} disabled={massenSpeichern}><option value="fix">Fixpreis</option><option value="variabel">Variabel</option></select></label>
+                      <label>Verkaufspreis (CHF) <input type="text" inputmode="decimal" bind:value={massenVP} disabled={massenSpeichern}/></label>
+                      <label><input type="checkbox" bind:checked={massenDruck} disabled={massenSpeichern}/> Druckkosten ebenfalls aktualisieren</label>
+                      {#if massenDruck}<label>Druckkosten (CHF) <input type="text" inputmode="decimal" bind:value={massenKosten} disabled={massenSpeichern}/></label>{/if}
+                    </div>
+                    <p>Vorschau: {sortierteVarianten(eintrag.varianten ?? []).length} aktive Grössen</p>
+                    {#each sortierteVarianten(eintrag.varianten ?? []) as v (v._id)}
+                      <p>{groessenName(v.groesseId)}: {preisFinden(eintrag._id,v.groesseId)?.verkaufspreis ?? 'Nicht erfasst'} → {massenVP || '–'} CHF</p>
+                    {/each}
+                    <label><input type="checkbox" bind:checked={massenBestaetigt} disabled={massenSpeichern}/> Bestehende Verkaufspreise aller aktiven Grössen überschreiben.</label>
+                    <button type="button" class="speichern" disabled={!massenBestaetigt || massenSpeichern || Object.values(speichern).some(Boolean)} onclick={() => massenPreisSpeichern(eintrag._id)}>Alle Preise speichern</button>
+                  </div>
+                {/if}
                 <div class="tabellenbereich">
                   <table>
                     <thead>
@@ -767,7 +825,7 @@
                                 <button
                                   type="button"
                                   class="speichern"
-                                  disabled={speichern[schluessel]}
+                                  disabled={speichern[schluessel] || massenSpeichern}
                                   onclick={() =>
                                     preisSpeichern(
                                       eintrag._id,
@@ -958,7 +1016,7 @@
                     <button
                       type="button"
                       class="speichern"
-                      disabled={speichern[schluessel]}
+                      disabled={speichern[schluessel] || massenSpeichern}
                       onclick={() =>
                         preisSpeichern(eintrag._id, null)}
                     >
