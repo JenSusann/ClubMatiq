@@ -55,3 +55,7 @@ Netlify Production: main@cce1443 veröffentlicht, Auto Publishing Locked aktiv (
 | ST-115-09 | E-Mail-Testversand | Ausstehend – Konfiguration erneut erforderlich |
 
 8/9 bestanden, 1 ausstehend. Backup/Wiederherstellung, Ablösung des alten Atlas-Administrators und Pilotbetrieb bleiben offen.
+
+## Backup-Abnahme – 27.11.2026
+
+MongoDB Database Tools 100.20.1 installiert. DEV-Backup um 01:23:33 MEZ und PROD-Backup um 01:23:54 MEZ erfolgreich laut lokaler Konsolenausgabe. Archive ausserhalb des Repositorys gespeichert. Verschlüsselung und Wiederherstellung noch nicht nachgewiesen. Vor und nach der Kleiderbörse erneut sichern; Schreibvorgänge während der Sicherung pausieren.
