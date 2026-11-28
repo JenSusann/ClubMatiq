@@ -283,3 +283,36 @@ describe('Paket 19 – Sammelbestellungen Branches', () => {
   it('POST verweigert Zugriff', async () => { mocks.permission.mockReturnValueOnce(new Response('Nein', { status: 403 })); expect((await postEdge({ positionen: [posEdge()] })).status).toBe(403); });
   it('POST meldet Datenbankfehler', async () => { failCollection = 'artikel'; expect((await postEdge({ positionen: [posEdge()] })).status).toBe(500); });
 });
+
+describe('Sammelbestellungen – historische Daten und Mengen', () => {
+  it.each([{groesseId:'invalid'},{menge:1.5},{uebergebenMenge:-1},{uebergebenMenge:0.5}])('ignoriert inkonsistente Kundenposition %#',async patch=>{
+    setup({vereinskleider_verkaeufe:[{positionen:[{...validPosition(),verkaufsart:'bestellung',...patch}]}]});
+    expect((await json(await GET(getEvent()))).bedarf[0].offen).toBe(0);
+  });
+  it.each([{menge:1.5},{geliefertMenge:-1},{geliefertMenge:0.5}])('ignoriert inkonsistenten Zulauf %#',async patch=>{
+    setup({vereinskleider_sammelbestellungen:[{_id:vorgangId,status:'bestellt',positionen:[{...validPosition(),...patch}]}]});
+    expect((await json(await GET(getEvent()))).bedarf[0].bereitsInSammelbestellungen).toBe(0);
+  });
+  it('behandelt fehlende historische Bestellpositionen und Lieferanten',async()=>{
+    setup({vereinskleider_sammelbestellungen:[{_id:vorgangId,status:'entwurf',lieferantId:lieferant2Id}]});
+    const result=await json(await GET(getEvent()));
+    expect(result.sammelbestellungen[0]).toMatchObject({positionen:[],lieferantName:null});
+  });
+  it('behält gespeicherte Lieferantennamen und Mengenaufteilung',async()=>{
+    setup({vereinskleider_sammelbestellungen:[{_id:vorgangId,status:'bestellt',lieferantId,lieferantName:'Alter Name',positionen:[{...validPosition(),kundenbedarfMenge:2,lagerreserveMenge:1}]}]});
+    const result=await json(await GET(getEvent()));
+    expect(result.sammelbestellungen[0]).toMatchObject({lieferantName:'Alter Name',positionen:[{kundenbedarfMenge:2,lagerreserveMenge:1,offenMenge:3}]});
+  });
+  it('ignoriert Varianten eines Artikels ohne Grössen',async()=>{
+    setup({artikelvarianten:[{artikelId,groesseId,menge:9}]});
+    expect((await json(await GET(getEvent()))).bedarf).toEqual([expect.objectContaining({groesseId:null,bestand:2})]);
+  });
+  it('verwendet Ersatznamen bei fehlenden Artikel- und Lieferantennamen',async()=>{
+    setup({artikel:[{_id:new ObjectId(artikelId),menge:2,lieferantId}],lieferanten:[{_id:new ObjectId(lieferantId)}]});
+    expect((await json(await GET(getEvent()))).bedarf[0]).toMatchObject({artikelname:'Unbenannter Artikel',lieferantName:''});
+  });
+  it('summiert ausstehenden Zulauf über mehrere Sammelbestellungen',async()=>{
+    setup({vereinskleider_sammelbestellungen:[{_id:vorgangId,status:'entwurf',positionen:[validPosition()]},{_id:new ObjectId(),status:'bestellt',positionen:[{...validPosition(),geliefertMenge:1}]}]});
+    expect((await json(await GET(getEvent()))).bedarf[0].bereitsInSammelbestellungen).toBe(5);
+  });
+});
