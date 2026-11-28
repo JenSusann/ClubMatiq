@@ -4,6 +4,7 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { db } from '../../../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../../../lib/server/berechtigungen';
 import { erstelleAusstellerdaten, type Ausstellerdaten } from '../../../../../../lib/server/vereinseinstellungen';
+import { zeichneVereinsprofil } from '../../../../../../lib/server/pdf-vereinsprofil';
 import type { RequestHandler } from './$types';
 
 type Position = {
@@ -105,7 +106,7 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
           { vereinId }
         ]
       });
-      const vereinsnameGutschrift = erstelleAusstellerdaten(gutschrift.aussteller ?? rechnung.aussteller ?? vereinFuerGutschrift?.ausstellerVorErsterAenderung ?? vereinFuerGutschrift).name;
+      const ausstellerGutschrift = erstelleAusstellerdaten(gutschrift.aussteller ?? rechnung.aussteller ?? vereinFuerGutschrift?.ausstellerVorErsterAenderung ?? vereinFuerGutschrift);
       const groesse = gutschrift.groesseId && /^[a-f\d]{24}$/i.test(gutschrift.groesseId)
         ? await db.collection('groessen').findOne({ _id: new ObjectId(gutschrift.groesseId), vereinId })
         : null;
@@ -134,7 +135,7 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
           rest = rest.slice(teil.length);
         } while (rest.length > 0 && yGutschrift > 75);
       };
-      zeile(vereinsnameGutschrift, 17, true, 42);
+      yGutschrift = await zeichneVereinsprofil(pdfGutschrift, seiteGutschrift, ausstellerGutschrift, normal, fettGutschrift, 48, yGutschrift, 495, pdfText);
       zeile('GUTSCHRIFT', 22, true, 36);
       zeile(`Gutschriftnummer: ${gutschrift.gutschriftnummer}`);
       zeile(`Zur Rechnung / Quittung: ${gutschrift.rechnungsnummer}`);
@@ -168,7 +169,8 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
         { vereinId }
       ]
     });
-    const vereinsname = erstelleAusstellerdaten(rechnung.aussteller ?? verein?.ausstellerVorErsterAenderung ?? verein).name;
+    const aussteller = erstelleAusstellerdaten(rechnung.aussteller ?? verein?.ausstellerVorErsterAenderung ?? verein);
+    const vereinsname = aussteller.name;
 
     const gesamtRappen = Math.round(rechnung.gesamtbetrag * 100);
     const bezahltRappen = Math.max(0, Math.round((rechnung.bezahltBetrag ?? 0) * 100));
@@ -220,8 +222,7 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
     };
     const platz = (hoehe: number) => { if (y - hoehe < 75) neueSeite(); };
 
-    schreiben(vereinsname, rand, y, 17, true);
-    y -= 48;
+    y = await zeichneVereinsprofil(pdf, seite, aussteller, regular, fett, rand, y, seitenBreite - 2 * rand, pdfText);
     schreiben(bezeichnung, rand, y, 21, true);
     y -= 28;
     schreiben(`${dokumentName}snummer: ${rechnung.rechnungsnummer}`, rand, y, 10);
