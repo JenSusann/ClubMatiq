@@ -997,4 +997,19 @@ Manuelle Abnahme auf `feature/76-vereinseinstellungen`, Zielversion 2.0.0, gemä
 
 Der reale Logo-Upload scheiterte zunächst lokal mit `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`. Nach Aktivierung des Windows-Systemzertifikatsspeichers für Node.js (`NODE_USE_SYSTEM_CA=1`) war der Upload gemäss Entwicklerin erfolgreich. Die TLS-Prüfung blieb aktiviert; keine Codeänderung erforderlich.
 
-**Abgrenzung:** Historische Rechnungen und Gutschriften wurden manuell bestätigt. Bestell- und Inventurberichte verwenden derzeit das aktuelle Vereinsprofil; die historische Darstellung dieser Berichte ist noch zu klären. CI und Pull Request in den Entwicklungsbranch stehen noch aus. Keine produktive Freigabe behauptet.
+**Abgrenzung zum ursprünglichen Abnahmestand:** Historische Rechnungen und Gutschriften wurden manuell bestätigt. Anschliessend wurde die historische Darstellung abgeschlossener Inventuren ergänzt.
+
+### Technische Schlussprüfung und Coverage-Referenz
+
+Beim Inventurabschluss werden Ausstellerdaten in Inventur und Abschlussprotokoll gespeichert. Abgeschlossene Inventuren verwenden diese historischen Daten; offene Inventuren und Sammelbestellungen verwenden das aktuelle Profil. Bei älteren abgeschlossenen Inventuren ohne Snapshot gilt der gesicherte Stand vor der ersten Profiländerung, soweit vorhanden, sonst das aktuelle Profil. Eine exakte Rekonstruktion nicht gespeicherter historischer Daten ist nicht möglich. Automatisierte PDF-Regressionstests wurden ergänzt; eine erneute manuelle Abnahme der nachträglichen Inventuränderung ist nicht separat dokumentiert.
+
+Letzter übermittelter kombinierter Coverage-Bericht vom 28.11.2026:
+
+| Kennzahl | Total | Abgedeckt | Coverage |
+|---|---:|---:|---:|
+| Statements | 5954 | 5877 | 98.70 % |
+| Branches | 5906 | 5720 | 96.85 % |
+| Functions | 723 | 699 | 96.68 % |
+| Lines | 5155 | 5124 | 99.39 % |
+
+Alle vier Kennzahlen überschreiten das unveränderte Quality Gate von 95 %. Weitere reine Coverage-Optimierungen werden vorerst zurückgestellt. CI-Nachweis und Merge in `develop/v2.0.0` stehen noch aus. Keine produktive Freigabe behauptet.
