@@ -168,7 +168,7 @@ describe('Retouren-API – Validierung und Finanzkonsistenz (#38)',()=>{
   expect((await RetourenPOST(event())).status).toBe(409);
   expect(m.updateOne).not.toHaveBeenCalled();
  });
- it.each([[],[{positionsIndex:0,menge:2,einzelpreis:28},{positionsIndex:0,menge:2,einzelpreis:28}]])('verweigert nicht eindeutige Rechnungspositionen %#',async positionen=>{
+ it.each([{positionen:[]},{positionen:[{positionsIndex:0,menge:2,einzelpreis:28},{positionsIndex:0,menge:2,einzelpreis:28}]}])('verweigert nicht eindeutige Rechnungspositionen %#',async ({positionen})=>{
   m.toArray.mockReset().mockResolvedValueOnce([{...invoice,positionen}]).mockResolvedValue([]);
   expect((await RetourenPOST(event())).status).toBe(409);
   expect(m.updateOne).not.toHaveBeenCalled();
