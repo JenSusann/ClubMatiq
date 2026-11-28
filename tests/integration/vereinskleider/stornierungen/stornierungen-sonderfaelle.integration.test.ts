@@ -386,3 +386,26 @@ describe('Stornierung – Integrität der Teilrechnungen', () => {
     expect(mocks.updateOne).not.toHaveBeenCalled();
   });
 });
+
+describe('Stornierung – finanzielle Konsistenz der Teilrechnung', () => {
+  const rid = new ObjectId();
+  const p = {artikelId:id,groesseId:null,verkaufsart:'bestellung',menge:2,einzelpreis:25,positionsbetrag:50,positionsIndex:0};
+  const sale = {status:'offen',trancheRechnungIds:[rid.toHexString()],positionen:[p],rabattTotal:0,endbetrag:50,zwischentotal:50};
+  const invoice = {_id:rid,status:'offen',gesamtbetrag:50,bezahltBetrag:0,positionen:[p]};
+  const input = {verkaufId:id,positionsIndex:0,menge:1,grund:'Korrektur'};
+  async function reject(invoicePatch: Record<string,unknown>, salePatch: Record<string,unknown> = {}) {
+    mocks.findOne.mockResolvedValueOnce({...sale,...salePatch});
+    mocks.find.mockReturnValueOnce({toArray:async()=>[{...invoice,...invoicePatch}]});
+    expect((await route0.POST(event('POST',input) as never)).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+    expect(mocks.journal).not.toHaveBeenCalled();
+  }
+  it.each([{status:'storniert'},{gesamtbetrag:-1},{bezahltBetrag:0.001},{gutgeschriebenBetrag:-1},{bezahltBetrag:51},{gutgeschriebenBetrag:51},{gutgeschriebenBetrag:30}])('verweigert inkonsistente Rechnungsbeträge oder Status %#',async patch=>{await reject(patch);});
+  it.each([{artikelId:new ObjectId().toHexString()},{groesseId:new ObjectId().toHexString()},{einzelpreis:24},{menge:1.5},{menge:0}])('verweigert abweichende Belegposition %#',async patch=>{await reject({positionen:[{...p,...patch}]});});
+  it('verweigert doppelte Positionszuordnung',async()=>{await reject({positionen:[p,p]});});
+  it('verweigert fehlende Positionszuordnung',async()=>{await reject({positionen:[]});});
+  it('verweigert Gutschrift oberhalb des Verkaufsendbetrags',async()=>{await reject({}, {endbetrag:20});});
+  it('verweigert Gutschrift oberhalb des Zwischentotals',async()=>{await reject({}, {zwischentotal:20});});
+  it('verweigert widersprüchlichen Positionsbetrag',async()=>{await reject({}, {positionen:[{...p,positionsbetrag:49}]});});
+});
