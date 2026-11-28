@@ -15,17 +15,22 @@ if (config.MONGODB_DB_NAME !== name || !config.MONGODB_URI ||
     !/^mongodb(?:\+srv)?:\/\/clubmatiq_dev_user:/.test(config.MONGODB_URI)) {
   throw new Error('Ausschliesslich DEV-Datenbank mit separatem DEV-Benutzer erlaubt.');
 }
-const id = key => new ObjectId(createHash('sha256').update('clubmatiq-dev-v1:' + key).digest('hex').slice(0, 24));
+const roles = ['admin', 'materialverantwortlich', 'leiter', 'mitglied'];
+const clubs = [
+  {key:'musterhausen',name:'Turnverein Musterhausen',kuerzel:'TVM',profile:{adresse:{strasse:'Musterweg 1',plz:'8000',ort:'Musterhausen'},kontakt:{email:'kontakt@musterhausen.example',telefon:'',website:'https://musterhausen.example'}}},
+  {key:'beispieldorf',name:'Sportverein Beispieldorf',kuerzel:'SVB',profile:{}}
+].map(buildClub);
+function buildClub(club) {
+const id = key => new ObjectId(createHash('sha256').update('clubmatiq-dev-v1:' + club.key + ':' + key).digest('hex').slice(0, 24));
 const clubId = id('verein');
 const vereinId = clubId.toHexString();
 const now = new Date();
-const roles = ['admin', 'materialverantwortlich', 'leiter', 'mitglied'];
 const plan = [];
 function add(collection, key, data) {
   plan.push({ collection, document: { _id: id(collection + ':' + key), vereinId, ...data } });
 }
-plan.push({ collection: 'vereine', document: { _id: clubId, name: 'Turnverein Musterhausen', kuerzel: 'TVM', erstelltAm: now, integrationen: { clubdesk: { aktiviert: false, status: 'nicht_verbunden' } } } });
-for (const rolle of roles) add('benutzer', rolle, { vorname: 'DEV', nachname: rolle, email: rolle + '@dev.clubmatiq.example', rolle, aktiv: true, erstelltAm: now });
+plan.push({ collection: 'vereine', document: { _id: clubId, name: club.name, kuerzel: club.kuerzel, ...club.profile, erstelltAm: now, integrationen: { clubdesk: { aktiviert: false, status: 'nicht_verbunden' } } } });
+for (const rolle of roles) add('benutzer', rolle, { vorname: 'DEV', nachname: rolle, email: rolle + '@' + club.key + '.dev.clubmatiq.example', rolle, aktiv: true, erstelltAm: now });
 for (const name of ['Turngeräte','Kleingeräte','Bälle','Wettkampfmaterial','Trainingshilfen','Vereinskleider','Veranstaltungsmaterial','Sonstiges']) add('kategorien', name, { name });
 for (const name of ['Geräteraum','Materialschrank','Vereinslager','Kleiderlager','Wettkampflager']) add('lagerorte', name, { name });
 for (const [sortierung, bezeichnung] of ['104','116','128','140','152','164','XS','S','M','L','XL','XXL'].entries()) add('groessen', bezeichnung, { bezeichnung, sortierung });
@@ -33,16 +38,16 @@ for (const name of ['ELKI','KITU','JUKO','TI','TU','TV']) add('riegen', name, { 
 
 
 const ref = (collection, key) => id(collection + ':' + key).toHexString();
-for (const name of ['DEV Sportbedarf','DEV Textilwerk','DEV Eventmaterial']) add('lieferanten', name, {name, kontaktperson:'DEV Kontakt', email:'kontakt@lieferant.example', telefon:'', bemerkung:'Fiktiver Lieferant', erstelltAm:now, aktualisiertAm:now});
+for (const name of ['DEV Sportbedarf','DEV Textilwerk','DEV Eventmaterial','DEV Turntechnik','DEV Zubehör']) add('lieferanten', name, {name, kontaktperson:'DEV Kontakt', email:'kontakt@lieferant.example', telefon:'', bemerkung:'Fiktiver Lieferant', erstelltAm:now, aktualisiertAm:now});
 const material = [
  ['Gymnastikmatte','Turngeräte',24,45],['Sprungbrett','Turngeräte',2,350],['Turnbank','Turngeräte',4,280],['Kasten','Turngeräte',3,650],
  ['Springseil','Kleingeräte',30,8],['Gymnastikreifen','Kleingeräte',20,12],['Keule','Kleingeräte',16,15],['Balancekissen','Trainingshilfen',10,25],
  ['Fussball','Bälle',12,30],['Volleyball','Bälle',10,45],['Handball','Bälle',8,35],['Softball','Bälle',15,12],
  ['Markierungshütchen','Trainingshilfen',40,3],['Koordinationsleiter','Trainingshilfen',4,30],['Theraband','Trainingshilfen',2,12],['Stoppuhr','Wettkampfmaterial',6,25],
  ['Startnummernset','Wettkampfmaterial',3,60],['Staffelstab','Wettkampfmaterial',8,10],['Massband','Wettkampfmaterial',2,20],['Pavillon','Veranstaltungsmaterial',2,250],
- ['Festbank','Veranstaltungsmaterial',10,80],['Materialkiste','Sonstiges',0,25]
+ ['Festbank','Veranstaltungsmaterial',10,80],['Trampolin','Turngeräte',2,900],['Medizinball','Bälle',6,40],['Hantelset','Trainingshilfen',8,35],['Schaumstoffwürfel','Kleingeräte',12,15],['Kabelrolle','Veranstaltungsmaterial',3,55],['Signalpfeife','Wettkampfmaterial',8,9],['Transportwagen','Sonstiges',2,180],['Klebeband','Sonstiges',20,5],['Materialkiste','Sonstiges',0,25]
 ];
-const clothing = [['T-Shirt',18],['Trainerjacke',55],['Trainerhose',40],['Hoodie',45],['Shorts',25],['Polo',30],['Wettkampfshirt',35],['Regenjacke',65]];
+const clothing = [['T-Shirt',18],['Trainerjacke',55],['Trainerhose',40],['Hoodie',45],['Shorts',25],['Polo',30],['Wettkampfshirt',35],['Regenjacke',65],['Sweatshirt',42],['Weste',48]];
 function movement(name, size, menge) {
   if (!menge) return;
   const artikelId = ref('artikel',name);
@@ -65,7 +70,7 @@ const first=['Alex','Robin','Kim','Noah','Mia','Lina','Lea','Jan','Sam','Nina'];
 const last=['Muster','Beispiel','Testperson','DEVperson'];
 const groups=['ELKI','KITU','JUKO','TI','TU','TV'];
 for(let i=0;i<40;i++) {
-  const key='DEV-'+String(i+1).padStart(3,'0');
+  const key='DEV-'+club.key.toUpperCase()+'-'+String(i+1).padStart(3,'0');
   add('clubdesk_mitglieder',key,{clubdeskId:key,anrede:'',vorname:first[i%10],nachname:last[Math.floor(i/10)],adresse:'',ort:'Musterhausen',plz:'',status:'Aktiv',aktiv:true,importiertAm:now,erstbezugsRabattIds:[],riegen:i%7===0?[groups[i%6],groups[(i+1)%6]]:[groups[i%6]]});
 }
 const rabattBasis={geltungsbereich:'artikel',artikelIds:[ref('artikel','T-Shirt')],kategorieIds:[],gueltigAb:null,gueltigBis:null,kombinierbar:false,aktiv:true,erstelltAm:now,aktualisiertAm:now};
@@ -106,6 +111,8 @@ for(const [artikelName,rolle,beschreibung,status,notiz] of [
   const bearbeiter={bearbeitetVonId:ref('benutzer','materialverantwortlich'),bearbeitetVonName:'DEV materialverantwortlich'};
   add('schadensmeldungen',artikelName,{artikelId:ref('artikel',artikelName),artikelName,beschreibung,fotos:[],gemeldetVonId:ref('benutzer',rolle),gemeldetVonName:'DEV '+rolle,status,bearbeitungsnotiz:notiz,erstelltAm,aktualisiertAm:bearbeitet?now:erstelltAm,...(bearbeitet?{...bearbeiter,bearbeitungsverlauf:[{datum:now,alterStatus:'offen',alteNotiz:'',neuerStatus:status,notiz,...bearbeiter}]}:{})});
 }
+return {id,clubId,vereinId,plan,loans,sales,ref,date,now};
+}
 const client = new MongoClient(config.MONGODB_URI);
 try {
   await client.connect();
@@ -116,13 +123,14 @@ try {
       auth.authenticatedUserRoles.length !== 1 || auth.authenticatedUserRoles[0].role !== 'readWrite' ||
       auth.authenticatedUserRoles[0].db !== name) throw new Error('DEV-Rollenprüfung fehlgeschlagen.');
   console.log('Zieldatenbank:', name);
+  const plan = clubs.flatMap(club => club.plan);
   for (const collection of new Set(plan.map(p => p.collection))) {
     console.log(collection + ': ' + plan.filter(p => p.collection === collection).length + ' vorgesehene Datensätze');
   }
-  console.log('ausleihen: ' + loans.length + ' vorgesehene Geschäftsvorfälle');
-  console.log('vereinskleider_verkaeufe: '+sales.length+' vorgesehene Geschäftsvorfälle');
-  console.log('vereinskleider_rechnungen: 3 vorgesehene Rechnungen');
-  console.log('inventuren: 1 vorgesehene Inventur mit aktuellen Soll-Beständen');
+  console.log('ausleihen: ' + clubs.reduce((n,c)=>n+c.loans.length,0) + ' vorgesehene Geschäftsvorfälle');
+  console.log('vereinskleider_verkaeufe: '+clubs.reduce((n,c)=>n+c.sales.length,0)+' vorgesehene Geschäftsvorfälle');
+  console.log('vereinskleider_rechnungen: 6 vorgesehene Rechnungen');
+  console.log('inventuren: 2 vorgesehene Inventur mit aktuellen Soll-Beständen');
   const resetCollections = ['clubdesk_mitglieder','lieferanten','riegen','ausleihen','vereine','schadensmeldungen','lagerbewegungen','kategorien','inventarbewertung_aufnahmen','artikelvarianten','rabattregeln','vereinskleider_preise','vereinskleider_rechnungen','benutzer','vereinskleider_gutschriften','vereinskleider_verkaeufe','artikel','clubdesk_gruppenzuordnungen','inventuren','einladungen','vereinskleider_sammelbestellungen','sessions','lagerorte','inventurpositionen','bildUploads','inventurprotokoll','vereinskleider_rechnungsnummern','groessen'];
   if(reset) {
     const actual=(await db.listCollections({}, {nameOnly:true}).toArray()).map(c=>c.name);
@@ -143,11 +151,12 @@ try {
         if(reset) {
           for(const c of resetCollections) await db.collection(c).deleteMany({}, {session});
         }
+        for (const {id,clubId,vereinId,plan,loans,sales,ref,date,now} of clubs) {
         // Ein bereits befüllter Seed-Verein darf nicht teilweise neu aufgebaut werden:
         // gelöschte Geschäftsvorfälle könnten sonst Bestände erneut verändern.
         if (!reset && await db.collection('vereine').findOne({_id:clubId},{session})) {
           console.log('DEV-Seed-Verein bereits vorhanden; keine Änderungen. Für Neuaufbau Reset verwenden.');
-          return;
+          continue;
         }
         for (const {collection, document} of plan) {
           const existing = await db.collection(collection).findOne({_id: document._id}, {session});
@@ -259,6 +268,7 @@ try {
             }
           }
           await aufnahmen.insertOne({_id:bewertungId,vereinId,aufgenommenAm:now,aufgenommenVon:ref('benutzer','admin'),zeilen},{session});
+        }
         }
       });
     } finally { await session.endSession(); }
