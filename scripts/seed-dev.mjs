@@ -59,7 +59,7 @@ for (const [name,category,menge,einzelwert] of material) {
 }
 for (const [name,einzelwert] of clothing) {
   const sizes=['128','140','152','164','XS','S','M','L','XL','XXL'];
-  const quantities=sizes.map((_,i)=>i===0?0:i===1?1:5);
+  const quantities=sizes.map((size,i)=>name==='Shorts'&&size==='140'?2:i===0?0:i===1?1:5);
   add('artikel',name,{name,kategorieId:ref('kategorien','Vereinskleider'),lagerortId:ref('lagerorte','Kleiderlager'),lieferantId:ref('lieferanten','DEV Textilwerk'),menge:quantities.reduce((a,b)=>a+b,0),einzelwert:0,mindestbestand:0,beschreibung:'Fiktive Vereinskleidung',hatGroessen:true,istVereinskleidung:true,erstelltAm:now});
   for (const [i,size] of sizes.entries()) {
     add('artikelvarianten',name+':'+size,{artikelId:ref('artikel',name),groesseId:ref('groessen',size),menge:quantities[i],einzelwert,mindestbestand:2});
@@ -114,7 +114,7 @@ for(const [artikelName,rolle,beschreibung,status,notiz] of [
   const bearbeiter={bearbeitetVonId:ref('benutzer','materialverantwortlich'),bearbeitetVonName:'DEV materialverantwortlich'};
   add('schadensmeldungen',artikelName,{artikelId:ref('artikel',artikelName),artikelName,beschreibung,fotos:[],gemeldetVonId:ref('benutzer',rolle),gemeldetVonName:'DEV '+rolle,status,bearbeitungsnotiz:notiz,erstelltAm,aktualisiertAm:bearbeitet?now:erstelltAm,...(bearbeitet?{...bearbeiter,bearbeitungsverlauf:[{datum:now,alterStatus:'offen',alteNotiz:'',neuerStatus:status,notiz,...bearbeiter}]}:{})});
 }
-return {id,clubId,vereinId,plan,loans,sales,ref,date,now};
+return {key:club.key,id,clubId,vereinId,plan,loans,sales,ref,date,now};
 }
 const client = new MongoClient(config.MONGODB_URI);
 try {
@@ -130,10 +130,11 @@ try {
   for (const collection of new Set(plan.map(p => p.collection))) {
     console.log(collection + ': ' + plan.filter(p => p.collection === collection).length + ' vorgesehene Datensätze');
   }
+  console.log('lagerbewegungen zusätzlich: '+clubs.reduce((n,c)=>n+c.loans.reduce((m,l)=>m+1+Number(l.returned>0),0)+c.sales.filter(s=>s.direct>0).length,0)+' aus Geschäftsvorfällen');
   console.log('ausleihen: ' + clubs.reduce((n,c)=>n+c.loans.length,0) + ' vorgesehene Geschäftsvorfälle');
   console.log('vereinskleider_verkaeufe: '+clubs.reduce((n,c)=>n+c.sales.length,0)+' vorgesehene Geschäftsvorfälle');
-  console.log('vereinskleider_rechnungen: 14 vorgesehene Rechnungen');
-  console.log('inventuren: 2 vorgesehene Inventur mit aktuellen Soll-Beständen');
+  console.log('vereinskleider_rechnungen: '+clubs.reduce((n,c)=>n+c.sales.filter(s=>s.price!==null).length,0)+' vorgesehene Rechnungen');
+  console.log('inventuren: '+clubs.length+' vorgesehene Inventuren mit aktuellen Soll-Beständen');
   const resetCollections = ['clubdesk_mitglieder','lieferanten','riegen','ausleihen','vereine','schadensmeldungen','lagerbewegungen','kategorien','inventarbewertung_aufnahmen','artikelvarianten','rabattregeln','vereinskleider_preise','vereinskleider_rechnungen','benutzer','vereinskleider_gutschriften','vereinskleider_verkaeufe','artikel','clubdesk_gruppenzuordnungen','inventuren','einladungen','vereinskleider_sammelbestellungen','sessions','lagerorte','inventurpositionen','bildUploads','inventurprotokoll','vereinskleider_rechnungsnummern','groessen'];
   if(reset) {
     const actual=(await db.listCollections({}, {nameOnly:true}).toArray()).map(c=>c.name);
@@ -143,10 +144,11 @@ try {
   if (!apply) {
     console.log('Vorschau: keine Änderungen.');
   } else {
-    const passwords = roles.map(r => config['DEV_PASSWORD_' + r.toUpperCase()]);
-    if (passwords.some(p => !p || p.length < 16) || new Set(passwords).size !== roles.length) throw new Error('Vier unterschiedliche DEV-Passwörter mit mindestens 16 Zeichen in .env erforderlich.');
-    for (const p of plan.filter(p => p.collection === 'benutzer')) {
-      p.document.passwortHash = await hash(passwords[roles.indexOf(p.document.rolle)], { type: argon2id });
+    const accounts = clubs.flatMap(club => club.plan.filter(p=>p.collection==='benutzer').map(p=>({document:p.document,envKey:'DEV_PASSWORD_'+club.key.toUpperCase()+'_'+p.document.rolle.toUpperCase()})));
+    const passwords = accounts.map(a=>config[a.envKey]);
+    if (passwords.some(p=>!p || p.length<16) || new Set(passwords).size!==accounts.length) throw new Error('Acht unterschiedliche DEV-Passwörter mit mindestens 16 Zeichen in .env erforderlich: '+accounts.map(a=>a.envKey).join(', '));
+    for (const account of accounts) {
+      account.document.passwortHash = await hash(config[account.envKey], { type: argon2id });
     }
     const session = client.startSession();
     try {
@@ -201,6 +203,7 @@ try {
           const preis=await db.collection('vereinskleider_preise').findOne({artikelId,groesseId,vereinId},{session});
           if (!artikel || !variante || !preis || preis.verkaufspreis!==sale.price || (preis.preisOffen===true)!==(sale.price===null)) throw new Error('DEV-Verkauf: Artikel oder Preis abweichend.');
           if(sale.direct) {
+            if(variante.menge-sale.direct<1) throw new Error('DEV-Verkauf: Anprobierreserve unterschritten.');
             for(const [collection,filter] of [['artikel',{_id:new ObjectId(artikelId),vereinId}],['artikelvarianten',{_id:variante._id,vereinId}]]) {
               const result=await db.collection(collection).updateOne({...filter,menge:{$gte:sale.direct}},{$inc:{menge:-sale.direct}},{session});
               if(result.modifiedCount!==1) throw new Error('DEV-Verkauf: Bestand fehlt.');
@@ -218,6 +221,7 @@ try {
           if(sale.member&&!mitglied) throw new Error('DEV-Mitglied fehlt.');
           const regel=sale.discount?plan.find(p=>p.collection==='rabattregeln'&&String(p.document._id)===ref('rabattregeln',sale.discount))?.document:null;
           if(sale.discount&&!regel) throw new Error('DEV-Rabatt fehlt.');
+          if(regel&&!mitglied.riegen.some(r=>regel.riegen.includes(r))) throw new Error('DEV-Rabatt: Mitglied nicht anspruchsberechtigt.');
           const rabatte=regel?[{rabattId:String(regel._id),name:regel.name,betrag:rabattTotal,...(regel.einmaligProMitglied?{einmaligProMitglied:true}:{})}]:[];
           const anspruch=regel?.einmaligProMitglied?'gruppe:'+regel.anspruchsgruppe:null;
           if(anspruch) {
@@ -228,7 +232,7 @@ try {
           await db.collection('vereinskleider_verkaeufe').insertOne({_id,vereinId,verkaufsart:bestellMenge?(sale.direct?'gemischt':'bestellung'):'direkt',status:bestellMenge?'offen':'abgeschlossen',preisOffen:sale.price===null,offenePreispositionen:sale.price===null?1:0,direktMenge:sale.direct,bestellMenge,kaeufer:mitglied?mitglied.vorname+' '+mitglied.nachname:sale.buyer,...(mitglied?{mitgliedId:String(mitglied._id),clubdeskId:mitglied.clubdeskId}:{}),riegen:mitglied?mitglied.riegen:['TI'],zahlungsart:sale.payment,zahlungsstatus:sale.price===null?'preis_offen':sale.paid?'bezahlt':bezahltBetrag>0?'teilweise_bezahlt':'offen',bezahltBetrag,zahlungen:bezahltBetrag>0?[{betrag:bezahltBetrag,datum:now,zahlungsart:sale.paid?sale.payment:'bar'}]:[],bemerkung:'Fiktiver DEV-Verkauf',positionen,rabatte,...(anspruch?{erstbezugsIds:[anspruch],erstbezugsPositionen:[{anspruch,rabattId:String(regel._id),positionsIndex:0,rabattBetrag:rabattTotal}]}:{}),zusaetzlicherRabatt:0,zwischentotal,rabattTotal,endbetrag,restbetragBekannt:endbetrag-bezahltBetrag,erstelltAm:now,aktualisiertAm:now},{session});
           if(sale.direct) await db.collection('lagerbewegungen').insertOne({_id:id('sale-movement:'+sale.key),vereinId,artikelId,groesseId,art:'verkauf',mengeDelta:-sale.direct,zeitpunkt:now,artikelName:sale.name,groesseName:sale.size,benutzerName:'DEV admin',benutzerId:ref('benutzer','admin'),referenzId:_id.toHexString(),referenzTyp:'verkauf'},{session});
         }
-        for (const key of ['twint','bar','bestellung','gemischt','erstbezug','riegenrabatt','regulaer']) {
+        for (const {key} of sales.filter(s=>s.price!==null)) {
           const _id=id('dev-invoice:'+key);
           const invoices=db.collection('vereinskleider_rechnungen');
           const existing=await invoices.findOne({_id},{session});
