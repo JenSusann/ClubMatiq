@@ -357,3 +357,32 @@ describe('21-verkauf-zahlungsarten', () => {
     expect(mocks.insertOne).not.toHaveBeenCalled();
   });
 });
+
+describe('Stornierung – Integrität der Teilrechnungen', () => {
+  const trancheId = new ObjectId().toHexString();
+  const position = {artikelId:id,groesseId:null,verkaufsart:'bestellung',menge:2,einzelpreis:25,positionsbetrag:50};
+  const verkauf = {status:'offen',trancheRechnungIds:[trancheId],positionen:[position],rabattTotal:0,endbetrag:50,zwischentotal:50};
+  const eingabe = {verkaufId:id,positionsIndex:0,menge:1,grund:'Korrektur'};
+  it.each([{preisOffen:true},{menge:1.5},{einzelpreis:0.001},{positionsbetrag:-1},{uebergebenMenge:-1},{uebergebenMenge:1.5},{reserviertMenge:-1},{reserviertMenge:0.5},{reserviertMenge:3}])('verweigert inkonsistente Teilrechnungsposition %#',async patch=>{
+    mocks.findOne.mockResolvedValueOnce({...verkauf,positionen:[{...position,...patch}]});
+    expect((await route0.POST(event('POST',eingabe) as never)).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it.each([{rabatte:[{betrag:5}]},{zusaetzlicherRabatt:5},{rechnungId:trancheId}])('verweigert zusätzliche Rabatte oder Belege %#',async patch=>{
+    mocks.findOne.mockResolvedValueOnce({...verkauf,...patch});
+    expect((await route0.POST(event('POST',eingabe) as never)).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('verweigert fehlende Teilrechnung',async()=>{
+    mocks.findOne.mockResolvedValueOnce(verkauf);
+    expect((await route0.POST(event('POST',eingabe) as never)).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('verweigert Teilrechnung mit fremder Referenz',async()=>{
+    mocks.findOne.mockResolvedValueOnce(verkauf);
+    mocks.find.mockReturnValueOnce({toArray:async()=>[{_id:new ObjectId()}]});
+    expect((await route0.POST(event('POST',eingabe) as never)).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+});
