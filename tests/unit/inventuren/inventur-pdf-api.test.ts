@@ -69,3 +69,39 @@ describe('Inventurbericht PDF', () => {
   it('meldet Datenbankfehler als 500', async () => { m.findOne.mockRejectedValue(new Error('db')); await expect(get()).rejects.toMatchObject({ status: 500 }); });
   it('meldet Fehler beim Laden der Positionen', async () => { m.toArray.mockRejectedValue(new Error('db')); await expect(get()).rejects.toMatchObject({ status: 500 }); });
 });
+
+describe('Historische Aussteller im Inventurbericht', () => {
+  it.each([
+    ['abgeschlossen', { aussteller: { name: 'Snapshot Alt', adresse: { ort: 'Altort' } } }, [], 'Snapshot Alt'],
+    ['storniert', { aussteller: { name: 'Snapshot Alt' } }, [], 'Snapshot Alt'],
+    ['abgeschlossen', {}, [{ aktion: 'abgeschlossen', positionen: [], aussteller: { name: 'Protokoll Alt' } }], 'Protokoll Alt'],
+    ['abgeschlossen', {}, [], 'Basis Alt'],
+    ['abgeschlossen', { abgeschlossenAm: null }, [], 'Basis Alt'],
+    ['offen', { abgeschlossenAm: null }, [], 'Aktueller Verein']
+  ] as const)('verwendet richtigen Aussteller für %s %#', async (status, extra, protokoll, erwartet) => {
+    m.findOne.mockResolvedValueOnce(inventur({ status, ...extra })).mockResolvedValueOnce({
+      name: 'Aktueller Verein', ausstellerVorErsterAenderung: { name: 'Basis Alt' }
+    });
+    setup([position({ istBestand: 12 })], [...protokoll]);
+    const draw = vi.spyOn(PDFPage.prototype, 'drawText');
+    try {
+      const response = await GET({ params: { id }, locals: { benutzer: { vereinId: user } } } as never);
+      expect(response.status).toBe(200);
+      const lines = draw.mock.calls.map(([value]) => value);
+      expect(lines).toContain(erwartet);
+      if (erwartet !== 'Aktueller Verein') expect(lines).not.toContain('Aktueller Verein');
+      if ('aussteller' in extra) expect(m.findOne).toHaveBeenCalledTimes(1);
+      else expect(m.findOne).toHaveBeenCalledWith({ _id: new ObjectId(user) });
+      expect(lines.some(line => line.includes('Differenz +2'))).toBe(true);
+    } finally { draw.mockRestore(); }
+  });
+  it('verwendet bei Altinventur ohne Basis das vorhandene Profil', async () => {
+    m.findOne.mockResolvedValueOnce(inventur()).mockResolvedValueOnce({ name: 'Legacy Verein' });
+    setup();
+    const draw = vi.spyOn(PDFPage.prototype, 'drawText');
+    try {
+      expect((await GET({ params: { id }, locals: { benutzer: { vereinId: user } } } as never)).status).toBe(200);
+      expect(draw.mock.calls.map(([value]) => value)).toContain('Legacy Verein');
+    } finally { draw.mockRestore(); }
+  });
+});
