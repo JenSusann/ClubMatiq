@@ -93,6 +93,9 @@ const day = offset => new Date(now.getTime()+offset*86400000);
 const date = offset => day(offset).toISOString().slice(0,10);
 
 const sales = [
+ {key:'erstbezug',name:'T-Shirt',size:'S',menge:1,direct:1,price:28,paid:true,payment:'bar',buyer:'Noah Muster',member:4,discount:'erstbezug'},
+ {key:'riegenrabatt',name:'T-Shirt',size:'XL',menge:1,direct:1,price:28,paid:true,payment:'twint',buyer:'Mia Muster',member:5,discount:'riegenrabatt'},
+ {key:'regulaer',name:'T-Shirt',size:'XXL',menge:1,direct:1,price:28,paid:true,payment:'bar',buyer:'Lina Muster',member:6},
  {key:'twint',name:'T-Shirt',size:'M',menge:2,direct:2,price:28,paid:true,payment:'twint',buyer:'Alex Muster'},
  {key:'bar',name:'Hoodie',size:'L',menge:1,direct:1,price:55,paid:true,payment:'bar',buyer:'Robin Muster'},
  {key:'bestellung',name:'Trainerjacke',size:'128',menge:2,direct:0,price:65,paid:false,partial:30,payment:'rechnung',buyer:'Kim Muster'},
@@ -129,7 +132,7 @@ try {
   }
   console.log('ausleihen: ' + clubs.reduce((n,c)=>n+c.loans.length,0) + ' vorgesehene Geschäftsvorfälle');
   console.log('vereinskleider_verkaeufe: '+clubs.reduce((n,c)=>n+c.sales.length,0)+' vorgesehene Geschäftsvorfälle');
-  console.log('vereinskleider_rechnungen: 8 vorgesehene Rechnungen');
+  console.log('vereinskleider_rechnungen: 14 vorgesehene Rechnungen');
   console.log('inventuren: 2 vorgesehene Inventur mit aktuellen Soll-Beständen');
   const resetCollections = ['clubdesk_mitglieder','lieferanten','riegen','ausleihen','vereine','schadensmeldungen','lagerbewegungen','kategorien','inventarbewertung_aufnahmen','artikelvarianten','rabattregeln','vereinskleider_preise','vereinskleider_rechnungen','benutzer','vereinskleider_gutschriften','vereinskleider_verkaeufe','artikel','clubdesk_gruppenzuordnungen','inventuren','einladungen','vereinskleider_sammelbestellungen','sessions','lagerorte','inventurpositionen','bildUploads','inventurprotokoll','vereinskleider_rechnungsnummern','groessen'];
   if(reset) {
@@ -208,12 +211,24 @@ try {
           for(const [verkaufsart,menge] of [['direkt',sale.direct],['bestellung',bestellMenge]]) {
             if(menge) positionen.push({artikelId,groesseId,artikelname:sale.name,menge,einzelpreis:sale.price,...(sale.price===null?{preisOffen:true}:{}),positionsbetrag:menge*(sale.price??0),verkaufsart});
           }
-          const endbetrag=sale.menge*(sale.price??0);
+          const zwischentotal=sale.menge*(sale.price??0);
+          const rabattTotal=sale.discount==='erstbezug'?28:sale.discount==='riegenrabatt'?5.6:0;
+          const endbetrag=(Math.round(zwischentotal*100)-Math.round(rabattTotal*100))/100;
+          const mitglied=sale.member?plan.find(p=>p.collection==='clubdesk_mitglieder'&&p.document.clubdeskId.endsWith('-'+String(sale.member).padStart(3,'0')))?.document:null;
+          if(sale.member&&!mitglied) throw new Error('DEV-Mitglied fehlt.');
+          const regel=sale.discount?plan.find(p=>p.collection==='rabattregeln'&&String(p.document._id)===ref('rabattregeln',sale.discount))?.document:null;
+          if(sale.discount&&!regel) throw new Error('DEV-Rabatt fehlt.');
+          const rabatte=regel?[{rabattId:String(regel._id),name:regel.name,betrag:rabattTotal,...(regel.einmaligProMitglied?{einmaligProMitglied:true}:{})}]:[];
+          const anspruch=regel?.einmaligProMitglied?'gruppe:'+regel.anspruchsgruppe:null;
+          if(anspruch) {
+            const result=await db.collection('clubdesk_mitglieder').updateOne({_id:mitglied._id,vereinId,erstbezugsRabattIds:{$ne:anspruch}},{$addToSet:{erstbezugsRabattIds:anspruch}},{session});
+            if(result.modifiedCount!==1) throw new Error('DEV-Erstbezug bereits beansprucht.');
+          }
           const bezahltBetrag=sale.paid?endbetrag:(sale.partial??0);
-          await db.collection('vereinskleider_verkaeufe').insertOne({_id,vereinId,verkaufsart:bestellMenge?(sale.direct?'gemischt':'bestellung'):'direkt',status:bestellMenge?'offen':'abgeschlossen',preisOffen:sale.price===null,offenePreispositionen:sale.price===null?1:0,direktMenge:sale.direct,bestellMenge,kaeufer:sale.buyer,riegen:['TI'],zahlungsart:sale.payment,zahlungsstatus:sale.price===null?'preis_offen':sale.paid?'bezahlt':bezahltBetrag>0?'teilweise_bezahlt':'offen',bezahltBetrag,zahlungen:bezahltBetrag>0?[{betrag:bezahltBetrag,datum:now,zahlungsart:sale.paid?sale.payment:'bar'}]:[],bemerkung:'Fiktiver DEV-Verkauf',positionen,rabatte:[],zusaetzlicherRabatt:0,zwischentotal:endbetrag,rabattTotal:0,endbetrag,restbetragBekannt:endbetrag-bezahltBetrag,erstelltAm:now,aktualisiertAm:now},{session});
+          await db.collection('vereinskleider_verkaeufe').insertOne({_id,vereinId,verkaufsart:bestellMenge?(sale.direct?'gemischt':'bestellung'):'direkt',status:bestellMenge?'offen':'abgeschlossen',preisOffen:sale.price===null,offenePreispositionen:sale.price===null?1:0,direktMenge:sale.direct,bestellMenge,kaeufer:mitglied?mitglied.vorname+' '+mitglied.nachname:sale.buyer,...(mitglied?{mitgliedId:String(mitglied._id),clubdeskId:mitglied.clubdeskId}:{}),riegen:mitglied?mitglied.riegen:['TI'],zahlungsart:sale.payment,zahlungsstatus:sale.price===null?'preis_offen':sale.paid?'bezahlt':bezahltBetrag>0?'teilweise_bezahlt':'offen',bezahltBetrag,zahlungen:bezahltBetrag>0?[{betrag:bezahltBetrag,datum:now,zahlungsart:sale.paid?sale.payment:'bar'}]:[],bemerkung:'Fiktiver DEV-Verkauf',positionen,rabatte,...(anspruch?{erstbezugsIds:[anspruch],erstbezugsPositionen:[{anspruch,rabattId:String(regel._id),positionsIndex:0,rabattBetrag:rabattTotal}]}:{}),zusaetzlicherRabatt:0,zwischentotal,rabattTotal,endbetrag,restbetragBekannt:endbetrag-bezahltBetrag,erstelltAm:now,aktualisiertAm:now},{session});
           if(sale.direct) await db.collection('lagerbewegungen').insertOne({_id:id('sale-movement:'+sale.key),vereinId,artikelId,groesseId,art:'verkauf',mengeDelta:-sale.direct,zeitpunkt:now,artikelName:sale.name,groesseName:sale.size,benutzerName:'DEV admin',benutzerId:ref('benutzer','admin'),referenzId:_id.toHexString(),referenzTyp:'verkauf'},{session});
         }
-        for (const key of ['twint','bar','bestellung','gemischt']) {
+        for (const key of ['twint','bar','bestellung','gemischt','erstbezug','riegenrabatt','regulaer']) {
           const _id=id('dev-invoice:'+key);
           const invoices=db.collection('vereinskleider_rechnungen');
           const existing=await invoices.findOne({_id},{session});
