@@ -4,6 +4,9 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf
 import { db } from '../../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../../lib/server/berechtigungen';
 
+import { zeichneVereinsprofil } from '../../../../../lib/server/pdf-vereinsprofil';
+import { erstelleAusstellerdaten } from '../../../../../lib/server/vereinseinstellungen';
+
 const datum = (wert: unknown): string => {
   if (!wert) return '–';
   const d = new Date(wert instanceof Date ? wert.getTime() : String(wert));
@@ -23,6 +26,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   try {
     const inventur = await db.collection('inventuren').findOne({ _id: new ObjectId(inventurId), vereinId });
     if (!inventur) throw error(404, 'Inventur nicht gefunden.');
+    const verein = ObjectId.isValid(vereinId) ? await db.collection('vereine').findOne({ _id: new ObjectId(vereinId) }) : null;
     const [positionen, protokoll] = await Promise.all([
       db.collection('inventurpositionen').find({ vereinId, inventurId }).sort({ artikelName: 1, groesseId: 1 }).toArray(),
       db.collection('inventurprotokoll').find({ vereinId, inventurId }).sort({ ausgefuehrtAm: 1, _id: 1 }).toArray()
@@ -88,6 +92,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
     };
     const titel = (t: string) => { platz(36); y -= 10; text(t, { bold: true, size: 14 }); };
     neueSeite();
+    y = await zeichneVereinsprofil(pdf, pdf.getPages()[0], erstelleAusstellerdaten(verein), normal, fett, rand, y, breite - 2 * rand, fit);
     text(inventur.name ?? 'Inventur', { bold: true, size: 19 });
     text(`Status: ${sicher(inventur.status)}  |  Typ: ${sicher(inventur.typ)}  |  Lagerort: ${sicher(inventur.lagerortName ?? 'Alle')}`, { color: grau });
     text(`Erstellt: ${datum(inventur.erstelltAm)} (${name(inventur.erstelltVon)})`);
