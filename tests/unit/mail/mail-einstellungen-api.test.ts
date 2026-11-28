@@ -229,3 +229,39 @@ describe('E-Mail-Einstellungen – zusätzliche Validierungen', () => {
     expect((await PUT(kontext('PUT',{methode:'microsoft365',microsoft365}))).status).toBe(500);
   });
 });
+
+describe('E-Mail-Einstellungen – Zertifikatsprüfung', () => {
+  const microsoft365 = {tenantId:'f7cf9dfa-5f0d-429c-9b64-c4c7a5d66a75',clientId:'e7cd00c1-cd5d-4d3f-8a35-6324ddb026a8',absender:'mail@example.ch'};
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mocks.pruefeBerechtigung.mockReturnValue(null);
+    mocks.findOne.mockResolvedValue(null);
+    mocks.updateOne.mockResolvedValue({matchedCount:1});
+    mocks.verschluesseln.mockReturnValue('encrypted');
+  });
+  it('verwirft syntaktisch ungültige Zertifikate bei gültigem Verschlüsselungsschlüssel', async () => {
+    vi.stubEnv('MAIL_ENCRYPTION_KEY','a'.repeat(64));
+    try {
+      expect((await PUT(kontext('PUT',{methode:'microsoft365',microsoft365:{...microsoft365,zertifikatPem:'invalid-cert',privaterSchluesselPem:'invalid-key'}}))).status).toBe(500);
+      expect(mocks.updateOne).not.toHaveBeenCalled();
+      expect(mocks.verschluesseln).not.toHaveBeenCalled();
+    } finally { vi.unstubAllEnvs(); }
+  });
+  it('verwirft gespeicherte Schlüssel bei Änderung nur der Client-ID', async () => {
+    mocks.findOne.mockResolvedValue({mailEinstellungen:{microsoft365:{...microsoft365,clientId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',zertifikat:'cert',privaterSchluessel:'key'}}});
+    expect((await PUT(kontext('PUT',{methode:'microsoft365',microsoft365}))).status).toBe(200);
+    expect(mocks.updateOne.mock.calls[0][1].$set.mailEinstellungen.microsoft365).toEqual(microsoft365);
+  });
+  it('meldet unvollständige gespeicherte Zugangsdaten ohne Geheimnisse', async () => {
+    mocks.findOne.mockResolvedValue({mailEinstellungen:{methode:'microsoft365',microsoft365:{...microsoft365,zertifikat:'cert'},smtp:{host:'smtp.example.ch'}}});
+    const data=await (await GET(kontext('GET'))).json();
+    expect(data.microsoft365.zertifikatServerseitig).toBe(false);
+    expect(data.smtp.passwortHinterlegt).toBe(false);
+    expect(data.microsoft365).not.toHaveProperty('zertifikat');
+  });
+  it('weist fehlerhaftes JSON ab', async () => {
+    const event={locals:{benutzer:admin},request:new Request('http://localhost',{method:'PUT',body:'{'})} as never;
+    expect((await PUT(event)).status).toBe(400);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+});
