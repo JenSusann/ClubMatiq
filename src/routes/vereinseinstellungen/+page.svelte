@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { page } from '$app/state';
-  import { invalidateAll } from '$app/navigation';
+  import { invalidate } from '$app/navigation';
   import Aktionsmeldung from '../../lib/Aktionsmeldung.svelte';
   let name = $state('');
   let kuerzel = $state('');
@@ -53,7 +53,7 @@
       auswahlLeeren();
       entfernenBestaetigen = false;
       erfolg = entfernen ? 'Vereinslogo entfernt.' : 'Vereinslogo gespeichert.';
-      await invalidateAll();
+      await invalidate('clubmatiq:vereinsprofil');
     } catch (e) {
       fehler = e instanceof Error ? e.message : 'Logoänderung fehlgeschlagen.';
     } finally { logoArbeitet = false; }
@@ -94,6 +94,7 @@
       const daten = await antwort.json();
       if (!antwort.ok) throw new Error(daten.fehler ?? 'Speichern fehlgeschlagen.');
       await lade();
+      await invalidate('clubmatiq:vereinsprofil');
       if (geladen) erfolg = 'Vereinseinstellungen gespeichert.';
     } catch (e) {
       fehler = e instanceof Error ? e.message : 'Speichern fehlgeschlagen.';
