@@ -198,6 +198,37 @@ describe('Retouren-API – Validierung und Finanzkonsistenz (#38)',()=>{
   m.findOne.mockResolvedValue({...sale,retouren:[{positionsIndex:0,menge:2}]});
   expect((await (await RetourenGET(event())).json()).positionen[0]).toMatchObject({maximal:0,hinweis:'',freigegeben:false});
  });
+
+ it('verarbeitet historische Direktverkäufe ohne optionale Felder',async()=>{
+  m.findOne.mockResolvedValue({positionen:[p]});
+  m.toArray.mockReset().mockResolvedValueOnce([{...invoice,bezahltBetrag:undefined}]).mockResolvedValue([]);
+  expect((await RetourenPOST(event({...input,wiederverkaufbar:true}))).status).toBe(201);
+  expect(m.updateOne.mock.calls[2][0]).toMatchObject({retouren:{$exists:false},aktualisiertAm:{$exists:false}});
+  expect(m.lager).toHaveBeenCalledWith(expect.objectContaining({groesseId:null,mengeDelta:1}),expect.anything());
+ });
+ it('zeigt dokumentierte Übergaben und ignoriert andere Positionen',async()=>{
+  m.findOne.mockResolvedValue({positionen:[{...p,verkaufsart:'bestellung',artikelname:'Shirt',groesseId:id}],uebergaben:[{positionsIndex:0,menge:2},{positionsIndex:1,menge:99}],retouren:[{positionsIndex:0,menge:1},{positionsIndex:1,menge:99}]});
+  expect((await (await RetourenGET(event())).json()).positionen[0]).toMatchObject({artikelname:'Shirt',groesseId:id,uebergeben:2,retourniert:1,maximal:1});
+ });
+ it('liefert leere Historien bei fehlenden optionalen Feldern',async()=>{
+  m.findOne.mockResolvedValue({positionen:[{...p,menge:undefined}]});
+  expect(await (await RetourenGET(event())).json()).toMatchObject({retouren:[],positionen:[{maximal:0,uebergeben:0}]});
+ });
+ it.each([{betrag:28,rueckerstattetBetrag:-1},{betrag:28,rueckerstattetBetrag:57},{betrag:NaN,rueckerstattetBetrag:0}])('verweigert inkonsistente historische Gutschrift %#',async g=>{
+  m.toArray.mockReset().mockResolvedValueOnce([{...invoice,bezahltBetrag:56,gutgeschriebenBetrag:28}]).mockResolvedValueOnce([g]);
+  expect((await RetourenPOST(event())).status).toBe(409);
+  expect(m.updateOne).not.toHaveBeenCalled();
+ });
+ it('verweigert Rechnung ohne Positionsliste',async()=>{
+  m.toArray.mockReset().mockResolvedValueOnce([{...invoice,positionen:undefined}]);
+  expect((await RetourenPOST(event())).status).toBe(409);
+  expect(m.updateOne).not.toHaveBeenCalled();
+ });
+ it('verweigert fehlerhaftes JSON',async()=>{
+  const e={locals:{benutzer:{id,vereinId:'verein-a'}},request:new Request('http://localhost',{method:'POST',body:'{'})} as never;
+  expect((await RetourenPOST(e)).status).toBe(400);
+  expect(m.startSession).not.toHaveBeenCalled();
+ });
  it('meldet Transaktionsfehler',async()=>{m.withTransaction.mockRejectedValue(Error('DB'));expect((await RetourenPOST(event())).status).toBe(500);expect(m.endSession).toHaveBeenCalled();});
 });
 
