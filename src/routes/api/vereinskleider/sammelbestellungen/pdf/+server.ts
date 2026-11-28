@@ -4,6 +4,9 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf
 import { db } from '../../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../../lib/server/berechtigungen';
 
+import { zeichneVereinsprofil } from '../../../../../lib/server/pdf-vereinsprofil';
+import { erstelleAusstellerdaten } from '../../../../../lib/server/vereinseinstellungen';
+
 type Position = {
   artikelId: string;
   groesseId: string | null;
@@ -144,7 +147,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     }
     neueSeite();
     textzeile('Bestellübersicht', true, 22);
-    textzeile(`Verein: ${vereinsname}`, true);
+    y = await zeichneVereinsprofil(pdf, seite, erstelleAusstellerdaten({ ...verein, name: vereinsname }), normal, fett, rand, y, breite - 2 * rand, pdfText);
     textzeile(`Lieferant: ${lieferantName}`, true);
     textzeile(`Enthaltene Bestellungen: ${eindeutig.map((id) => id.slice(-8).toUpperCase()).join(', ')}`);
     textzeile(`Erstellt am: ${new Intl.DateTimeFormat('de-CH', { dateStyle: 'medium', timeZone: 'Europe/Zurich' }).format(new Date())}`);
