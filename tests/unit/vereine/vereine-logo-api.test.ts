@@ -102,3 +102,49 @@ describe('Vereinslogo API', () => {
     expect((await post()).status).toBe(500);
   });
 });
+
+describe('Vereinslogo – zusätzliche Randfälle', () => {
+  it.each([
+    ['image/jpeg', 'jpg', [255,216,255]],
+    ['image/webp', 'webp', Array.from(Buffer.from('RIFF0000WEBP'))]
+  ] as const)('akzeptiert %s', async (typ, format, bytes) => {
+    m.upload.mockImplementation((_opts, cb) => ({ on: vi.fn(), end: () => cb(null, { ...neu, format }) }));
+    expect((await post(new File([Uint8Array.from(bytes)], 'logo.' + format, { type: typ }))).status).toBe(201);
+    expect(m.upload).toHaveBeenCalledWith(expect.objectContaining({ allowed_formats: [format] }), expect.any(Function));
+  });
+  it.each([
+    ['image/jpeg', [255,216]], ['image/jpeg', [0,216,255]],
+    ['image/jpeg', [255,0,255]], ['image/jpeg', [255,216,0]],
+    ['image/png', [0,0,0,0,0,0,0,0]],
+    ['image/webp', [1,2,3]],
+    ['image/webp', Array.from(Buffer.from('FAIL0000WEBP'))],
+    ['image/webp', Array.from(Buffer.from('RIFF0000FAIL'))]
+  ] as const)('verwirft manipulierte Signatur %s %#', async (typ, bytes) => {
+    expect((await post(new File([Uint8Array.from(bytes)], 'logo', { type: typ }))).status).toBe(400);
+    expect(m.upload).not.toHaveBeenCalled();
+  });
+  it('behandelt fehlendes Cloudinary-Ergebnis', async () => {
+    m.upload.mockImplementation((_opts, cb) => ({ on: vi.fn(), end: () => cb(null, undefined) }));
+    expect((await post()).status).toBe(500);
+    expect(m.updateOne).not.toHaveBeenCalled();
+  });
+  it('behandelt Streamfehler', async () => {
+    m.upload.mockImplementation(() => ({ on: (_event: string, cb: (e: Error) => void) => cb(Error('stream')), end: vi.fn() }));
+    expect((await post()).status).toBe(500);
+    expect(m.updateOne).not.toHaveBeenCalled();
+  });
+  it('unterstützt Vereine ohne Profilrevision', async () => {
+    m.findOne.mockResolvedValue({ _id: id, name: 'Altverein' });
+    expect((await post()).status).toBe(201);
+    expect(m.updateOne.mock.calls[0][0]).toEqual({ _id: id, profilRevision: { $exists: false } });
+  });
+  it('behandelt Lesefehler ohne Upload', async () => {
+    m.findOne.mockRejectedValue(Error('DB'));
+    expect((await post()).status).toBe(500);
+    expect(m.upload).not.toHaveBeenCalled();
+  });
+  it('meldet Konflikt auch beim Entfernen', async () => {
+    m.updateOne.mockResolvedValue({ matchedCount: 0 });
+    expect((await entfernen()).status).toBe(409);
+  });
+});
