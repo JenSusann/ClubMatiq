@@ -81,3 +81,29 @@ describe('Aussteller-Snapshot', () => {
     }
   );
 });
+
+describe('Vereinsprofil – Grenzwerte und Altdaten', () => {
+  it('akzeptiert die maximalen Textlängen', () => {
+    const daten = { name: 'a'.repeat(150), kuerzel: 'b'.repeat(30),
+      adresse: { strasse: 'c'.repeat(150), plz: '1'.repeat(20), ort: 'd'.repeat(100) },
+      kontakt: { telefon: '1'.repeat(50), email: 'a'.repeat(240) + '@example.org', website: 'https://example.org/' + 'x'.repeat(480) } };
+    expect(validiereVereinseinstellungen(daten)).toEqual({ erfolg: true, daten });
+  });
+  it.each([
+    { adresse: { strasse: 'a'.repeat(151) } },
+    { adresse: { plz: '1'.repeat(21) } },
+    { adresse: { ort: 'a'.repeat(101) } },
+    { kontakt: { telefon: '1'.repeat(51) } },
+    { kontakt: { email: 'a'.repeat(255) } },
+    { kontakt: { website: 'https://example.org/' + 'a'.repeat(501) } },
+    { kontakt: { website: 'https://:pass@example.org' } }
+  ])('verwirft ungültigen Grenzwert %#', (teil) => {
+    expect(validiereVereinseinstellungen({ name: 'TV', ...teil }).erfolg).toBe(false);
+  });
+  it.each([{ url: 'https://example.org/logo.png', publicId: '' }, { url: 42, publicId: 'logo' }, { url: 'https://example.org/logo.png', publicId: 42 }])('verwirft unbrauchbare historische Bildreferenz %#', logo => {
+    expect(erstelleAusstellerdaten({ name: 'TV', logo }).logo).toBeNull();
+  });
+  it('normalisiert fehlerhafte Altdaten ohne Ausnahme', () => {
+    expect(erstelleAusstellerdaten({ name: 42, kuerzel: null, adresse: [], kontakt: 'alt', logo: [] })).toEqual(erstelleAusstellerdaten(null));
+  });
+});
