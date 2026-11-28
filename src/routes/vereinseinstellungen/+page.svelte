@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { page } from '$app/state';
+  import { invalidateAll } from '$app/navigation';
   import Aktionsmeldung from '../../lib/Aktionsmeldung.svelte';
   let name = $state('');
   let kuerzel = $state('');
@@ -11,6 +13,51 @@
   let speichern = $state(false);
   let fehler = $state('');
   let erfolg = $state('');
+
+  let logoDatei = $state<File | null>(null);
+  let vorschau = $state<string | null>(null);
+  let logoArbeitet = $state(false);
+  let entfernenBestaetigen = $state(false);
+  let dateiInput: HTMLInputElement | undefined = $state();
+  function auswahlLeeren() {
+    if (vorschau) URL.revokeObjectURL(vorschau);
+    vorschau = null;
+    logoDatei = null;
+    if (dateiInput) dateiInput.value = '';
+  }
+  function dateiWaehlen(event: Event) {
+    const datei = (event.currentTarget as HTMLInputElement).files?.[0];
+    auswahlLeeren();
+    fehler = '';
+    erfolg = '';
+    if (!datei) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(datei.type) || !datei.size || datei.size > 5 * 1024 * 1024) {
+      fehler = 'Bitte ein JPG-, PNG- oder WebP-Bild mit maximal 5 MB auswählen.';
+      return;
+    }
+    logoDatei = datei;
+    vorschau = URL.createObjectURL(datei);
+  }
+  async function logoAendern(entfernen = false) {
+    if (logoArbeitet || speichern || page.data.demo || (!entfernen && !logoDatei)) return;
+    logoArbeitet = true;
+    fehler = '';
+    erfolg = '';
+    try {
+      const formular = new FormData();
+      if (!entfernen && logoDatei) formular.append('logo', logoDatei);
+      const antwort = await fetch('/api/vereine/logo', entfernen ? { method: 'DELETE' } : { method: 'POST', body: formular });
+      const daten = await antwort.json();
+      if (!antwort.ok) throw new Error(daten.fehler ?? 'Logoänderung fehlgeschlagen.');
+      logo = daten.logo?.url ?? null;
+      auswahlLeeren();
+      entfernenBestaetigen = false;
+      erfolg = entfernen ? 'Vereinslogo entfernt.' : 'Vereinslogo gespeichert.';
+      await invalidateAll();
+    } catch (e) {
+      fehler = e instanceof Error ? e.message : 'Logoänderung fehlgeschlagen.';
+    } finally { logoArbeitet = false; }
+  }
 
   async function lade() {
     laden = true;
@@ -35,7 +82,7 @@
 
   async function speichere(event: SubmitEvent) {
     event.preventDefault();
-    if (!geladen || speichern) return;
+    if (!geladen || speichern || logoArbeitet) return;
     speichern = true;
     fehler = '';
     erfolg = '';
@@ -52,7 +99,7 @@
       fehler = e instanceof Error ? e.message : 'Speichern fehlgeschlagen.';
     } finally { speichern = false; }
   }
-  onMount(() => { void lade(); });
+  onMount(() => { void lade(); return () => { if (vorschau) URL.revokeObjectURL(vorschau); }; });
 </script>
 <svelte:head><title>Vereinseinstellungen | ClubMatiq</title></svelte:head>
 <Aktionsmeldung {fehler} {erfolg} fehlerSchliessen={() => fehler = ''} erfolgSchliessen={() => erfolg = ''} />
@@ -69,31 +116,52 @@
       <section class="karte">
         <div class="abschnitt-titel"><h2>Vereinsdaten</h2><p class="beschreibung">Die Vereins-ID bleibt bei einer Namensänderung unverändert.</p></div>
         <div class="formular-raster">
-          <label>Vereinsname<input bind:value={name} required maxlength="150" disabled={speichern} /></label>
-          <label>Vereinskürzel<input bind:value={kuerzel} maxlength="30" disabled={speichern} /></label>
+          <label>Vereinsname<input bind:value={name} required maxlength="150" disabled={speichern || logoArbeitet} /></label>
+          <label>Vereinskürzel<input bind:value={kuerzel} maxlength="30" disabled={speichern || logoArbeitet} /></label>
         </div>
       </section>
       <section class="karte">
         <div class="abschnitt-titel"><h2>Adresse</h2><p class="beschreibung">Alle Adressfelder sind optional.</p></div>
         <div class="formular-raster">
-          <label>Strasse und Hausnummer<input bind:value={adresse.strasse} maxlength="150" disabled={speichern} /></label>
-          <label>PLZ<input bind:value={adresse.plz} maxlength="20" disabled={speichern} /></label>
-          <label>Ort<input bind:value={adresse.ort} maxlength="100" disabled={speichern} /></label>
+          <label>Strasse und Hausnummer<input bind:value={adresse.strasse} maxlength="150" disabled={speichern || logoArbeitet} /></label>
+          <label>PLZ<input bind:value={adresse.plz} maxlength="20" disabled={speichern || logoArbeitet} /></label>
+          <label>Ort<input bind:value={adresse.ort} maxlength="100" disabled={speichern || logoArbeitet} /></label>
         </div>
       </section>
       <section class="karte">
         <div class="abschnitt-titel"><h2>Kontaktinformationen</h2><p class="beschreibung">Öffentliche Kontaktdaten des Vereins, unabhängig von der Versandkonfiguration.</p></div>
         <div class="formular-raster">
-          <label>E-Mail<input type="email" bind:value={kontakt.email} maxlength="254" disabled={speichern} /></label>
-          <label>Telefon<input type="tel" bind:value={kontakt.telefon} maxlength="50" disabled={speichern} /></label>
-          <label>Website<input type="url" bind:value={kontakt.website} maxlength="500" placeholder="https://" disabled={speichern} /></label>
+          <label>E-Mail<input type="email" bind:value={kontakt.email} maxlength="254" disabled={speichern || logoArbeitet} /></label>
+          <label>Telefon<input type="tel" bind:value={kontakt.telefon} maxlength="50" disabled={speichern || logoArbeitet} /></label>
+          <label>Website<input type="url" bind:value={kontakt.website} maxlength="500" placeholder="https://" disabled={speichern || logoArbeitet} /></label>
         </div>
-        <div class="formular-aktionen"><button class="primaer" type="submit" disabled={speichern}>{speichern ? 'Speichert …' : 'Vereinseinstellungen speichern'}</button></div>
+        <div class="formular-aktionen"><button class="primaer" type="submit" disabled={speichern || logoArbeitet}>{speichern ? 'Speichert …' : 'Vereinseinstellungen speichern'}</button></div>
       </section>
     </form>
-    <section class="karte"><h2>Vereinslogo</h2>{#if logo}<img src={logo} alt="Vereinslogo" style="max-width:180px;max-height:120px;object-fit:contain" />{:else}<p class="beschreibung">Noch kein Vereinslogo hinterlegt.</p>{/if}</section>
+    <section class="karte">
+      <h2>Vereinslogo</h2>
+      <p class="beschreibung">JPG, PNG oder WebP, maximal 5 MB. Änderungen am Logo werden separat gespeichert.</p>
+      <div class="logo-raster">
+        <div><h3>Aktuelles Logo</h3><div class="logo-flaeche">{#if logo}<img src={logo} alt="Aktuelles Vereinslogo" />{:else}<p>Kein Logo hinterlegt.</p>{/if}</div></div>
+        {#if vorschau}<div><h3>Vorschau</h3><div class="logo-flaeche"><img src={vorschau} alt="Vorschau des ausgewählten Logos" /></div></div>{/if}
+      </div>
+      {#if page.data.demo}
+        <p class="beschreibung">Logoänderungen sind in der Demo deaktiviert.</p>
+      {:else}
+        <label>Neues Logo auswählen<input type="file" accept="image/jpeg,image/png,image/webp" bind:this={dateiInput} onchange={dateiWaehlen} disabled={logoArbeitet || speichern} /></label>
+        <div class="logo-aktionen">
+          <button class="primaer" onclick={() => logoAendern()} disabled={!logoDatei || logoArbeitet || speichern}>{logoArbeitet ? 'Bitte warten …' : logo ? 'Logo ersetzen' : 'Logo hochladen'}</button>
+          {#if logoDatei}<button class="sekundaer" onclick={auswahlLeeren} disabled={logoArbeitet}>Auswahl verwerfen</button>{/if}
+          {#if logo && !entfernenBestaetigen}<button class="sekundaer" onclick={() => entfernenBestaetigen = true} disabled={logoArbeitet || speichern}>Logo entfernen</button>{/if}
+        </div>
+        {#if entfernenBestaetigen}
+          <p>Vereinslogo wirklich entfernen? Historische Dokumente behalten ihre Logo-Referenz.</p>
+          <div class="logo-aktionen"><button class="sekundaer" onclick={() => entfernenBestaetigen = false} disabled={logoArbeitet}>Abbrechen</button><button class="gefahr" onclick={() => logoAendern(true)} disabled={logoArbeitet || speichern}>Entfernen bestätigen</button></div>
+        {/if}
+      {/if}
+    </section>
   {/if}
-  <section class="karte"><h2>E-Mail-Versand</h2><p class="beschreibung">Die Versandkonfiguration wird separat verwaltet.</p><p><a href="/mail-einstellungen">Zu den E-Mail-Einstellungen</a></p></section>
+  <section class="karte"><h2>E-Mail-Versand</h2><p class="beschreibung">Die Versandkonfiguration wird separat verwaltet.</p>{#if !page.data.demo}<p><a href="/mail-einstellungen">Zu den E-Mail-Einstellungen</a></p>{/if}</section>
 </div>
 <style>
   .zurueck {
@@ -247,4 +315,10 @@
       font-size: 19px;
     }
   }
+  .logo-raster { display:flex; flex-wrap:wrap; gap:24px; margin:20px 0; }
+  .logo-raster h3 { font-size:14px; }
+  .logo-flaeche { width:min(240px, 100%); min-height:140px; border:1px solid #e2e8f0; border-radius:8px; display:grid; place-items:center; padding:12px; color:#64748b; }
+  .logo-flaeche img { max-width:100%; max-height:140px; object-fit:contain; }
+  .logo-aktionen { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+  button.gefahr { background:#b91c1c; color:white; }
 </style>
