@@ -95,7 +95,7 @@ const date = offset => day(offset).toISOString().slice(0,10);
 const sales = [
  {key:'twint',name:'T-Shirt',size:'M',menge:2,direct:2,price:28,paid:true,payment:'twint',buyer:'Alex Muster'},
  {key:'bar',name:'Hoodie',size:'L',menge:1,direct:1,price:55,paid:true,payment:'bar',buyer:'Robin Muster'},
- {key:'bestellung',name:'Trainerjacke',size:'128',menge:2,direct:0,price:65,paid:false,payment:'rechnung',buyer:'Kim Muster'},
+ {key:'bestellung',name:'Trainerjacke',size:'128',menge:2,direct:0,price:65,paid:false,partial:30,payment:'rechnung',buyer:'Kim Muster'},
  {key:'gemischt',name:'Shorts',size:'140',menge:3,direct:1,price:35,paid:false,payment:'rechnung',buyer:'Noah Muster'},
  {key:'preis-offen',name:'Regenjacke',size:'S',menge:1,direct:0,price:null,paid:false,payment:'rechnung',buyer:'Mia Muster'}
 ];
@@ -129,7 +129,7 @@ try {
   }
   console.log('ausleihen: ' + clubs.reduce((n,c)=>n+c.loans.length,0) + ' vorgesehene Geschäftsvorfälle');
   console.log('vereinskleider_verkaeufe: '+clubs.reduce((n,c)=>n+c.sales.length,0)+' vorgesehene Geschäftsvorfälle');
-  console.log('vereinskleider_rechnungen: 6 vorgesehene Rechnungen');
+  console.log('vereinskleider_rechnungen: 8 vorgesehene Rechnungen');
   console.log('inventuren: 2 vorgesehene Inventur mit aktuellen Soll-Beständen');
   const resetCollections = ['clubdesk_mitglieder','lieferanten','riegen','ausleihen','vereine','schadensmeldungen','lagerbewegungen','kategorien','inventarbewertung_aufnahmen','artikelvarianten','rabattregeln','vereinskleider_preise','vereinskleider_rechnungen','benutzer','vereinskleider_gutschriften','vereinskleider_verkaeufe','artikel','clubdesk_gruppenzuordnungen','inventuren','einladungen','vereinskleider_sammelbestellungen','sessions','lagerorte','inventurpositionen','bildUploads','inventurprotokoll','vereinskleider_rechnungsnummern','groessen'];
   if(reset) {
@@ -209,10 +209,11 @@ try {
             if(menge) positionen.push({artikelId,groesseId,artikelname:sale.name,menge,einzelpreis:sale.price,...(sale.price===null?{preisOffen:true}:{}),positionsbetrag:menge*(sale.price??0),verkaufsart});
           }
           const endbetrag=sale.menge*(sale.price??0);
-          await db.collection('vereinskleider_verkaeufe').insertOne({_id,vereinId,verkaufsart:bestellMenge?(sale.direct?'gemischt':'bestellung'):'direkt',status:bestellMenge?'offen':'abgeschlossen',preisOffen:sale.price===null,offenePreispositionen:sale.price===null?1:0,direktMenge:sale.direct,bestellMenge,kaeufer:sale.buyer,riegen:['TI'],zahlungsart:sale.payment,zahlungsstatus:sale.price===null?'preis_offen':sale.paid?'bezahlt':'offen',bezahltBetrag:sale.paid?endbetrag:0,zahlungen:sale.paid?[{betrag:endbetrag,datum:now,zahlungsart:sale.payment}]:[],bemerkung:'Fiktiver DEV-Verkauf',positionen,rabatte:[],zusaetzlicherRabatt:0,zwischentotal:endbetrag,rabattTotal:0,endbetrag,restbetragBekannt:sale.paid?0:endbetrag,erstelltAm:now,aktualisiertAm:now},{session});
+          const bezahltBetrag=sale.paid?endbetrag:(sale.partial??0);
+          await db.collection('vereinskleider_verkaeufe').insertOne({_id,vereinId,verkaufsart:bestellMenge?(sale.direct?'gemischt':'bestellung'):'direkt',status:bestellMenge?'offen':'abgeschlossen',preisOffen:sale.price===null,offenePreispositionen:sale.price===null?1:0,direktMenge:sale.direct,bestellMenge,kaeufer:sale.buyer,riegen:['TI'],zahlungsart:sale.payment,zahlungsstatus:sale.price===null?'preis_offen':sale.paid?'bezahlt':bezahltBetrag>0?'teilweise_bezahlt':'offen',bezahltBetrag,zahlungen:bezahltBetrag>0?[{betrag:bezahltBetrag,datum:now,zahlungsart:sale.paid?sale.payment:'bar'}]:[],bemerkung:'Fiktiver DEV-Verkauf',positionen,rabatte:[],zusaetzlicherRabatt:0,zwischentotal:endbetrag,rabattTotal:0,endbetrag,restbetragBekannt:endbetrag-bezahltBetrag,erstelltAm:now,aktualisiertAm:now},{session});
           if(sale.direct) await db.collection('lagerbewegungen').insertOne({_id:id('sale-movement:'+sale.key),vereinId,artikelId,groesseId,art:'verkauf',mengeDelta:-sale.direct,zeitpunkt:now,artikelName:sale.name,groesseName:sale.size,benutzerName:'DEV admin',benutzerId:ref('benutzer','admin'),referenzId:_id.toHexString(),referenzTyp:'verkauf'},{session});
         }
-        for (const key of ['twint','bar','bestellung']) {
+        for (const key of ['twint','bar','bestellung','gemischt']) {
           const _id=id('dev-invoice:'+key);
           const invoices=db.collection('vereinskleider_rechnungen');
           const existing=await invoices.findOne({_id},{session});
@@ -230,7 +231,9 @@ try {
           const counter=await db.collection('vereinskleider_rechnungsnummern').findOneAndUpdate({_id:vereinId+':'+jahr},{$inc:{nummer:1},$setOnInsert:{vereinId,jahr}},{upsert:true,returnDocument:'after',session});
           if(!counter||!Number.isSafeInteger(counter.nummer)) throw new Error('Rechnungsnummer fehlt.');
           const status=v.bezahltBetrag===v.endbetrag?'bezahlt':v.bezahltBetrag>0?'teilweise_bezahlt':'offen';
-          await invoices.insertOne({_id,vereinId,verkaufId,rechnungsnummer:jahr+'-'+String(counter.nummer).padStart(5,'0'),empfaenger:v.kaeufer,riegen:v.riegen,zahlungsart:v.zahlungsart,bemerkung:v.bemerkung,positionen:v.positionen,rabatte:v.rabatte,zusaetzlicherRabatt:v.zusaetzlicherRabatt,zwischentotal:v.zwischentotal,rabattTotal:v.rabattTotal,gesamtbetrag:v.endbetrag,bezahltBetrag:v.bezahltBetrag,zahlungen:v.zahlungen,status,erstelltAm:now,aktualisiertAm:now,clubdeskExportStatus:'nicht_exportiert'},{session});
+          const verein=await db.collection('vereine').findOne({_id:clubId},{session});
+          const aussteller={name:verein.name,kuerzel:verein.kuerzel,adresse:verein.adresse??{strasse:'',plz:'',ort:''},kontakt:verein.kontakt??{email:'',telefon:'',website:''},logo:null};
+          await invoices.insertOne({_id,vereinId,verkaufId,aussteller,rechnungsnummer:jahr+'-'+String(counter.nummer).padStart(5,'0'),empfaenger:v.kaeufer,riegen:v.riegen,zahlungsart:v.zahlungsart,bemerkung:v.bemerkung,positionen:v.positionen,rabatte:v.rabatte,zusaetzlicherRabatt:v.zusaetzlicherRabatt,zwischentotal:v.zwischentotal,rabattTotal:v.rabattTotal,gesamtbetrag:v.endbetrag,bezahltBetrag:v.bezahltBetrag,zahlungen:v.zahlungen,status,erstelltAm:now,aktualisiertAm:now,clubdeskExportStatus:'nicht_exportiert'},{session});
           const result=await verkaeufe.updateOne({_id:v._id,vereinId,rechnungId:{$exists:false},trancheRechnungIds:{$exists:false}},{$set:{rechnungId:_id.toHexString(),aktualisiertAm:now}},{session});
           if(result.modifiedCount!==1) throw new Error('DEV-Rechnung: Verkaufsreferenz konnte nicht gespeichert werden.');
         }
