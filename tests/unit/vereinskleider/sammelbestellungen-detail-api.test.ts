@@ -263,3 +263,41 @@ describe('PATCH Sammelbestellung – Kundenreservierungen', () => {
     expect(body.zuordnungen.map((z: { menge: number }) => z.menge)).toEqual([2, 1]);
   });
 });
+
+describe('Wareneingang – weitere Reservierungsgrenzen', () => {
+ const eingang={aktion:'wareneingang',positionen:[{artikelId,groesseId:null,menge:2}]};
+ it.each([null,{}, {menge:'6'}, {menge:1.5}])('verweigert ungültigen Lagerbestand %#',async bestand=>{
+  mocks.artikelFindOne.mockResolvedValue(bestand);
+  await assertError(await call(eingang),409,'Lagerbestand');
+  expect(mocks.sammelUpdateOne).not.toHaveBeenCalled();
+ });
+ it('überspringt historische Vorgänge ohne Positionen',async()=>{
+  mocks.toArray.mockResolvedValue([{_id:new ObjectId()}]);
+  expect((await (await call(eingang)).json()).zuordnungen).toEqual([]);
+ });
+ it('reserviert nur passende Varianten und berücksichtigt fehlende Mengenfelder',async()=>{
+  mocks.sammelFindOne.mockResolvedValue(bestellung({positionen:[position({groesseId})]}));
+  const v={_id:new ObjectId(),positionen:[{artikelId,groesseId:null,menge:5,verkaufsart:'bestellung'},{artikelId,groesseId,menge:5,verkaufsart:'bestellung'}]};
+  mocks.toArray.mockResolvedValue([v]);
+  const res=await call({aktion:'wareneingang',positionen:[{artikelId,groesseId,menge:2}]});
+  expect(res.status).toBe(200);
+  expect((await res.json()).zuordnungen).toEqual([{vorgangId:v._id.toString(),positionsIndex:1,artikelId,groesseId,menge:2}]);
+ });
+ it('belässt die letzte Lagereinheit als Anprobierreserve',async()=>{
+  mocks.artikelFindOne.mockResolvedValue({menge:1});
+  mocks.toArray.mockResolvedValue([{_id:new ObjectId(),positionen:[{artikelId,groesseId:null,menge:5,verkaufsart:'bestellung'}]}]);
+  expect((await (await call(eingang)).json()).zuordnungen).toEqual([]);
+  expect(mocks.verkaufUpdateOne).not.toHaveBeenCalled();
+ });
+ it('schliesst Bestellung erst nach Lieferung aller Positionen ab',async()=>{
+  mocks.sammelFindOne.mockResolvedValue(bestellung({positionen:[position({menge:2}),position({groesseId,menge:2})]}));
+  const res=await call(eingang);
+  expect((await res.json()).vollstaendig).toBe(false);
+ });
+ it('verbucht mehrere Positionen gemeinsam',async()=>{
+  mocks.sammelFindOne.mockResolvedValue(bestellung({positionen:[position({menge:2}),position({groesseId,menge:2})]}));
+  const res=await call({aktion:'wareneingang',positionen:[...eingang.positionen,{artikelId,groesseId,menge:2}]});
+  expect((await res.json()).vollstaendig).toBe(true);
+  expect(mocks.journalInsertOne).toHaveBeenCalledTimes(2);
+ });
+});

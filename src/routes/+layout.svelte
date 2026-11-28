@@ -6,7 +6,7 @@
   import { setzeBestaetigung } from '../lib/bestaetigung';
   import { erstelleRollenVorschau, type Rolle } from '../lib/rollenVorschau.svelte';
 
-  let { children, data }: { children: Snippet; data: { demo?: boolean; benutzer: App.Locals['benutzer']; sessionFristen?: { absolut: number; inaktiv: number } } } = $props();
+  let { children, data }: { children: Snippet; data: { demo?: boolean; verein?: { name: string; logo: string | null } | null; benutzer: App.Locals['benutzer']; sessionFristen?: { absolut: number; inaktiv: number } } } = $props();
   const rollenVorschau = erstelleRollenVorschau();
   let bestaetigungsDialog: HTMLDialogElement;
   let anfrage = $state<{ text: string; aktion: string; kritisch: boolean } | null>(null);
@@ -52,10 +52,11 @@
     { titel:'Inventarbewertung', link:'/inventarbewertung', rollen:['admin','materialverantwortlich'] },
     { titel:'Schadensmeldungen', link:'/meldungen', rollen:['admin','materialverantwortlich','leiter','mitglied'] },
     { titel:'Stammdaten', link:'/stammdaten', rollen:['admin','materialverantwortlich'] },
-    { titel:'Benutzerverwaltung', link:'/benutzer', rollen:['admin'] },
-    { titel:'E-Mail-Einstellungen', link:'/mail-einstellungen', rollen:['admin'] }
+    { titel:'Administration', link:'/administration', rollen:['admin'] }
   ];
   const sichtbareNavigation = $derived(navigation.filter((n)=>n.rollen.includes(angezeigteRolle) && (!data.demo || n.link !== '/mail-einstellungen')));
+  const adminLinks = ['/benutzer', '/vereinseinstellungen', '/mail-einstellungen'];
+  const adminAktiv = $derived(adminLinks.some(link => page.url.pathname === link || page.url.pathname.startsWith(link + '/')));
   const istOeffentlicheSeite = $derived(page.url.pathname==='/' || page.url.pathname==='/anmelden' || page.url.pathname==='/registrieren' || page.url.pathname==='/funktionen' || page.url.pathname==='/docs' || page.url.pathname.startsWith('/docs/'));
   const navigationAnzeigen = $derived(!istOeffentlicheSeite && !!data.benutzer);
   let fristen = $state<{ absolut: number; inaktiv: number } | undefined>(undefined);
@@ -145,7 +146,15 @@
 <div class="app">
   {#if data.demo}<div class="demo-banner">DEMO-UMGEBUNG – Ausschliesslich fiktive Testdaten. Externe Integrationen sind deaktiviert.</div>{/if}
   <header>
-    <a href="/" class="brand"><span class="logo">📦</span><span class="brand-name">ClubMatiq</span></a>
+    <div class="header-marken">
+      <a href="/" class="brand"><span class="logo">📦</span><span class="brand-name">ClubMatiq</span></a>
+      {#if !istOeffentlicheSeite && data.benutzer && data.verein}
+        <div class="vereinsmarke">
+          {#if data.verein.logo}<img src={data.verein.logo} alt="" />{/if}
+          <span>{data.verein.name}</span>
+        </div>
+      {/if}
+    </div>
     <div class="header-rechts">
       {#if istOeffentlicheSeite}
         <div class="public-links"><a href="/#funktionen">Funktionen</a><a href="/docs">Dokumentation</a>{#if data.benutzer}<a class="login" href="/dashboard">Dashboard →</a>{:else}<a href="/anmelden">Anmelden</a><a class="login" href="/registrieren">Registrieren →</a>{/if}</div>
@@ -159,7 +168,7 @@
   </header>
   {#if logoutFehler}<div class="logout-fehler" role="alert">{logoutFehler}</div>{/if}
   {#if vorschauAktiv && !istOeffentlicheSeite}<div class="vorschau-banner"><span>👁️ Vorschau als <strong>{rollenNamen[angezeigteRolle]}</strong> – Du bleibst Administrator.</span><button onclick={()=>rollenVorschau.zuruecksetzen()}>Vorschau beenden</button></div>{/if}
-  {#if navigationAnzeigen}<nav aria-label="Hauptnavigation">{#each sichtbareNavigation as eintrag (eintrag.link)}<a href={eintrag.link} class:active={page.url.pathname === '/inventar/neu' ? eintrag.link === '/stammdaten' : page.url.pathname===eintrag.link || page.url.pathname.startsWith(eintrag.link+'/')}>{eintrag.titel}</a>{/each}</nav>{/if}
+  {#if navigationAnzeigen}<nav aria-label="Hauptnavigation">{#each sichtbareNavigation as eintrag (eintrag.link)}<a href={eintrag.link} class:active={page.url.pathname === '/inventar/neu' ? eintrag.link === '/stammdaten' : page.url.pathname===eintrag.link || page.url.pathname.startsWith(eintrag.link+'/') || (eintrag.link === '/administration' && adminAktiv)}>{eintrag.titel}</a>{/each}</nav>{/if}
   <div class="content" class:auth-content={page.url.pathname==='/anmelden' || page.url.pathname==='/registrieren'}>{@render children()}</div>
     <footer>
     <span>
@@ -198,5 +207,9 @@
 
 .session-overlay{position:fixed;inset:0;background:#172b4d88;display:grid;place-items:center;z-index:1000;padding:16px}.session-dialog{background:white;border-radius:14px;padding:24px;width:min(440px,100%);box-shadow:0 12px 40px #0003}.session-countdown{text-align:center;font-size:36px;font-weight:700;font-variant-numeric:tabular-nums;margin:20px}.session-aktionen{display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap}.session-aktionen button{padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;background:white;cursor:pointer}.session-aktionen .session-weiter{background:#2563eb;color:white;border-color:#2563eb}
 
- :global(body){margin:0;font-family:Arial,sans-serif;background:#f8fafc;color:#1e293b}:global(*){box-sizing:border-box}.app{min-height:100vh;display:flex;flex-direction:column}header{background:#172b4d;color:white;padding:17px 40px;display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:white}.brand-name{font-size:23px;font-weight:800}.logo{font-size:28px}.header-rechts,.public-links{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.public-links a,.hilfe-link{color:#cbd5e1;text-decoration:none;font-size:14px}.public-links a:hover,.hilfe-link:hover{color:white}.public-links .login{background:#2563eb;color:white;border-radius:9px;padding:11px 15px;font-weight:700}.rollenwechsel{display:flex;flex-direction:column;gap:5px}.rollenwechsel label{color:#cbd5e1;font-size:11px}.rollenwechsel select{background:#334155;color:white;border:1px solid #64748b;border-radius:8px;padding:8px}.benutzer-info{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.benutzer-name{font-size:14px;font-weight:600}.benutzer-rolle{font-size:12px;color:#cbd5e1}.logout-button{background:transparent;color:white;border:1px solid #64748b;border-radius:8px;padding:10px 14px;cursor:pointer}.logout-fehler{background:#fef2f2;color:#b91c1c;padding:12px 40px}.vorschau-banner{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 40px;background:#dbeafe;color:#1e40af;font-size:13px}.vorschau-banner button{background:#2563eb;color:white;border:0;border-radius:8px;padding:9px 13px;cursor:pointer}nav{display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:13px 40px;background:white;border-bottom:1px solid #e2e8f0}nav a{text-decoration:none;color:#475569;padding:10px 12px;border-radius:8px;font-size:14px}nav a:hover{background:#f1f5f9}nav a.active{background:#dbeafe;color:#1d4ed8}.content{flex:1;padding:20px}.auth-content{padding:48px 20px}footer{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:24px 40px;border-top:1px solid #e2e8f0;background:white;color:#64748b;font-size:13px}footer div{display:flex;gap:20px}footer a{color:#475569;text-decoration:none}@media(max-width:900px){header{padding:16px 20px;flex-wrap:wrap}.header-rechts{gap:12px}.public-links{gap:12px}nav{padding:12px 20px}.content{padding:10px}.auth-content{padding:24px 12px}footer{padding:20px}.vorschau-banner{padding:12px 20px}}
+ :global(body){margin:0;font-family:Arial,sans-serif;background:#f8fafc;color:#1e293b}:global(*){box-sizing:border-box}.app{min-height:100vh;display:flex;flex-direction:column}header{background:#172b4d;color:white;padding:17px 40px;display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:white}.brand-name{font-size:28px;font-weight:800}.logo{font-size:32px}.header-rechts,.public-links{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.header-rechts{gap:32px}.public-links a,.hilfe-link{color:#cbd5e1;text-decoration:none;font-size:16px}.public-links a:hover,.hilfe-link:hover{color:white}.public-links .login{background:#2563eb;color:white;border-radius:9px;padding:11px 15px;font-weight:700}.rollenwechsel{display:flex;flex-direction:column;gap:7px}.rollenwechsel label{color:#cbd5e1;font-size:14px}.rollenwechsel select{min-width:200px;font-size:16px;background:#334155;color:white;border:1px solid #64748b;border-radius:8px;padding:8px}.benutzer-info{display:flex;flex-direction:column;align-items:flex-start;gap:6px;border-left:1px solid #64748b;padding-left:24px}.benutzer-name{font-size:17px;font-weight:600}.benutzer-rolle{font-size:14px;color:#cbd5e1}.logout-button{font-size:16px;background:transparent;color:white;border:1px solid #64748b;border-radius:8px;padding:12px 20px;cursor:pointer}.logout-fehler{background:#fef2f2;color:#b91c1c;padding:12px 40px}.vorschau-banner{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 40px;background:#dbeafe;color:#1e40af;font-size:13px}.vorschau-banner button{background:#2563eb;color:white;border:0;border-radius:8px;padding:9px 13px;cursor:pointer}nav{display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:13px 40px;background:white;border-bottom:1px solid #e2e8f0}nav a{text-decoration:none;color:#475569;padding:10px 12px;border-radius:8px;font-size:14px}nav a:hover{background:#f1f5f9}nav a.active{background:#dbeafe;color:#1d4ed8}.content{flex:1;padding:20px}.auth-content{padding:48px 20px}footer{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:24px 40px;border-top:1px solid #e2e8f0;background:white;color:#64748b;font-size:13px}footer div{display:flex;gap:20px}footer a{color:#475569;text-decoration:none}@media(max-width:900px){header{padding:16px 20px;flex-wrap:wrap}.header-rechts{gap:18px}.benutzer-info{padding-left:12px}.rollenwechsel select{min-width:160px}.public-links{gap:12px}nav{padding:12px 20px}.content{padding:10px}.auth-content{padding:24px 12px}footer{padding:20px}.vorschau-banner{padding:12px 20px}}
+  .header-marken{display:flex;align-items:center;gap:16px;flex-wrap:wrap;min-width:0}
+  .vereinsmarke{display:flex;align-items:center;gap:10px;border-left:1px solid #64748b;padding-left:16px;min-width:0;font-size:20px;font-weight:600;overflow-wrap:anywhere}
+  .vereinsmarke img{width:48px;height:48px;object-fit:contain;background:white;border-radius:6px;padding:3px;flex-shrink:0}
+  @media(max-width:650px){.header-marken{gap:10px}.vereinsmarke{padding-left:10px}}
 </style>

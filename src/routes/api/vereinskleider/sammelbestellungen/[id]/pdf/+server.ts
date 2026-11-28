@@ -4,6 +4,9 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf
 import { db } from '../../../../../../lib/server/mongodb';
 import { pruefeBerechtigung } from '../../../../../../lib/server/berechtigungen';
 
+import { zeichneVereinsprofil } from '../../../../../../lib/server/pdf-vereinsprofil';
+import { erstelleAusstellerdaten } from '../../../../../../lib/server/vereinseinstellungen';
+
 type Position = { artikelId: string; groesseId: string | null; artikelname: string; menge: number };
 type Bestellung = {
   vereinId: string;
@@ -113,7 +116,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
     neueSeite();
     zeile('Bestellung', { bold: true, size: 22 });
-    zeile(vereinsname, { bold: true, size: 13 });
+    y = await zeichneVereinsprofil(pdf, seite, erstelleAusstellerdaten({ ...verein, name: vereinsname }), normal, fett, rand, y, breite - 2 * rand, pdfText);
     y -= 5;
     zeile(`Bestellnummer: ${bestellung._id.toString().slice(-8).toUpperCase()}`);
     zeile(`Lieferant: ${lieferantName}`, { bold: true });

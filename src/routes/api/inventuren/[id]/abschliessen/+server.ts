@@ -5,6 +5,8 @@ import { pruefeBerechtigung } from '../../../../../lib/server/berechtigungen';
 import type { RequestHandler } from './$types';
 import { protokolliereLagerbewegung } from '../../../../../lib/server/lagerbewegungen';
 
+import { erstelleAusstellerdaten } from '../../../../../lib/server/vereinseinstellungen';
+
 export const POST: RequestHandler = async ({ params, locals }) => {
   const berechtigungsfehler = pruefeBerechtigung(
     locals.benutzer,
@@ -158,6 +160,8 @@ export const POST: RequestHandler = async ({ params, locals }) => {
         anzahlKorrekturen++;
       }
 
+      const verein = ObjectId.isValid(vereinId) ? await db.collection('vereine').findOne({ _id: new ObjectId(vereinId) }, { session }) : null;
+      const aussteller = erstelleAusstellerdaten(verein);
       const jetzt = new Date();
       const versionVorher = inventur.version ?? 0;
       const abschluss = await db.collection('inventuren').updateOne(
@@ -172,6 +176,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
         {
           $set: {
             status: 'abgeschlossen',
+            aussteller,
             abgeschlossenAm: jetzt,
             abgeschlossenVon: locals.benutzer!.id,
             anzahlKorrekturen,
@@ -191,6 +196,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
           vereinId,
           inventurId,
           aktion: 'abgeschlossen',
+          aussteller,
           ausgefuehrtAm: jetzt,
           ausgefuehrtVon: locals.benutzer!.id,
           anzahlPositionen: positionen.length,

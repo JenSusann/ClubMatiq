@@ -201,6 +201,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         if (update.modifiedCount !== 1) throw new Stornierungsfehler('Verkauf wurde geändert.', 409);
         const gutschrift = new ObjectId();
         await db.collection('vereinskleider_gutschriften').insertOne({
+          ...(rechnung.aussteller ? { aussteller: rechnung.aussteller } : {}),
           _id: gutschrift, vereinId, verkaufId: verkaufId.toString(),
           rechnungId: rechnung._id.toString(), rechnungsnummer: rechnung.rechnungsnummer,
           gutschriftnummer: `GS-${gutschrift.toString().slice(-12).toUpperCase()}`,
@@ -253,6 +254,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             const gs = new ObjectId();
             gutschriftId = gs.toString();
             await db.collection('vereinskleider_gutschriften').insertOne({
+              ...(rechnung.aussteller ? { aussteller: rechnung.aussteller } : {}),
               _id: gs, vereinId, verkaufId: verkaufId.toString(), rechnungId: rechnung._id.toString(),
               rechnungsnummer: rechnung.rechnungsnummer, gutschriftnummer: `GS-${gs.toString().slice(-12).toUpperCase()}`,
               positionsIndex: index, artikelId: p.artikelId, groesseId: p.groesseId, artikelname: p.artikelname ?? '',
@@ -367,6 +369,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             const gs = new ObjectId();
             gutschriftId = gs.toString();
             await db.collection('vereinskleider_gutschriften').insertOne({
+              ...(rechnung.aussteller ? { aussteller: rechnung.aussteller } : {}),
               _id: gs, vereinId, verkaufId: verkaufId.toString(), rechnungId: rechnung._id.toString(),
               rechnungsnummer: rechnung.rechnungsnummer, gutschriftnummer: `GS-${gs.toString().slice(-12).toUpperCase()}`,
               positionsIndex: index, artikelId: p.artikelId, groesseId: p.groesseId, artikelname: p.artikelname ?? '',
@@ -488,6 +491,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         const gutschrift = new ObjectId();
         gutschriftId = gutschrift.toString();
         await db.collection('vereinskleider_gutschriften').insertOne({
+          ...(rechnung.aussteller ? { aussteller: rechnung.aussteller } : {}),
           _id: gutschrift, vereinId, verkaufId: verkaufId.toString(),
           rechnungId: rechnung._id.toString(), rechnungsnummer: rechnung.rechnungsnummer,
           gutschriftnummer: `GS-${gutschrift.toString().slice(-12).toUpperCase()}`,

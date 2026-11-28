@@ -99,3 +99,43 @@ describe('Inventur-Korrekturhistorie',()=>{
 });
 
 });
+
+
+describe('Inventur-Stornierung – historische Daten und Varianten',()=>{
+ it('verwirft syntaktisch ungültiges JSON vor Transaktionsbeginn',async()=>{
+  const c=setup();
+  const e=context();e.request=new Request('http://localhost',{method:'POST',body:'{'});
+  expect((await POST(e)).status).toBe(400);
+  expect(c.inventuren.findOne).not.toHaveBeenCalled();
+  expect(m.session.withTransaction).not.toHaveBeenCalled();
+ });
+ it('storniert historische Inventur ohne Versions- und Zählerfelder',async()=>{
+  const c=setup();c.inventuren.findOne.mockResolvedValue({status:'abgeschlossen'});
+  expect((await run()).status).toBe(200);
+  expect(c.inventurprotokoll.insertOne).toHaveBeenCalledWith(expect.objectContaining({versionVorher:0,versionNachher:1}),{session:m.session});
+ });
+ it('überspringt Varianten mit saldiertem Null-Delta',async()=>{
+  const c=setup('abgeschlossen',[pos({groesseId:size}),pos({_id:new ObjectId(),groesseId:size,sollBestand:7,istBestand:10})]);
+  const res=await run();expect(res.status).toBe(200);
+  expect(c.artikelvarianten.updateOne).not.toHaveBeenCalled();
+  expect(c.artikel.updateOne).not.toHaveBeenCalled();
+  expect(c.lagerbewegungen.insertOne).not.toHaveBeenCalled();
+  expect((await res.json()).anzahlRueckbuchungen).toBe(2);
+ });
+ it('sichert negative Varianten-Deltas gegen ungenügenden Bestand ab',async()=>{
+  const c=setup('abgeschlossen',[pos({groesseId:size,sollBestand:4,istBestand:7})]);
+  expect((await run()).status).toBe(200);
+  expect(c.artikelvarianten.updateOne).toHaveBeenCalledWith({vereinId:'v1',artikelId:article,groesseId:size,menge:{$gte:3}},{$inc:{menge:-3}},{session:m.session});
+ });
+ it('akzeptiert eine lückenlose mehrstufige Korrekturhistorie',async()=>{
+  const c=setup('abgeschlossen',[pos()],[{positionId:positionId.toString(),alterIstBestand:9,neuerIstBestand:8,differenz:-1},{positionId:positionId.toString(),alterIstBestand:8,neuerIstBestand:7,differenz:-1}]);
+  expect((await run()).status).toBe(200);
+  expect(c.artikel.updateOne).toHaveBeenCalledWith(expect.objectContaining({vereinId:'v1'}),{$inc:{menge:3}},{session:m.session});
+ });
+ it.each([{artikelId:42},{groesseId:42},{istBestand:7.5}])('verweigert beschädigte Positionsdaten %#',async patch=>{
+  const c=setup('abgeschlossen',[pos(patch)]);
+  expect((await run()).status).toBe(409);
+  expect(c.artikel.updateOne).not.toHaveBeenCalled();
+  expect(c.artikelvarianten.updateOne).not.toHaveBeenCalled();
+ });
+});

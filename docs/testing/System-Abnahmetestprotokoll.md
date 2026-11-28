@@ -956,3 +956,60 @@ Veröffentlichter Stand: d2c2d1e, Netlify, 16:45 Uhr. Automatische Builds gestop
 ## Historischer Übernahmehinweis – Coverage-Paket 7
 
 Zusätzliche Integrationstests für Sammelbestellungen, Gesamt-PDF und Excel-Export wurden auf den Quellcode vom 20.11.2026 abgestimmt. Bei Erstellung des Übernahmepakets war keine lokale Vitest-Ausführung möglich; dies ist kein aktueller Testnachweis. Der damalige Übernahmehinweis verwies auf `tests/integration/coverage-p7/` und `npm run test:integration`. Die Export-API erzeugt XLSX (ExcelJS), nicht CSV.
+
+## Issue #76 – Vereinsbezogene Einstellungen und Vereinslogo (28.11.2026)
+
+Manuelle Abnahme auf `feature/76-vereinseinstellungen`, Zielversion 2.0.0, gemäss Einzelbestätigung der Entwicklerin.
+
+| Test-ID | Prüfung | Ergebnis |
+|---|---|---|
+| ST-76-01 | Administration | Bestanden |
+| ST-76-02 | Navigation | Bestanden |
+| ST-76-03 | Vereinsdaten | Bestanden |
+| ST-76-04 | Validierung | Bestanden |
+| ST-76-05 | Kontaktdaten | Bestanden |
+| ST-76-06 | Logo-Upload | Bestanden |
+| ST-76-07 | Logo-Validierung | Bestanden |
+| ST-76-08 | Logo ersetzen | Bestanden |
+| ST-76-09 | Logo entfernen | Bestanden |
+| ST-76-10 | Kopfzeile | Bestanden |
+| ST-76-11 | Rechnungs-PDF | Bestanden |
+| ST-76-12 | Quittungs-PDF | Bestanden |
+| ST-76-13 | Gutschriften-PDF | Bestanden |
+| ST-76-14 | Sammelbestellungen | Bestanden |
+| ST-76-15 | Inventurbericht | Bestanden |
+| ST-76-16 | Historische Belege | Bestanden |
+| ST-76-17 | Referenzintegrität | Bestanden |
+| ST-76-18 | Abwärtskompatibilität | Bestanden |
+| ST-76-19 | E-Mail-Einstellungen | Bestanden |
+| ST-76-20 | Zugriffsschutz | Bestanden |
+| ST-76-21 | Hilfedokumentation | Bestanden |
+| ST-76-22 | Demo-Version | Bestanden |
+
+**Ergebnis:** 22/22 manuelle Tests bestanden. Zusätzlich 73 neue Unit-Tests und 6 MongoDB-Integrationstests gemäss lokaler Rückmeldung erfolgreich (101/101 neue Testnachweise insgesamt). Vollständiger lokaler Testlauf mit kombinierter Coverage:
+
+| Kennzahl | Total | Abgedeckt | Coverage |
+|---|---:|---:|---:|
+| Statements | 5952 | 5837 | 98.06 % |
+| Branches | 5893 | 5592 | 94.89 % |
+| Functions | 723 | 690 | 95.43 % |
+| Lines | 5153 | 5097 | 98.91 % |
+
+Der reale Logo-Upload scheiterte zunächst lokal mit `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`. Nach Aktivierung des Windows-Systemzertifikatsspeichers für Node.js (`NODE_USE_SYSTEM_CA=1`) war der Upload gemäss Entwicklerin erfolgreich. Die TLS-Prüfung blieb aktiviert; keine Codeänderung erforderlich.
+
+**Abgrenzung zum ursprünglichen Abnahmestand:** Historische Rechnungen und Gutschriften wurden manuell bestätigt. Anschliessend wurde die historische Darstellung abgeschlossener Inventuren ergänzt.
+
+### Technische Schlussprüfung und Coverage-Referenz
+
+Beim Inventurabschluss werden Ausstellerdaten in Inventur und Abschlussprotokoll gespeichert. Abgeschlossene Inventuren verwenden diese historischen Daten; offene Inventuren und Sammelbestellungen verwenden das aktuelle Profil. Bei älteren abgeschlossenen Inventuren ohne Snapshot gilt der gesicherte Stand vor der ersten Profiländerung, soweit vorhanden, sonst das aktuelle Profil. Eine exakte Rekonstruktion nicht gespeicherter historischer Daten ist nicht möglich. Automatisierte PDF-Regressionstests wurden ergänzt; eine erneute manuelle Abnahme der nachträglichen Inventuränderung ist nicht separat dokumentiert.
+
+Letzter übermittelter kombinierter Coverage-Bericht vom 28.11.2026:
+
+| Kennzahl | Total | Abgedeckt | Coverage |
+|---|---:|---:|---:|
+| Statements | 5954 | 5877 | 98.70 % |
+| Branches | 5906 | 5720 | 96.85 % |
+| Functions | 723 | 699 | 96.68 % |
+| Lines | 5155 | 5124 | 99.39 % |
+
+Alle vier Kennzahlen überschreiten das unveränderte Quality Gate von 95 %. Weitere reine Coverage-Optimierungen werden vorerst zurückgestellt. CI-Nachweis und Merge in `develop/v2.0.0` stehen noch aus. Keine produktive Freigabe behauptet.

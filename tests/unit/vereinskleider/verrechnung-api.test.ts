@@ -10,7 +10,7 @@ const m = vi.hoisted(() => {
   return { collections, collection, session, permission: vi.fn<() => Response | null>(() => null) };
 });
 vi.mock('@sveltejs/kit', () => ({ json: (body: any, init?: any) => new Response(JSON.stringify(body), { status: init?.status ?? 200, headers: { 'content-type': 'application/json' } }) }));
-vi.mock('mongodb', () => ({ ObjectId: class { value: string; constructor(v?: string) { this.value = v ?? 'aaaaaaaaaaaaaaaaaaaaaaaa'; } toString() { return this.value; } } }));
+vi.mock('mongodb', () => ({ ObjectId: class { static isValid(v: unknown) { return typeof v === 'string' && /^[a-f0-9]{24}$/i.test(v); } value: string; constructor(v?: string) { this.value = v ?? 'aaaaaaaaaaaaaaaaaaaaaaaa'; } toString() { return this.value; } } }));
 vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: m.collection }, client: { startSession: () => m.session } }));
 vi.mock('../../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: m.permission }));
 import { GET, POST } from '../../../src/routes/api/vereinskleider/verrechnung/+server';
@@ -163,4 +163,18 @@ describe('Verrechnung nach Stornierung (#48 #118)', () => {
    expect((await post({verkaufId:id})).status).toBe(201);
    expect(invoices().insertOne).toHaveBeenCalledWith(expect.objectContaining({gesamtbetrag:0,status:'bezahlt'}),expect.anything());
  });
+});
+
+it('speichert Ausstellerdaten des eigenen Vereins bei der Rechnungserstellung', async () => {
+  const vereinId = 'bbbbbbbbbbbbbbbbbbbbbbbb';
+  m.collection('vereine').findOne.mockResolvedValue({ name: 'Turnverein', adresse: { ort: 'Weiningen' } });
+  m.collection('vereinskleider_verkaeufe').findOne.mockResolvedValue({ ...sale(), vereinId });
+  m.collection('vereinskleider_rechnungsnummern').findOneAndUpdate.mockResolvedValue({ nummer: 1 });
+  m.collection('vereinskleider_verkaeufe').updateOne.mockResolvedValue({ modifiedCount: 1 });
+  const response = await POST({ locals: { benutzer: { vereinId } }, request: { json: async () => ({ verkaufId: id }) } } as never);
+  expect(response.status).toBe(201);
+  expect(m.collection('vereine').findOne).toHaveBeenCalledWith({ _id: expect.objectContaining({ value: vereinId }) }, { session: m.session });
+  expect(m.collection('vereinskleider_rechnungen').insertOne).toHaveBeenCalledWith(expect.objectContaining({
+    aussteller: expect.objectContaining({ name: 'Turnverein', adresse: { strasse: '', plz: '', ort: 'Weiningen' } })
+  }), expect.anything());
 });

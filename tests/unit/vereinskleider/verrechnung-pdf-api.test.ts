@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFPage } from 'pdf-lib';
 const m = vi.hoisted(() => ({ permission: vi.fn(), findOne: vi.fn(), find: vi.fn(), toArray: vi.fn() }));
 vi.mock('../../../src/lib/server/mongodb', () => ({ db: { collection: vi.fn((name: string) => ({ findOne: (...args: unknown[]) => m.findOne(name, ...args), find: (...args: unknown[]) => m.find(name, ...args) })) } }));
 vi.mock('../../../src/lib/server/berechtigungen', () => ({ pruefeBerechtigung: m.permission }));
@@ -32,4 +32,80 @@ describe('Rechnungs-, Quittungs- und Gutschrift-PDF',()=>{
  it('erstellt Gutschrift mit unbekannter Grösse',async()=>{setup(rechnung(),gutschrift());m.findOne.mockImplementation(async(name:string)=>name==='vereinskleider_rechnungen'?rechnung():name==='vereinskleider_gutschriften'?gutschrift():null);await pdf(await call(id,gid) as Response);});
  it('erstellt mehrseitige Rechnung mit langen Artikeln',async()=>{setup({...rechnung(),positionen:Array.from({length:50},(_,i)=>({artikelname:'Extrem langer Artikelname '.repeat(8)+i,groesseId:i%2?null:groesseId,menge:1,einzelpreis:1,positionsbetrag:1})),rabatte:Array.from({length:15},(_,i)=>({name:'Rabatt '+i,betrag:1}))});expect((await pdf(await call() as Response)).getPageCount()).toBeGreaterThan(1);});
  it('behandelt Datenbankfehler mit HTTP 500',async()=>{m.findOne.mockRejectedValue(new Error('offline'));expect((await call() as Response).status).toBe(500);});
+});
+
+describe('Verrechnungs-PDF – historische Aussteller und Randfälle', () => {
+  const club = { name: 'Aktueller Verein', ausstellerVorErsterAenderung: { name: 'Historischer Verein' } };
+  it.each([
+    [false, { name: 'Rechnung Alt' }, undefined, 'Rechnung Alt'],
+    [true, { name: 'Rechnung Alt' }, { name: 'Gutschrift Alt' }, 'Gutschrift Alt'],
+    [true, { name: 'Rechnung Alt' }, undefined, 'Rechnung Alt'],
+    [true, undefined, { name: 'Gutschrift Alt' }, 'Gutschrift Alt'],
+    [true, undefined, undefined, 'Historischer Verein'],
+    [false, undefined, undefined, 'Historischer Verein']
+  ] as const)('verwendet historischen Aussteller %#', async (credit, rechnungAussteller, gutschriftAussteller, erwartet) => {
+    m.findOne.mockImplementation(async (name: string) => name === 'vereinskleider_rechnungen'
+      ? { ...rechnung(), aussteller: rechnungAussteller } : name === 'vereinskleider_gutschriften'
+      ? { ...gutschrift(), aussteller: gutschriftAussteller } : name === 'vereine' ? club : { bezeichnung: 'M' });
+    const draw = vi.spyOn(PDFPage.prototype, 'drawText');
+    try {
+      await pdf(await call(id, credit ? gid : undefined) as Response);
+      const lines = draw.mock.calls.map(([value]) => value);
+      expect(lines).toContain(erwartet);
+      expect(lines).not.toContain('Aktueller Verein');
+      if (rechnungAussteller || gutschriftAussteller) expect(m.findOne.mock.calls.some(([name]) => name === 'vereine')).toBe(false);
+    } finally { draw.mockRestore(); }
+  });
+  it('verwendet gültige Vereins-ID auch bei alten Belegen', async () => {
+    await pdf(await GET({ params: { id }, locals: { benutzer: { vereinId: id } }, url: new URL('http://localhost/pdf') } as any) as Response);
+    expect(m.findOne).toHaveBeenCalledWith('vereine', { $or: [{ _id: new ObjectId(id) }, { vereinId: id }] });
+  });
+  it('verwendet gültige Vereins-ID bei alter Gutschrift', async () => {
+    await pdf(await GET({ params: { id }, locals: { benutzer: { vereinId: id } }, url: new URL('http://localhost/pdf?gutschriftId=' + gid) } as any) as Response);
+    expect(m.findOne).toHaveBeenCalledWith('vereine', { $or: [{ _id: new ObjectId(id) }, { vereinId: id }] });
+  });
+  it('zeigt fehlende Positionsdaten und unbekannte Grösse ohne Absturz', async () => {
+    setup({ ...rechnung(), positionen: [{ groesseId: 'ungueltig' }, { menge: 2, einzelpreis: 3 }], riegen: ['TI', 'TU'] });
+    const draw = vi.spyOn(PDFPage.prototype, 'drawText');
+    try {
+      await pdf(await call() as Response);
+      const lines = draw.mock.calls.map(([value]) => value);
+      expect(lines).toContain('Artikel (Unbekannt)');
+      expect(lines).toContain('CHF 6.00');
+      expect(lines).toContain('Riege: TI, TU');
+    } finally { draw.mockRestore(); }
+  });
+  it('filtert ungültige Zahlungen und zeigt alternative Zahlungsarten', async () => {
+    setup({ ...rechnung(), zahlungen: [
+      { betrag: '10', datum: '2026-11-01' }, { betrag: Infinity, datum: '2026-11-01' },
+      { betrag: 10, datum: 42 }, { betrag: 10, datum: new Date('2026-11-01'), zahlungsart: 'karte' },
+      { betrag: 5, datum: '2026-11-02' }, { betrag: 3, datum: '2026-11-03', zahlungsart: 'rechnung' }
+    ] });
+    const draw = vi.spyOn(PDFPage.prototype, 'drawText');
+    try {
+      await pdf(await call() as Response);
+      const lines = draw.mock.calls.map(([value]) => value);
+      expect(lines.some(line => line.endsWith('karte'))).toBe(true);
+      expect(lines.some(line => line.endsWith('Nicht angegeben'))).toBe(true);
+      expect(lines.some(line => line.endsWith('Rechnung / Ueberweisung'))).toBe(true);
+      expect(lines).not.toContain('CHF Infinity');
+    } finally { draw.mockRestore(); }
+  });
+  it('zeigt fehlenden Gutschriftgrund und ungültige Grössen-ID', async () => {
+    setup(rechnung(), { ...gutschrift(), grund: '', groesseId: 'alt' });
+    const draw = vi.spyOn(PDFPage.prototype, 'drawText');
+    try {
+      await pdf(await call(id, gid) as Response);
+      expect(draw.mock.calls.map(([value]) => value)).toEqual(expect.arrayContaining(['Nicht angegeben', 'Jacke (Unbekannt)']));
+    } finally { draw.mockRestore(); }
+  });
+  it('erstellt kostenlosen Beleg ohne Zahlungsaufforderung', async () => {
+    setup({ ...rechnung(), gesamtbetrag: 0, zwischentotal: 0, bezahltBetrag: undefined, zahlungsart: undefined });
+    const draw = vi.spyOn(PDFPage.prototype, 'drawText');
+    try {
+      await pdf(await call() as Response);
+      expect(draw.mock.calls.map(([value]) => value)).toContain('BEZAHLT');
+      expect(draw.mock.calls.map(([value]) => value)).not.toContain('Zahlungsinformationen');
+    } finally { draw.mockRestore(); }
+  });
 });

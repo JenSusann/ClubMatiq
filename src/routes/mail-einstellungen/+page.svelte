@@ -102,7 +102,9 @@
 </script>
 <Aktionsmeldung fehler={mailFehler} erfolg={mailErfolg} fehlerSchliessen={() => mailFehler = ''} erfolgSchliessen={() => mailErfolg = ''} />
 <svelte:head><title>E-Mail-Einstellungen | ClubMatiq</title></svelte:head>
-<div class="seite"><header class="kopf"><div><p class="untertitel">Administration</p><h1>E-Mail-Einstellungen</h1><p>Versandmethode des Vereins konfigurieren und testen – nur für Administratoren.</p></div></header><p style="margin-bottom:20px"><a href="/docs/e-mail-einstellungen">Ausführliche Einrichtungsanleitung →</a></p>
+<div class="seite">
+  <a href="/administration" class="zurueck">← Zurück zur Administration</a>
+<header class="kopf"><div><p class="untertitel">Administration</p><h1>E-Mail-Einstellungen</h1><p>Versandmethode des Vereins konfigurieren und testen – nur für Administratoren.</p></div></header><p style="margin-bottom:20px"><a href="/docs/e-mail-einstellungen">Ausführliche Einrichtungsanleitung →</a></p>
   <section class="karte">
     <div class="abschnitt-titel">
       <h2>Versandmethode des Vereins</h2>
@@ -161,6 +163,13 @@
 
 </div>
 <style>
+  .zurueck {
+    display: inline-block;
+    margin-bottom: 25px;
+    color: #64748b;
+    text-decoration: none;
+  }
+
   .seite {
     max-width: 1100px;
     margin: 0 auto;

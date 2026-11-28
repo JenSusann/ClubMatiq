@@ -31,3 +31,28 @@ describe('Issue #130 – Rabattverteilung', () => {
     expect(r.abschnitte.reduce((s,a)=>s+a.rabattRappen,0)).toBe(1);
   });
 });
+
+describe('Rabattverteilung – Grenzfälle', () => {
+  const regel = { ...regeln[2], art: 'betrag' as const, wert: 10 };
+  it('verteilt auf kostenlose Positionen ohne Division durch null', () => {
+    const r = verteileRabatte([{ menge: 2, einzelpreis: 0 }], [{ ...regel, passendeIndizes: [0] }]);
+    expect(r.totalRappen).toBe(0);
+    expect(r.abschnitte[0].rabattRappen).toBe(0);
+  });
+  it('ignoriert unbekannte und offene Positionen sowie doppelte Indizes', () => {
+    const r = verteileRabatte([{ menge: 2, einzelpreis: null }, { menge: 1, einzelpreis: 5 }], [{ ...regel, passendeIndizes: [0, 1, 1, 99] }]);
+    expect(r.totalRappen).toBe(500);
+    expect(r.abschnitte).toHaveLength(1);
+  });
+  it('begrenzt Rabatt auf explizite Höchstmenge', () => {
+    const r = verteileRabatte(positionen, [{ ...regel, maximaleMenge: 1 }]);
+    expect(r.abschnitte).toHaveLength(1);
+    expect(r.abschnitte[0].menge).toBe(1);
+  });
+  it('berechnet Prozentabzug rappengenau', () => {
+    expect(verteileRabatte([{ menge: 3, einzelpreis: 1.01 }], [{ ...regel, art: 'prozent', wert: 10, passendeIndizes: [0] }]).totalRappen).toBe(30);
+  });
+  it('erhöht Preis nicht bei höherem Fixpreis', () => {
+    expect(verteileRabatte([{ menge: 1, einzelpreis: 5 }], [{ ...regel, art: 'fixpreis', wert: 10, passendeIndizes: [0] }]).totalRappen).toBe(0);
+  });
+});

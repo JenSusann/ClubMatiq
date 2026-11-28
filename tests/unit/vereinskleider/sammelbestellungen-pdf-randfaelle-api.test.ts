@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFPage as PdfPageClass } from 'pdf-lib';
 
 const m = vi.hoisted(() => ({
   find: vi.fn(), findOne: vi.fn(), groessen: vi.fn(), lieferant: vi.fn(), verein: vi.fn(),
@@ -102,4 +102,57 @@ describe('Sammelbestellung Einzel-PDF', () => {
   it('behandelt Datenbankfehler', async () => { m.findOne.mockRejectedValue(new Error('DB offline')); await expect(singlePdfCall()).rejects.toMatchObject({ status: 500 }); });
 });
 
+});
+
+describe('Bestell-PDF – Vereinsprofil und Ausgabe', () => {
+  it.each(['einzeln', 'gesamt'])('zeigt aktuelles Vereinsprofil im PDF: %s', async art => {
+    m.verein.mockResolvedValue({ name: 'Aktueller TV', adresse: { ort: 'Weiningen' }, kontakt: { email: 'info@example.org' }, ausstellerVorErsterAenderung: { name: 'Alter TV' } });
+    const draw = vi.spyOn(PdfPageClass.prototype, 'drawText');
+    try {
+      const response = art === 'einzeln' ? await GET(ctxGet()) : await post();
+      expect(response.status).toBe(200);
+      const lines = draw.mock.calls.map(([value]) => value);
+      expect(lines).toContain('Aktueller TV');
+      expect(lines).not.toContain('Alter TV');
+      expect(lines.some(line => line.includes('info@example.org'))).toBe(true);
+      expect(m.verein).toHaveBeenCalledWith({ _id: new ObjectId(vereinId) });
+    } finally { draw.mockRestore(); }
+  });
+  it.each(['einzeln', 'gesamt'])('verarbeitet leere Artikel- und Grössenbezeichnungen: %s', async art => {
+    const order = bestellung({ positionen: [position({ artikelname: '' })] });
+    m.findOne.mockResolvedValue(order);
+    m.find.mockReturnValue({ toArray: async () => [order] });
+    m.groessen.mockReturnValue({ project: () => ({ toArray: async () => [{ _id: new ObjectId(groesse) }] }) });
+    const draw = vi.spyOn(PdfPageClass.prototype, 'drawText');
+    try {
+      expect((art === 'einzeln' ? await GET(ctxGet()) : await post()).status).toBe(200);
+      expect(draw.mock.calls.filter(([value]) => value === '-').length).toBeGreaterThanOrEqual(2);
+    } finally { draw.mockRestore(); }
+  });
+  it.each(['einzeln', 'gesamt'])('verarbeitet lange Wörter nach kurzem Wort: %s', async art => {
+    const order = bestellung({ positionen: [position({ artikelname: 'Kurz ' + 'W'.repeat(100) })] });
+    m.findOne.mockResolvedValue(order);
+    m.find.mockReturnValue({ toArray: async () => [order] });
+    const draw = vi.spyOn(PdfPageClass.prototype, 'drawText');
+    try {
+      expect((art === 'einzeln' ? await GET(ctxGet()) : await post()).status).toBe(200);
+      expect(draw.mock.calls.map(([value]) => value)).toContain('Kurz');
+    } finally { draw.mockRestore(); }
+  });
+  it('summiert gleiche Artikel getrennt nach Grösse', async () => {
+    m.find.mockReturnValue({ toArray: async () => [bestellung({ positionen: [position(), position({ menge: 3 }), position({ groesseId: null, menge: 7 })] })] });
+    const draw = vi.spyOn(PdfPageClass.prototype, 'drawText');
+    try {
+      expect((await post()).status).toBe(200);
+      const lines = draw.mock.calls.map(([value]) => value);
+      expect(lines).toEqual(expect.arrayContaining(['5', '7', 'Total: 12 Stück']));
+    } finally { draw.mockRestore(); }
+  });
+  it.each([null, [], 42, 'text'])('verwirft ungültigen JSON-Wurzelwert %#', async eingabe => {
+    await expect(POST({ ...ctxPost(), request: { json: async () => eingabe } } as any)).rejects.toMatchObject({ status: 400 });
+  });
+  it('verwirft numerische Artikel-ID', async () => {
+    m.find.mockReturnValue({ toArray: async () => [bestellung({ positionen: [position({ artikelId: 42 })] })] });
+    await expect(post()).rejects.toMatchObject({ status: 409 });
+  });
 });

@@ -357,3 +357,102 @@ describe('21-verkauf-zahlungsarten', () => {
     expect(mocks.insertOne).not.toHaveBeenCalled();
   });
 });
+
+describe('Stornierung – Integrität der Teilrechnungen', () => {
+  const trancheId = new ObjectId().toHexString();
+  const position = {artikelId:id,groesseId:null,verkaufsart:'bestellung',menge:2,einzelpreis:25,positionsbetrag:50};
+  const verkauf = {status:'offen',trancheRechnungIds:[trancheId],positionen:[position],rabattTotal:0,endbetrag:50,zwischentotal:50};
+  const eingabe = {verkaufId:id,positionsIndex:0,menge:1,grund:'Korrektur'};
+  it.each([{preisOffen:true},{menge:1.5},{einzelpreis:0.001},{positionsbetrag:-1},{uebergebenMenge:-1},{uebergebenMenge:1.5},{reserviertMenge:-1},{reserviertMenge:0.5},{reserviertMenge:3}])('verweigert inkonsistente Teilrechnungsposition %#',async patch=>{
+    mocks.findOne.mockResolvedValueOnce({...verkauf,positionen:[{...position,...patch}]});
+    expect((await route0.POST(event('POST',eingabe) as never)).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+  it.each([{rabatte:[{betrag:5}]},{zusaetzlicherRabatt:5},{rechnungId:trancheId}])('verweigert zusätzliche Rabatte oder Belege %#',async patch=>{
+    mocks.findOne.mockResolvedValueOnce({...verkauf,...patch});
+    expect((await route0.POST(event('POST',eingabe) as never)).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('verweigert fehlende Teilrechnung',async()=>{
+    mocks.findOne.mockResolvedValueOnce(verkauf);
+    expect((await route0.POST(event('POST',eingabe) as never)).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+  it('verweigert Teilrechnung mit fremder Referenz',async()=>{
+    mocks.findOne.mockResolvedValueOnce(verkauf);
+    mocks.find.mockReturnValueOnce({toArray:async()=>[{_id:new ObjectId()}]});
+    expect((await route0.POST(event('POST',eingabe) as never)).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+});
+
+describe('Stornierung – finanzielle Konsistenz der Teilrechnung', () => {
+  const rid = new ObjectId();
+  const p = {artikelId:id,groesseId:null,verkaufsart:'bestellung',menge:2,einzelpreis:25,positionsbetrag:50,positionsIndex:0};
+  const sale = {status:'offen',trancheRechnungIds:[rid.toHexString()],positionen:[p],rabattTotal:0,endbetrag:50,zwischentotal:50};
+  const invoice = {_id:rid,status:'offen',gesamtbetrag:50,bezahltBetrag:0,positionen:[p]};
+  const input = {verkaufId:id,positionsIndex:0,menge:1,grund:'Korrektur'};
+  async function reject(invoicePatch: Record<string,unknown>, salePatch: Record<string,unknown> = {}) {
+    mocks.findOne.mockResolvedValueOnce({...sale,...salePatch});
+    mocks.find.mockReturnValueOnce({toArray:async()=>[{...invoice,...invoicePatch}]});
+    expect((await route0.POST(event('POST',input) as never)).status).toBe(409);
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+    expect(mocks.journal).not.toHaveBeenCalled();
+  }
+  it.each([{status:'storniert'},{gesamtbetrag:-1},{bezahltBetrag:0.001},{gutgeschriebenBetrag:-1},{bezahltBetrag:51},{gutgeschriebenBetrag:51},{gutgeschriebenBetrag:30}])('verweigert inkonsistente Rechnungsbeträge oder Status %#',async patch=>{await reject(patch);});
+  it.each([{artikelId:new ObjectId().toHexString()},{groesseId:new ObjectId().toHexString()},{einzelpreis:24},{menge:1.5},{menge:0}])('verweigert abweichende Belegposition %#',async patch=>{await reject({positionen:[{...p,...patch}]});});
+  it('verweigert doppelte Positionszuordnung',async()=>{await reject({positionen:[p,p]});});
+  it('verweigert fehlende Positionszuordnung',async()=>{await reject({positionen:[]});});
+  it('verweigert Gutschrift oberhalb des Verkaufsendbetrags',async()=>{await reject({}, {endbetrag:20});});
+  it('verweigert Gutschrift oberhalb des Zwischentotals',async()=>{await reject({}, {zwischentotal:20});});
+  it('verweigert widersprüchlichen Positionsbetrag',async()=>{await reject({}, {positionen:[{...p,positionsbetrag:49}]});});
+});
+
+
+describe('Teilrechnungsstornierung – Status und historische Belege',()=>{
+ const rid=new ObjectId();
+ const p={artikelId:id,groesseId:null,verkaufsart:'bestellung',menge:2,einzelpreis:25,positionsbetrag:50,positionsIndex:0,reserviertMenge:1};
+ const input={verkaufId:id,positionsIndex:0,menge:1,grund:' Korrektur '};
+ const aussteller={name:'Historischer Verein'};
+ const invoice={_id:rid,status:'offen',gesamtbetrag:50,bezahltBetrag:0,positionen:[p],aussteller};
+ const sale={status:'offen',trancheRechnungIds:[rid.toHexString()],positionen:[p],rabattTotal:0,endbetrag:50,zwischentotal:50};
+ function setup(s:Record<string,unknown>={},b:Record<string,unknown>={}){
+  mocks.findOne.mockResolvedValueOnce({...sale,...s});
+  mocks.find.mockReturnValueOnce({toArray:async()=>[{...invoice,...b}]});
+ }
+ it.each([{bezahlt:10,status:'teilweise_bezahlt',refund:0},{bezahlt:25,status:'bezahlt',refund:0},{bezahlt:40,status:'bezahlt',refund:15}])('berechnet Rechnungsstatus und Rückerstattung %#',async({bezahlt,status,refund})=>{
+  setup({}, {bezahltBetrag:bezahlt});
+  const res=await route0.POST(event('POST',input) as never);
+  expect(res.status).toBe(200);
+  expect(mocks.updateOne).toHaveBeenNthCalledWith(1,expect.objectContaining({vereinId}),expect.objectContaining({$set:expect.objectContaining({status,rueckerstattungOffen:refund,gutgeschriebenBetrag:25})}),expect.anything());
+  expect(mocks.insertOne).toHaveBeenCalledWith(expect.objectContaining({aussteller,betrag:25,grund:'Korrektur',rechnungId:rid.toHexString()}),expect.anything());
+  expect((await res.json()).stornierung.freigegebeneReserve).toBe(1);
+ });
+ it('behält andere Positionen unverändert und schliesst vollständig übergebene Restmengen ab',async()=>{
+  const other={...p,artikelId:new ObjectId().toHexString(),verkaufsart:'direkt',menge:1,positionsbetrag:25,positionsIndex:1};
+  setup({positionen:[{...p,uebergebenMenge:1},other],endbetrag:75,zwischentotal:75});
+  const res=await route0.POST(event('POST',input) as never);
+  expect(res.status).toBe(200);
+  expect(mocks.updateOne).toHaveBeenNthCalledWith(2,expect.objectContaining({vereinId}),expect.objectContaining({$set:expect.objectContaining({status:'abgeschlossen',positionen:[expect.objectContaining({menge:1,reserviertMenge:0}),other],endbetrag:50})}),expect.anything());
+ });
+ it('berücksichtigt bereits gutgeschriebene und stornierte Mengen',async()=>{
+  setup({positionen:[{...p,menge:1,positionsbetrag:25,storniertMenge:1}],endbetrag:25,zwischentotal:25,stornierungen:[{positionsIndex:0,menge:1}]},{gutgeschriebenBetrag:25,bezahltBetrag:50});
+  const res=await route0.POST(event('POST',input) as never);
+  expect(res.status).toBe(200);
+  expect(mocks.updateOne).toHaveBeenNthCalledWith(1,expect.objectContaining({gutgeschriebenBetrag:25}),expect.objectContaining({$set:expect.objectContaining({status:'storniert',gutgeschriebenBetrag:50,rueckerstattungOffen:50})}),expect.anything());
+  expect((await res.json()).stornierung.status).toBe('storniert');
+ });
+ it('erstellt keine Gutschrift bei konkurrierender Verkaufsänderung',async()=>{
+  setup();
+  mocks.updateOne.mockResolvedValueOnce({modifiedCount:1}).mockResolvedValueOnce({modifiedCount:0});
+  expect((await route0.POST(event('POST',input) as never)).status).toBe(409);
+  expect(mocks.insertOne).not.toHaveBeenCalled();
+ });
+ it('verweigert fehlende historische Verkaufspositionen',async()=>{
+  setup({positionen:undefined});
+  expect((await route0.POST(event('POST',input) as never)).status).toBe(409);
+  expect(mocks.updateOne).not.toHaveBeenCalled();
+ });
+});

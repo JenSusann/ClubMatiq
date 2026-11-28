@@ -40,3 +40,30 @@ describe('Issue #130 – Rabattstornierung', () => {
     expect(()=>korrigiereRabattAbschnitte([...abschnitte,...abschnitte],0,2,1)).toThrow();
   });
 });
+
+describe('Rabattstornierung – Datenintegrität', () => {
+  const a = {positionsIndex:0,abStueck:0,menge:2,rabattRappen:101,regelId:'r'};
+  it.each([[1.5,1],[2,0.5],[2,0],[2,-1],[2,3]])('verwirft ungültige Mengen %#', (bisher,menge) => {
+    expect(()=>korrigiereRabattAbschnitte([a],0,bisher,menge)).toThrow('Ungültige Stornierungsmenge');
+  });
+  it.each([{abStueck:0.5},{menge:1.5},{rabattRappen:0.5},{abStueck:-1},{menge:0},{rabattRappen:-1},{menge:3}])('verwirft inkonsistenten Rabattabschnitt %#', patch => {
+    expect(()=>korrigiereRabattAbschnitte([{...a,...patch}],0,2,1)).toThrow('Ungültiger Rabattabschnitt');
+  });
+  it('summiert mehrere Abschnitte derselben Regel unabhängig von der Reihenfolge', () => {
+    const r=korrigiereRabattAbschnitte([{...a,abStueck:1,menge:1,rabattRappen:51},{...a,menge:1,rabattRappen:50}],0,2,2);
+    expect(r.rabattKorrektur).toBe(101);
+    expect(r.korrekturen.r).toBe(101);
+    expect(r.abschnitte).toEqual([]);
+  });
+  it('belässt fremde Positionen und unberührte Rabatte unverändert', () => {
+    const andere={...a,positionsIndex:1};
+    const r=korrigiereRabattAbschnitte([andere,{...a,menge:1}],0,2,1);
+    expect(r.abschnitte).toEqual([andere,{...a,menge:1}]);
+    expect(r.rabattKorrektur).toBe(0);
+  });
+  it('storniert Position ohne Rabatt ohne finanzielle Rabattkorrektur', () => {
+    const r=korrigiereRabattAbschnitte([],0,2,1);
+    expect(r.abschnitte).toEqual([]);
+    expect(r.rabattKorrektur).toBe(0);
+  });
+});
